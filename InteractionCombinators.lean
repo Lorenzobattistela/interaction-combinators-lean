@@ -21,5 +21,6 @@ import InteractionCombinators.Lafont.DuplicationExamples
 import InteractionCombinators.Lafont.Package
 import InteractionCombinators.Lafont.PackageCheck
 import InteractionCombinators.Lafont.DupWiring
+import InteractionCombinators.Lafont.Menu
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
