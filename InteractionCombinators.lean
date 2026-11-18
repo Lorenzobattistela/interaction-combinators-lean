@@ -5,6 +5,7 @@ import InteractionCombinators.Translation
 import InteractionCombinators.Rename
 import InteractionCombinators.RenameInj
 import InteractionCombinators.Instance
+import InteractionCombinators.RenameMany
 import InteractionCombinators.RenameStep
 import InteractionCombinators.Wanted
 import InteractionCombinators.Combinators
