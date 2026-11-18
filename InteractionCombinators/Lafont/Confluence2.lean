@@ -1,0 +1,360 @@
+import InteractionCombinators.Confluence
+
+/-!
+# Proposition 1: strong confluence
+
+Lafont 1997, Proposition 1, page 73: "If a net N reduces in one step to P and to P′, with P ≠ P′,
+then P and P′ reduce in one step to a common Q."
+
+`InteractionCombinators/Confluence.lean` treats two interactions on different active pairs
+(`Step.commute`). This file treats the same active pair fired twice, and assembles the
+proposition.
+
+The same active pair can be fired in two ways that differ in the text:
+* the new wires may get different names (`Rule.equiv_inst_same`);
+* the equation `α(as) = α(bs)` is unordered, so a rule `r` of `α` with itself can be read with
+  `as` and `bs` exchanged. The two results are the same graph because `r` is symmetric
+  (`System.WellFormed.symm`, page 73: "the rule for α, α must be symmetric"); see
+  `Rule.equiv_inst_swap`.
+
+The tool for the second point is `Rule.equiv_bind_args`: plugging trees into the auxiliary ports
+of two equivalent right-hand sides gives equivalent nets.
+
+* `Step.strong_confluence` — Proposition 1.
+-/
+
+namespace INet
+
+variable {S : Signature}
+
+open Term
+
+namespace Rule
+
+variable {a b k : ℕ}
+
+/-- The trees plugged into the names of a right-hand side: `as` into the ports of the first cell,
+`bs` into the ports of the second, and the name `f w` into the internal wire `w`. -/
+def args (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (f : Fin k → ℕ) :
+    Fin a ⊕ Fin b ⊕ Fin k → Term S ℕ :=
+  Sum.elim as (Sum.elim bs fun w => var (f w))
+
+theorem inst_eq_bind (r : Rule S a b) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ)
+    (f : Fin r.internal → ℕ) : r.inst as bs f = r.net.bind (args as bs f) := rfl
+
+end Rule
+
+/-- Plugging trees into the names of a tree commutes with plugging `t` into `x`, when `x` is sent
+to a name `n` that occurs in the image of no other name of the tree. -/
+theorem Term.bind_subst {ν : Type} [DecidableEq ν] (σ : ν → Term S ℕ) {x : ν} {n : ℕ}
+    (hn : σ x = var n) (t : Term S ν) :
+    ∀ r : Term S ν, (∀ y ∈ r.vars, y ≠ x → n ∉ (σ y).vars) →
+      (r.subst x t).bind σ = (r.bind σ).subst n (t.bind σ)
+  | var y, h => by
+    by_cases hy : y = x
+    · subst hy
+      simp [Term.subst, hn]
+    · have := h y (by simp) hy
+      simp only [Term.subst, bind_var, if_neg hy]
+      exact (subst_of_notMem this).symm
+  | app α ts, h => by
+    simp only [Term.subst, bind_app] at *
+    congr 1
+    funext i
+    exact Term.bind_subst σ hn t (ts i) fun y hy => h y
+      (by simp only [vars_app, Multiset.mem_sum, Finset.mem_univ, true_and]; exact ⟨i, hy⟩)
+
+/-- A wire substitution stays a wire substitution after plugging trees into the names and adding a
+context, provided every internal wire is sent to a name and the result is linear. -/
+theorem Wire.bind_add {ν : Type} [DecidableEq ν] {N M : Net S ν} (h : Wire N M)
+    (σ : ν → Term S ℕ) (Δ : Net S ℕ) (hσ : ∀ x, N.vars.count x = 2 → ∃ n, σ x = var n)
+    (hlin : (N.bind σ + Δ).Linear) : Wire (N.bind σ + Δ) (M.bind σ + Δ) := by
+  obtain ⟨x, t, a, b, Δ₀, hlinN, hx⟩ := h
+  set N : Net S ν := s(var x, t) ::ₘ s(a, b) ::ₘ Δ₀ with hNdef
+  have hc : N.vars.count x = 2 := by
+    have h2 := hlinN x
+    have h1 : 1 ≤ (a.vars + b.vars).count x := Multiset.one_le_count_iff_mem.2 hx
+    simp only [N, Net.vars_cons, eqVars_mk, vars_var, Multiset.count_add,
+      Multiset.count_singleton_self] at h2 h1 ⊢
+    omega
+  obtain ⟨n, hn⟩ := hσ x hc
+  -- `n` occurs in the image of no other name
+  have hfr : ∀ y ∈ N.vars, y ≠ x → n ∉ (σ y).vars := by
+    intro y hy hyx hny
+    have hle : x ::ₘ x ::ₘ {y} ≤ N.vars := by
+      rw [Multiset.le_iff_count]
+      intro z
+      by_cases hzx : z = x
+      · subst hzx
+        rw [Multiset.count_cons_self, Multiset.count_cons_self,
+          Multiset.count_singleton, if_neg (Ne.symm hyx), hc]
+      · rw [Multiset.count_cons_of_ne hzx, Multiset.count_cons_of_ne hzx,
+          Multiset.count_singleton]
+        split_ifs with hzy
+        · subst hzy; exact Multiset.one_le_count_iff_mem.2 hy
+        · exact Nat.zero_le _
+    obtain ⟨R, hR⟩ := Multiset.le_iff_exists_add.1 hle
+    have h2 := hlin n
+    rw [Net.vars_add, Net.vars_bind, hR, Multiset.add_bind] at h2
+    simp only [Multiset.cons_bind, Multiset.singleton_bind, hn, vars_var, Multiset.count_add,
+      Multiset.count_singleton_self] at h2
+    have := Multiset.one_le_count_iff_mem.2 hny
+    omega
+  have hmem : ∀ y ∈ a.vars + b.vars, y ∈ N.vars := fun y hy => by
+    simp only [N, Net.vars_cons, eqVars_mk, Multiset.mem_add] at hy ⊢
+    tauto
+  have ha := Term.bind_subst σ hn t a fun y hy => hfr y (hmem y (by simp [hy]))
+  have hb := Term.bind_subst σ hn t b fun y hy => hfr y (hmem y (by simp [hy]))
+  have hx' : n ∈ (a.bind σ).vars + (b.bind σ).vars := by
+    rw [vars_bind, vars_bind, ← Multiset.add_bind, Multiset.mem_bind]
+    exact ⟨x, hx, by simp [hn]⟩
+  have e : N.bind σ + Δ = s(var n, t.bind σ) ::ₘ s(a.bind σ, b.bind σ) ::ₘ (Δ₀.bind σ + Δ) := by
+    simp [N, Net.bind, hn]
+  have e' : Net.bind σ (s(a.subst x t, b.subst x t) ::ₘ Δ₀) + Δ =
+      s((a.bind σ).subst n (t.bind σ), (b.bind σ).subst n (t.bind σ)) ::ₘ (Δ₀.bind σ + Δ) := by
+    simp [Net.bind, ha, hb]
+  rw [e, e']
+  exact Wire.mk n _ _ _ _ (hlin.cast e) hx'
+
+namespace Rule
+
+variable {a b k : ℕ}
+
+/-- The shape of a right-hand side up to wires: linear, with each auxiliary port of the two cells
+occurring once. Internal wires occur twice or not at all. -/
+def PortShape (K : Net S (Fin a ⊕ Fin b ⊕ Fin k)) : Prop :=
+  K.Linear ∧ (∀ i, K.vars.count (.inl i) = 1) ∧ (∀ j, K.vars.count (.inr (.inl j)) = 1)
+
+theorem PortShape.of_equiv {K L : Net S (Fin a ⊕ Fin b ⊕ Fin k)} (h : Equiv K L)
+    (hK : PortShape K) : PortShape L :=
+  ⟨h.linear hK.1, fun i => (h.free_iff _).1 (hK.2.1 i), fun j => (h.free_iff _).1 (hK.2.2 j)⟩
+
+/-- The names of an instance of a net of the shape of a right-hand side are bounded by those of
+the trees plugged into the ports and two ends for each internal wire. -/
+theorem count_vars_bind_args_le {K : Net S (Fin a ⊕ Fin b ⊕ Fin k)} (hK : PortShape K)
+    (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (f : Fin k → ℕ) (y : ℕ) :
+    (K.bind (args as bs f)).vars.count y ≤
+      ∑ i, (as i).vars.count y + ∑ j, (bs j).vars.count y +
+        2 * ∑ w, if y = f w then 1 else 0 := by
+  rw [Net.vars_bind, Multiset.count_bind_fintype, Fintype.sum_sum_type, Fintype.sum_sum_type]
+  simp only [hK.2.1, hK.2.2, one_mul, args, Sum.elim_inl, Sum.elim_inr, vars_var,
+    Multiset.count_singleton, Finset.mul_sum]
+  have : ∑ w, K.vars.count (.inr (.inr w)) * (if y = f w then 1 else 0) ≤
+      ∑ w, 2 * (if y = f w then 1 else 0) :=
+    Finset.sum_le_sum fun w _ => Nat.mul_le_mul_right _ (hK.1 _)
+  omega
+
+/-- **Equivalent right-hand sides give equivalent instances.** If two nets over the ports and
+internal wires of a rule are the same graph, plugging the same trees into their ports and the same
+names into their internal wires, beside a context `Δ`, gives the same graph, provided the instance
+is linear. (Lafont 1997, pages 70 to 72: a net is a graph, and the right-hand side of a rule is
+plugged into the net by its ports.) -/
+theorem equiv_bind_args {K L : Net S (Fin a ⊕ Fin b ⊕ Fin k)} (h : Equiv K L)
+    (hK : PortShape K) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (f : Fin k → ℕ)
+    (Δ : Net S ℕ)
+    (hL : ∀ y, ∑ i, (as i).vars.count y + ∑ j, (bs j).vars.count y +
+        2 * (∑ w, if y = f w then 1 else 0) + Δ.vars.count y ≤ 2) :
+    Equiv (K.bind (args as bs f) + Δ) (L.bind (args as bs f) + Δ) := by
+  revert hK
+  induction h with
+  | rel K L h =>
+    intro hK
+    refine (Wire.bind_add h _ Δ ?_ ?_).equiv
+    · intro x hx
+      rcases x with i | j | w
+      · rw [hK.2.1 i] at hx; omega
+      · rw [hK.2.2 j] at hx; omega
+      · exact ⟨f w, rfl⟩
+    · intro y
+      rw [Net.vars_add, Multiset.count_add]
+      have := count_vars_bind_args_le hK as bs f y
+      have := hL y
+      omega
+  | refl _ => exact fun _ => Equiv.refl _
+  | symm K L h ih => exact fun hL' => (ih (PortShape.of_equiv (Equiv.symm h) hL')).symm
+  | trans K M L h₁ _ ih₁ ih₂ =>
+    exact fun hK => (ih₁ hK).trans (ih₂ (PortShape.of_equiv h₁ hK))
+
+theorem portShape_net (r : Rule S a b) (hr : r.Linear) : PortShape r.net := by
+  refine ⟨fun p => ?_, hr.left, hr.right⟩
+  rcases p with i | j | w
+  · rw [hr.left]; omega
+  · rw [hr.right]; omega
+  · rw [hr.internal]
+
+/-- An instance of a linear rule in a linear net, with fresh injective names for the new wires,
+is linear. -/
+theorem linear_inst_add (r : Rule S a b) (hr : r.Linear) {as : Fin a → Term S ℕ}
+    {bs : Fin b → Term S ℕ} {Δ : Net S ℕ} {f : Fin r.internal → ℕ} (hf : Function.Injective f)
+    {α β : S.Sym} {hα : S.arity α = a} {hβ : S.arity β = b}
+    (hN : Net.Linear (s(Term.app α (hα ▸ as), Term.app β (hβ ▸ bs)) ::ₘ Δ))
+    (hfresh : ∀ i, f i ∉ Net.vars (s(Term.app α (hα ▸ as), Term.app β (hβ ▸ bs)) ::ₘ Δ)) :
+    (r.inst as bs f + Δ).Linear := by
+  subst hα hβ
+  intro y
+  have hy := hN y
+  simp only [Net.vars_cons, Net.vars_add, eqVars_mk, Term.vars_app, Multiset.count_add,
+    Multiset.count_sum'] at hy ⊢
+  rw [Rule.count_vars_inst r hr]
+  by_cases hex : ∃ w, y = f w
+  · obtain ⟨w0, rfl⟩ := hex
+    have hsum : ∑ w, (if f w0 = f w then 1 else 0) = 1 := by
+      rw [Finset.sum_eq_single w0]
+      · simp
+      · intro w _ hw
+        exact if_neg fun h => hw (hf h).symm
+      · simp
+    have h0 := Multiset.count_eq_zero_of_notMem (hfresh w0)
+    simp only [Net.vars_cons, eqVars_mk, Term.vars_app, Multiset.count_add,
+      Multiset.count_sum'] at h0
+    omega
+  · have hsum : ∑ w, (if y = f w then 1 else 0) = 0 :=
+      Finset.sum_eq_zero fun w _ => if_neg fun h => hex ⟨w, h⟩
+    omega
+
+/-- Two instances of a linear rule that differ only in the names of the new wires are the same
+graph, when both are linear. -/
+theorem equiv_inst_of_linear (r : Rule S a b) (hr : r.Linear) (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ) (f f' : Fin r.internal → ℕ) (Δ : Net S ℕ)
+    (L : (r.inst as bs f + Δ).Linear) (L' : (r.inst as bs f' + Δ).Linear) :
+    Equiv (r.inst as bs f + Δ) (r.inst as bs f' + Δ) := by
+  obtain ⟨K, hK⟩ := Net.exists_below ((r.inst as bs f + Δ) + (r.inst as bs f' + Δ))
+  let g : Fin r.internal → ℕ := fun w => K + w
+  have hg : Function.Injective g := fun w w' h => Fin.ext (by simpa [g] using h)
+  have E := r.equiv_inst hr as bs f g Δ L hg fun w hw => by
+    have := hK _ (by rw [Net.vars_add, Multiset.mem_add]; exact Or.inl hw)
+    simp [g] at this
+  have E' := r.equiv_inst hr as bs f' g Δ L' hg fun w hw => by
+    have := hK _ (by rw [Net.vars_add, Multiset.mem_add]; exact Or.inr hw)
+    simp [g] at this
+  exact E.trans E'.symm
+
+/-- **The same active pair, read the same way** (Lafont 1997, Proposition 1, page 73, implicit:
+firing the same active pair twice gives the same graph). For a linear rule `r` and a linear net
+`α(as) = β(bs), Δ`, two interactions with fresh injective names `f`, `f'` for the new wires give
+the same graph. -/
+theorem equiv_inst_same {α β : S.Sym} (r : Rule S (S.arity α) (S.arity β)) (hr : r.Linear)
+    (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ) (Δ : Net S ℕ)
+    (hN : Net.Linear (s(Term.app α as, Term.app β bs) ::ₘ Δ))
+    (f f' : Fin r.internal → ℕ) (hf : Function.Injective f) (hf' : Function.Injective f')
+    (hfresh : ∀ i, f i ∉ Net.vars (s(Term.app α as, Term.app β bs) ::ₘ Δ))
+    (hfresh' : ∀ i, f' i ∉ Net.vars (s(Term.app α as, Term.app β bs) ::ₘ Δ)) :
+    Equiv (r.inst as bs f + Δ) (r.inst as bs f' + Δ) :=
+  r.equiv_inst_of_linear hr as bs f f' Δ
+    (r.linear_inst_add hr (hα := rfl) (hβ := rfl) hf hN hfresh)
+    (r.linear_inst_add hr (hα := rfl) (hβ := rfl) hf' hN hfresh')
+
+/-- Reading a rule from the other cell and exchanging the trees gives the same instance. -/
+theorem swap_inst (r : Rule S a b) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ)
+    (f : Fin r.internal → ℕ) : r.swap.inst bs as f = r.inst as bs f := by
+  simp only [Rule.inst, Rule.swap]
+  rw [Net.bind_bind]
+  congr 1
+  funext p
+  rcases p with i | j | w <;> rfl
+
+/-- A symmetric rule can be read with its two groups of ports exchanged: if `r.swap.net` and
+`r.net` are the same graph, the instances `r.inst as bs f` and `r.inst bs as f` are the same
+graph, when linear. -/
+theorem equiv_inst_comm {a : ℕ} (r : Rule S a a) (hr : r.Linear)
+    (hsymm : Equiv r.swap.net r.net) (as bs : Fin a → Term S ℕ) (f : Fin r.internal → ℕ)
+    (Δ : Net S ℕ) (L : (r.inst as bs f + Δ).Linear) :
+    Equiv (r.inst as bs f + Δ) (r.inst bs as f + Δ) := by
+  have hL : ∀ y, ∑ i, (bs i).vars.count y + ∑ j, (as j).vars.count y +
+      2 * (∑ w, if y = f w then 1 else 0) + Δ.vars.count y ≤ 2 := by
+    intro y
+    have := L y
+    rw [Net.vars_add, Multiset.count_add, count_vars_inst r hr] at this
+    omega
+  have E := equiv_bind_args hsymm.symm (portShape_net r hr) bs as f Δ hL
+  have e : (r.swap.net.bind (args bs as f) : Net S ℕ) = r.inst as bs f := swap_inst r as bs f
+  have E' : Equiv (r.inst bs as f + Δ) (r.inst as bs f + Δ) := by
+    rw [← e]
+    exact E
+  exact E'.symm
+
+/-- **The same active pair, read the other way** (Lafont 1997, Proposition 1, page 73, implicit;
+and page 73: the rule of a symbol with itself is symmetric). In a well-formed system with a rule
+`r` for `α`, `α`, the equation `α(as) = α(bs)` can be fired with `as` on the first cell or with
+`bs` on the first cell. In a linear net, with fresh injective names `f`, `f'` for the new wires,
+the two results are the same graph. -/
+theorem equiv_inst_swap {I : System S} (hI : I.WellFormed) {α : S.Sym}
+    {r : Rule S (S.arity α) (S.arity α)} (hr : I.rule α α = some r)
+    (as bs : Fin (S.arity α) → Term S ℕ) (Δ : Net S ℕ)
+    (hN : Net.Linear (s(Term.app α as, Term.app α bs) ::ₘ Δ))
+    (f f' : Fin r.internal → ℕ) (hf : Function.Injective f) (hf' : Function.Injective f')
+    (hfresh : ∀ i, f i ∉ Net.vars (s(Term.app α as, Term.app α bs) ::ₘ Δ))
+    (hfresh' : ∀ i, f' i ∉ Net.vars (s(Term.app α as, Term.app α bs) ::ₘ Δ)) :
+    Equiv (r.inst as bs f + Δ) (r.inst bs as f' + Δ) := by
+  have hrl := hI.linear _ _ _ hr
+  have E := r.equiv_inst_same hrl as bs Δ hN f f' hf hf' hfresh hfresh'
+  have L' := r.linear_inst_add hrl (hα := rfl) (hβ := rfl) hf' hN hfresh'
+  exact E.trans (r.equiv_inst_comm hrl (hI.symm _ _ hr) as bs f' Δ L')
+
+end Rule
+
+/-- **Proposition 1: strong confluence** (Lafont 1997, page 73). If a linear net `N` reduces in
+one interaction to `M₁` and to `M₂`, then either `M₁` and `M₂` are the same graph, or each reduces
+in one interaction to a net, and the two nets are the same graph. -/
+theorem Step.strong_confluence {I : System S} (hI : I.WellFormed) {N M₁ M₂ : Net S ℕ}
+    (hN : N.Linear) (h₁ : Step I N M₁) (h₂ : Step I N M₂) :
+    Equiv M₁ M₂ ∨ ∃ P₁ P₂, Step I M₁ P₁ ∧ Step I M₂ P₂ ∧ Equiv P₁ P₂ := by
+  obtain ⟨α, β, r₁, hr₁, as, bs, Δ₁, f, hf, hffresh⟩ := h₁
+  generalize hNe : (s(Term.app α as, Term.app β bs) ::ₘ Δ₁ : Net S ℕ) = N' at h₂
+  obtain ⟨γ, δ, r₂, hr₂, cs, ds, Δ₂, g, hg, hgfresh⟩ := h₂
+  rcases Multiset.cons_eq_cons.1 hNe with ⟨he, hΔ⟩ | ⟨-, C, hC₁, hC₂⟩
+  · -- the same active pair
+    subst hΔ
+    rcases Sym2.eq_iff.1 he with ⟨hac, hbd⟩ | ⟨had, hbc⟩
+    · -- read the same way
+      simp only [Term.app.injEq] at hac hbd
+      obtain ⟨rfl, hac⟩ := hac
+      obtain ⟨rfl, hbd⟩ := hbd
+      cases eq_of_heq hac
+      cases eq_of_heq hbd
+      rw [hr₁] at hr₂
+      cases Option.some.inj hr₂
+      left
+      exact Rule.equiv_inst_same _ (hI.linear _ _ _ hr₁) _ _ _ hN f g hf hg hffresh hgfresh
+    · -- read the other way
+      simp only [Term.app.injEq] at had hbc
+      obtain ⟨rfl, had⟩ := had
+      obtain ⟨rfl, hbc⟩ := hbc
+      cases eq_of_heq had
+      cases eq_of_heq hbc
+      by_cases hαβ : α = β
+      · subst hαβ
+        rw [hr₁] at hr₂
+        cases Option.some.inj hr₂
+        left
+        exact Rule.equiv_inst_swap hI hr₁ _ _ _ hN f g hf hg hffresh
+          (fun i => by rw [Sym2.eq_swap]; exact hgfresh i)
+      · have := hI.unique α β hαβ (by simp [hr₁])
+        rw [this] at hr₂
+        cases hr₂
+  · -- two different active pairs
+    subst hC₁ hC₂
+    right
+    exact Step.commute hI.linear hr₁ hr₂ as bs cs ds C hN f hf hffresh g hg hgfresh
+
+section Example
+
+open Comb
+
+/-- Non-vacuity of `Rule.equiv_inst_swap`: in the combinators, the `con`–`con` pair
+`con(0, 1) = con(2, 3)` fired with `0, 1` on the first cell and with `2, 3` on the first cell
+gives the same graph. The first gives `0 = 3, 1 = 2`, the second `2 = 1, 3 = 0`. -/
+example : Equiv (ruleConCon.inst ![var 0, var 1] ![var 2, var 3] Fin.elim0 + 0)
+    (ruleConCon.inst ![var 2, var 3] ![var 0, var 1] Fin.elim0 + 0) := by
+  refine Rule.equiv_inst_swap (I := system) (α := con) system_wellFormed rfl _ _ 0 ?_
+    Fin.elim0 Fin.elim0 (fun i => i.elim0) (fun i => i.elim0) (fun i => i.elim0)
+    (fun i => i.elim0)
+  intro y
+  show Multiset.count y (Net.vars (s(mkCon (var 0) (var 1), mkCon (var 2) (var 3)) ::ₘ 0)) ≤ 2
+  simp only [Net.vars_cons, Net.vars_zero, eqVars_mk, vars_mkCon, vars_var,
+    Multiset.count_add, Multiset.count_singleton, Multiset.count_zero]
+  split_ifs <;> omega
+
+end Example
+
+end INet

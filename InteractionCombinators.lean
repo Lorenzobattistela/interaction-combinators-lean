@@ -11,6 +11,7 @@ import InteractionCombinators.EquivAdd
 import InteractionCombinators.NetTrEquiv
 import InteractionCombinators.StepsEAdd
 import InteractionCombinators.Confluence
+import InteractionCombinators.Lafont.Confluence2
 import InteractionCombinators.Wanted
 import InteractionCombinators.Combinators
 import InteractionCombinators.WantedCheck
