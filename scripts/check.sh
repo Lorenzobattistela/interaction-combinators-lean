@@ -40,7 +40,8 @@ while IFS= read -r f; do
 done < <(find "$SRC" -name '*.lean' | sort)
 
 step "build"
-log="$(mktemp)"
+mkdir -p .lake
+log=".lake/gate-build.log"  # inside the checkout: the system temp directory may be read-only
 scripts/build.sh >"$log" 2>&1 || true
 grep -E "^error|✖|Build completed|declaration uses 'sorry'" "$log" || true
 grep -q "Build completed successfully" "$log" || fail "build failed (log: $log)"
