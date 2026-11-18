@@ -3,6 +3,7 @@ import InteractionCombinators.Net
 import InteractionCombinators.System
 import InteractionCombinators.Translation
 import InteractionCombinators.Rename
+import InteractionCombinators.RenameInj
 import InteractionCombinators.Instance
 import InteractionCombinators.RenameStep
 import InteractionCombinators.Wanted
