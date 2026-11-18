@@ -1,0 +1,273 @@
+import InteractionCombinators.RenameMany
+import InteractionCombinators.WantedCheck
+
+/-!
+# Two translations of a net are the same graph
+
+Lafont 1997, Section 1.7, page 80: a translation of a net replaces every cell by an instance of the
+principal net of its symbol. The internal wires of the instances get new names, and the choice of
+these names does not matter: two translations of the same net are equivalent
+(`Translation.NetTr.equiv`).
+
+The proof pairs the two translations position by position. Where the first translation has the
+name `x` and the second the name `y`, the paired net has the name `(x, y)`. A name of the source
+net becomes a pair `(x, x)`, and an internal wire of an instance a pair `(f w, g w)` occurring
+twice. Linearity of both translations makes each projection injective on the names of the paired
+net, so the renaming that sends `x` to `y` is a renaming of the first translation into the second
+that fixes its free ports (`Net.equiv_bind_var`).
+
+The file ends with two concrete checks (namespace `NetTrEquivCheck`) on translations whose
+principal net has an internal wire.
+-/
+
+namespace INet
+
+variable {S S' : Signature}
+
+open Term
+
+/-- In a multiset, two distinct elements with the same image together occur at most as often as
+their common image in the image multiset. -/
+theorem _root_.Multiset.count_add_count_le_count_map {α β : Type} [DecidableEq α] [DecidableEq β]
+    (g : α → β) (s : Multiset α) {p q : α} (hpq : p ≠ q) (hg : g p = g q) :
+    s.count p + s.count q ≤ (s.map g).count (g p) := by
+  rw [Multiset.count_map, Multiset.count_eq_card_filter_eq, Multiset.count_eq_card_filter_eq,
+    ← Multiset.card_add, Multiset.filter_add_filter]
+  have h0 : s.filter (fun a => p = a ∧ q = a) = 0 :=
+    Multiset.filter_eq_nil.2 fun a _ h => hpq (h.1.trans h.2.symm)
+  rw [h0, add_zero]
+  refine Multiset.card_le_card (Multiset.monotone_filter_right s fun a h => ?_)
+  rcases h with rfl | rfl
+  · rfl
+  · exact hg
+
+namespace Zip
+
+/-- The projection of a net of pairs of names: every pair `p` replaced by `g p`. -/
+abbrev proj (g : ℕ × ℕ → ℕ) (Z : Net S (ℕ × ℕ)) : Net S ℕ := Z.bind fun p => var (g p)
+
+/-- Every pair of distinct names occurs an even number of times. -/
+def EvenOff (m : Multiset (ℕ × ℕ)) : Prop := ∀ p : ℕ × ℕ, p.1 ≠ p.2 → Even (m.count p)
+
+/-- In a net of pairs where every off-diagonal pair occurs an even number of times, a projection
+that is linear is injective on the names: two distinct pairs with the same image would give that
+image three or four occurrences. -/
+theorem injOn {Z : Net S (ℕ × ℕ)} {g : ℕ × ℕ → ℕ} (hg : ∀ x, g (x, x) = x)
+    (hlin : (proj g Z).Linear) (hev : EvenOff Z.vars) : Set.InjOn g {p | p ∈ Z.vars} := by
+  intro p hp q hq hpq
+  by_contra hne
+  have c := Multiset.count_add_count_le_count_map g Z.vars hne hpq
+  rw [← Net.vars_bind_var (S := S)] at c
+  have hl : (Net.vars (Z.bind fun x => var (g x))).count (g p) ≤ 2 := hlin (g p)
+  have hp1 := Multiset.one_le_count_iff_mem.2 (show p ∈ Z.vars from hp)
+  have hq1 := Multiset.one_le_count_iff_mem.2 (show q ∈ Z.vars from hq)
+  by_cases hp' : p.1 = p.2
+  · by_cases hq' : q.1 = q.2
+    · apply hne
+      have e1 : g p = p.1 := by rw [← hg p.1]; congr 1; exact Prod.ext rfl hp'.symm
+      have e2 : g q = q.1 := by rw [← hg q.1]; congr 1; exact Prod.ext rfl hq'.symm
+      have h1 : p.1 = q.1 := e1.symm.trans (hpq.trans e2)
+      exact Prod.ext h1 (hp'.symm.trans (h1.trans hq'))
+    · obtain ⟨k, hk⟩ := hev q hq'
+      omega
+  · obtain ⟨k, hk⟩ := hev p hp'
+    omega
+
+/-- **Equivalence of the two projections of a net of pairs.** If both projections are linear and
+every off-diagonal pair occurs an even number of times, the two projections are the same graph:
+the second is a renaming of the first that keeps its names distinct and fixes its free ports. -/
+theorem equiv {Z : Net S (ℕ × ℕ)} (h₁ : (proj Prod.fst Z).Linear) (h₂ : (proj Prod.snd Z).Linear)
+    (hev : EvenOff Z.vars) : Equiv (proj Prod.fst Z) (proj Prod.snd Z) := by
+  classical
+  have i₁ := injOn (fun _ => rfl) h₁ hev
+  have i₂ := injOn (fun _ => rfl) h₂ hev
+  let f : ℕ → ℕ := fun y => if h : ∃ p ∈ Z.vars, p.1 = y then (Classical.choose h).2 else y
+  have hf : ∀ p ∈ Z.vars, f p.1 = p.2 := by
+    intro p hp
+    have h : ∃ q ∈ Z.vars, q.1 = p.1 := ⟨p, hp, rfl⟩
+    have hc := Classical.choose_spec h
+    show (if h : ∃ q ∈ Z.vars, q.1 = p.1 then (Classical.choose h).2 else p.1) = p.2
+    rw [dite_eq_left_of_eq_true (eq_true h), i₁ hc.1 hp hc.2]
+  have hv : (proj Prod.fst Z).vars = Z.vars.map Prod.fst := Net.vars_bind_var _ _
+  have E := Net.equiv_bind_var h₁ f ?_ ?_
+  · refine E.trans (Equiv.of_eq ?_)
+    rw [Net.bind_bind]
+    exact Net.bind_congr fun p hp => by simp [hf p hp]
+  · intro y hy y' hy' heq
+    have hy : y ∈ (proj Prod.fst Z).vars := hy
+    have hy' : y' ∈ (proj Prod.fst Z).vars := hy'
+    rw [hv] at hy hy'
+    obtain ⟨p, hp, rfl⟩ := Multiset.mem_map.1 hy
+    obtain ⟨q, hq, rfl⟩ := Multiset.mem_map.1 hy'
+    rw [hf p hp, hf q hq] at heq
+    rw [i₂ hp hq heq]
+  · intro y hy
+    have hym : y ∈ (proj Prod.fst Z).vars := Multiset.one_le_count_iff_mem.1 (by omega)
+    rw [hv] at hym hy
+    obtain ⟨p, hp, rfl⟩ := Multiset.mem_map.1 hym
+    rw [Multiset.count_map_eq_count _ _ i₁ p hp] at hy
+    rw [hf p hp]
+    by_contra hne
+    obtain ⟨k, hk⟩ := hev p (Ne.symm hne)
+    omega
+
+end Zip
+
+namespace Translation
+
+variable {Φ : Translation S S'}
+
+/-- **Two translations of a tree, paired.** If `t₁` and `t₂` are translations of the same tree,
+there is a tree over pairs of names whose two projections are `t₁` and `t₂`, in which every
+off-diagonal pair occurs an even number of times: the names of the source tree are paired with
+themselves, and the internal wires of the instances (two ends each) with each other. (Lafont 1997,
+Section 1.7, page 80.) -/
+theorem TermTr.zip {t : Term S ℕ} {t₁ t₂ : Term S' ℕ} (h₁ : Φ.TermTr t t₁) (h₂ : Φ.TermTr t t₂) :
+    ∃ z : Term S' (ℕ × ℕ), z.bind (fun p => Term.var p.1) = t₁ ∧
+      z.bind (fun p => Term.var p.2) = t₂ ∧
+      Zip.EvenOff z.vars := by
+  induction h₁ generalizing t₂ with
+  | var x =>
+    cases h₂
+    refine ⟨Term.var (x, x), rfl, rfl, fun p hp => ?_⟩
+    have : p ≠ (x, x) := fun h => hp (by rw [h])
+    simp [this]
+  | app α ts ts' f h ih =>
+    cases h₂ with
+    | app _ _ ts₂ g hh =>
+      choose zs hz₁ hz₂ hze using fun i => ih i (hh i)
+      refine ⟨(Φ.net α).tree.bind (Sum.elim zs fun w => Term.var (f w, g w)), ?_, ?_, ?_⟩
+      · rw [Term.bind_bind, PNet.inst]
+        congr 1
+        funext q
+        cases q with
+        | inl i => exact hz₁ i
+        | inr w => rfl
+      · rw [Term.bind_bind, PNet.inst]
+        congr 1
+        funext q
+        cases q with
+        | inl i => exact hz₂ i
+        | inr w => rfl
+      · intro p hp
+        rw [Term.vars_bind, Multiset.count_bind_fintype, Fintype.sum_sum_type]
+        simp only [(Φ.net α).port_count, (Φ.net α).internal_count, one_mul, Sum.elim_inl,
+          Sum.elim_inr]
+        refine Even.add (Finset.even_sum _ fun i _ => hze i p hp) ?_
+        rw [← Finset.mul_sum]
+        exact even_two_mul _
+
+/-- Two translations of an equation, paired. -/
+theorem EqTr.zip {e : Sym2 (Term S ℕ)} {e₁ e₂ : Sym2 (Term S' ℕ)} (h₁ : Φ.EqTr e e₁)
+    (h₂ : Φ.EqTr e e₂) :
+    ∃ z : Sym2 (Term S' (ℕ × ℕ)), z.map (Term.bind fun p => Term.var p.1) = e₁ ∧
+      z.map (Term.bind fun p => Term.var p.2) = e₂ ∧ Zip.EvenOff (eqVars z) := by
+  obtain ⟨a, b, a₁, b₁, rfl, rfl, ha₁, hb₁⟩ := h₁
+  obtain ⟨c, d, c₂, d₂, he, rfl, hc₂, hd₂⟩ := h₂
+  have key : ∀ {a b : Term S ℕ} {a₁ b₁ a₂ b₂ : Term S' ℕ}, Φ.TermTr a a₁ → Φ.TermTr b b₁ →
+      Φ.TermTr a a₂ → Φ.TermTr b b₂ →
+      ∃ z : Sym2 (Term S' (ℕ × ℕ)), z.map (Term.bind fun p => Term.var p.1) = s(a₁, b₁) ∧
+        z.map (Term.bind fun p => Term.var p.2) = s(a₂, b₂) ∧ Zip.EvenOff (eqVars z) := by
+    intro a b a₁ b₁ a₂ b₂ ha₁ hb₁ ha₂ hb₂
+    obtain ⟨za, za₁, za₂, zae⟩ := TermTr.zip ha₁ ha₂
+    obtain ⟨zb, zb₁, zb₂, zbe⟩ := TermTr.zip hb₁ hb₂
+    refine ⟨s(za, zb), by simp [za₁, zb₁], by simp [za₂, zb₂], fun p hp => ?_⟩
+    simp only [eqVars_mk, Multiset.count_add]
+    exact (zae p hp).add (zbe p hp)
+  rcases Sym2.eq_iff.1 he with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+  · exact key ha₁ hb₁ hc₂ hd₂
+  · obtain ⟨z, z₁, z₂, ze⟩ := key ha₁ hb₁ hd₂ hc₂
+    exact ⟨z, z₁, z₂.trans Sym2.eq_swap, ze⟩
+
+/-- Two translations of a net, paired equation by equation. -/
+theorem rel_zip {N : Net S ℕ} {N₁ N₂ : Net S' ℕ} (h₁ : Multiset.Rel Φ.EqTr N N₁)
+    (h₂ : Multiset.Rel Φ.EqTr N N₂) :
+    ∃ Z : Net S' (ℕ × ℕ), Zip.proj Prod.fst Z = N₁ ∧ Zip.proj Prod.snd Z = N₂ ∧
+      Zip.EvenOff Z.vars := by
+  induction N using Multiset.induction_on generalizing N₁ N₂ with
+  | empty =>
+    rw [Multiset.rel_zero_left] at h₁ h₂
+    subst h₁ h₂
+    exact ⟨0, rfl, rfl, fun p _ => by simp⟩
+  | cons e N ih =>
+    obtain ⟨e₁, N₁', he₁, hN₁, rfl⟩ := Multiset.rel_cons_left.1 h₁
+    obtain ⟨e₂, N₂', he₂, hN₂, rfl⟩ := Multiset.rel_cons_left.1 h₂
+    obtain ⟨z, z₁, z₂, ze⟩ := EqTr.zip he₁ he₂
+    obtain ⟨Z, Z₁, Z₂, Ze⟩ := ih hN₁ hN₂
+    refine ⟨z ::ₘ Z, ?_, ?_, fun p hp => ?_⟩
+    · simp only [Zip.proj, Net.bind, Multiset.map_cons] at Z₁ ⊢
+      rw [Z₁, ← z₁]
+    · simp only [Zip.proj, Net.bind, Multiset.map_cons] at Z₂ ⊢
+      rw [Z₂, ← z₂]
+    · rw [Net.vars_cons, Multiset.count_add]
+      exact (ze p hp).add (Ze p hp)
+
+/-- **Two translations of a net are the same graph.** If `N₁` and `N₂` are translations of the net
+`N`, they differ only by the names of the internal wires of the instances, and `N₁` is equivalent
+to `N₂`. (Lafont 1997, Section 1.7, page 80: the translation of a net is defined up to the names
+of the new wires.) -/
+theorem NetTr.equiv {Φ : Translation S S'} {N : Net S ℕ} {N₁ N₂ : Net S' ℕ}
+    (h₁ : Φ.NetTr N N₁) (h₂ : Φ.NetTr N N₂) : Equiv N₁ N₂ := by
+  obtain ⟨Z, rfl, rfl, hev⟩ := rel_zip h₁.rel h₂.rel
+  exact Zip.equiv h₁.linear h₂.linear hev
+
+end Translation
+
+end INet
+
+namespace INet.NetTrEquivCheck
+
+open Term Comb WantedCheck
+
+/-- Linearity, or a count of names, of a net written out with numerals. -/
+local macro "names" : tactic =>
+  `(tactic| (simp [Multiset.count_cons, Multiset.count_singleton] <;> (try split_ifs) <;> omega))
+
+/-- `Translation.NetTr.equiv` is not vacuous: the one-cell net `source` (the cell on the free port
+`0`) has a translation for every name `k ≠ 0` of the internal wire of the instance, and any two of
+them are equivalent. (Lafont 1997, Section 1.7, page 80.) -/
+example {j k : ℕ} (hj : j ≠ 0) (hk : k ≠ 0) : Equiv (target j) (target k) :=
+  Translation.NetTr.equiv (netTr_target hj) (netTr_target hk)
+
+/-- Two cells of the same symbol, on the free ports `0` and `1`. The two equations of the net are
+identical up to their free port. -/
+def source2 : Net unitSig ℕ :=
+  s(.app () fun i => i.elim0, var 0) ::ₘ {s(.app () fun i => i.elim0, var 1)}
+
+/-- A translation of `source2` with the internal wires named `a` and `b`. -/
+def target2 (a b : ℕ) : CNet :=
+  s(mkCon (var a) (var a), var 0) ::ₘ {s(mkCon (var b) (var b), var 1)}
+
+/-- `target2 a b` is a translation of `source2` (Lafont 1997, Section 1.7, page 80) whenever the
+two internal wires have distinct names, different from the free ports `0` and `1`. -/
+theorem netTr_target2 {a b : ℕ} (ha : 1 < a) (hb : 1 < b) (hab : a ≠ b) :
+    tr.NetTr source2 (target2 a b) := by
+  have inst : ∀ k : ℕ, tr.TermTr (.app () fun i => i.elim0) (mkCon (var k) (var k)) := by
+    intro k
+    have h := Translation.TermTr.app (Φ := tr) () (fun i => i.elim0) (fun i => i.elim0)
+      (fun _ => k) (fun i => i.elim0)
+    have e : (tr.net ()).inst (fun i => i.elim0) (fun _ => k) = mkCon (var k) (var k) := by
+      simp [PNet.inst, tr]
+    rwa [e] at h
+  constructor
+  · exact Multiset.Rel.cons ⟨_, _, _, _, rfl, rfl, inst a, Translation.TermTr.var 0⟩
+      (Multiset.Rel.cons ⟨_, _, _, _, rfl, rfl, inst b, Translation.TermTr.var 1⟩ Multiset.Rel.zero)
+  · intro y
+    have : (0 : ℕ) ≠ a := by omega
+    have : (0 : ℕ) ≠ b := by omega
+    have : (1 : ℕ) ≠ a := by omega
+    have : (1 : ℕ) ≠ b := by omega
+    simp only [target2]; names
+
+/-- Exchanging the names of the internal wires of the two instances gives an equivalent net. The
+two translations of `source2` here are different nets (the wire on the port `0` is `5` in one and
+`6` in the other). -/
+example : target2 5 6 ≠ target2 6 5 ∧ Equiv (target2 5 6) (target2 6 5) := by
+  refine ⟨fun h => ?_, Translation.NetTr.equiv (netTr_target2 (by decide) (by decide) (by decide))
+    (netTr_target2 (by decide) (by decide) (by decide))⟩
+  -- the number of equations with two occurrences of `5` and one of `0`
+  have := congrArg
+    (fun N : CNet => (N.map fun e => (eqVars e).count 5 + (eqVars e).count 0).count 3) h
+  simp [target2] at this
+
+end INet.NetTrEquivCheck
