@@ -29,6 +29,7 @@ import InteractionCombinators.Lafont.MenuCheck
 import InteractionCombinators.Lafont.Transpositor
 import InteractionCombinators.Lafont.TranspositorCheck
 import InteractionCombinators.Lafont.TranspositorPerm
+import InteractionCombinators.Lafont.TranspositorPermCheck
 import InteractionCombinators.Lafont.DupPackage
 import InteractionCombinators.Lafont.DupPackageCheck
 import InteractionCombinators.Lafont.BasicCheck
