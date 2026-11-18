@@ -47,6 +47,6 @@ grep -q "Build completed successfully" "$log" || fail "build failed (log: $log)"
 if grep -q "declaration uses 'sorry'" "$log"; then fail "a declaration uses sorry (log: $log)"; fi
 
 step "axiom audit"
-nice -n 15 lake env lean scripts/Audit.lean || fail "axiom audit"
+lake env lean scripts/Audit.lean || fail "axiom audit"
 
 echo "GATE PASSED"
