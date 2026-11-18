@@ -29,7 +29,10 @@ if grep -rnE "(^|$W)(sorry|admit|native_decide)($W|\$)|^[[:space:]]*(private |pr
 fi
 
 step "no new unproved statements"
-base_wanted="$( (git grep -c -E '^[[:space:]]*proof_wanted[[:space:]]' "$BASE" -- "$SRC" || true) | awk -F: '{s+=$NF} END {print s+0}')"
+# Compare with the commit this work started from, not with the tip of the base: the owner may
+# have removed a proved statement from the base since then.
+fork="$(git merge-base "$BASE" HEAD)"
+base_wanted="$( (git grep -c -E '^[[:space:]]*proof_wanted[[:space:]]' "$fork" -- "$SRC" || true) | awk -F: '{s+=$NF} END {print s+0}')"
 head_wanted="$( (grep -rhcE '^[[:space:]]*proof_wanted[[:space:]]' "$SRC" || true) | awk '{s+=$1} END {print s+0}')"
 [ "$head_wanted" -le "$base_wanted" ] || fail "proof_wanted went from $base_wanted to $head_wanted"
 
