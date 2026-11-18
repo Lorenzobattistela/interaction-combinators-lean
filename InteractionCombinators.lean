@@ -11,4 +11,5 @@ import InteractionCombinators.Combinators
 import InteractionCombinators.WantedCheck
 import InteractionCombinators.Lafont.Basic
 import InteractionCombinators.Lafont.Duplication
+import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
