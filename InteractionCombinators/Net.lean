@@ -200,6 +200,16 @@ theorem mem_vars (h : Wire N M) {y : ν} (hy : y ∈ M.vars) : y ∈ N.vars :=
 
 theorem equiv (h : Wire N M) : Equiv N M := Relation.EqvGen.rel _ _ h
 
+/-- A wire substitution can be done inside a larger net, as long as the larger net is linear. -/
+theorem add_right (h : Wire N M) (Γ : Net S ν) (hlin : (N + Γ).Linear) :
+    Wire (N + Γ) (M + Γ) := by
+  obtain ⟨x, t, a, b, Δ, -, hx⟩ := h
+  have e : (s(Term.var x, t) ::ₘ s(a, b) ::ₘ Δ) + Γ = s(Term.var x, t) ::ₘ s(a, b) ::ₘ (Δ + Γ) := by
+    simp only [Multiset.cons_add]
+  have := Wire.mk x t a b (Δ + Γ) (e ▸ hlin) hx
+  rw [e, Multiset.cons_add]
+  exact this
+
 theorem cast {N' M' : Net S ν} (h : Wire N M) (e : N = N') (e' : M = M') : Wire N' M' :=
   e ▸ e' ▸ h
 

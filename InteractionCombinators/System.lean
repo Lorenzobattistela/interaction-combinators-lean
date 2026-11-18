@@ -126,6 +126,30 @@ theorem Step.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → 
       Finset.sum_eq_zero fun w _ => if_neg fun h => hex ⟨w, h⟩
     omega
 
+/-- An interaction can be done inside a larger net, as long as the result is linear: the names
+given to the wires created by the rule are then unused in the rest of the net. -/
+theorem Step.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    {N M : Net S ℕ} (h : Step I N M) (Γ : Net S ℕ) (hlin : (M + Γ).Linear) :
+    Step I (N + Γ) (M + Γ) := by
+  obtain ⟨α, β, r, hr, as, bs, Δ, f, hf, hfresh⟩ := h
+  have hΓ : ∀ w, f w ∉ Γ.vars := by
+    intro w
+    refine Multiset.count_eq_zero.1 ?_
+    have h2 := hlin (f w)
+    simp only [Net.vars_add, Multiset.count_add, Rule.count_vars_inst r (hI _ _ _ hr)] at h2
+    have h1 : (1 : ℕ) ≤ ∑ w', if f w = f w' then 1 else 0 :=
+      calc 1 = if f w = f w then 1 else 0 := (if_pos rfl).symm
+        _ ≤ _ := Finset.single_le_sum (f := fun w' => if f w = f w' then 1 else 0)
+          (fun _ _ => Nat.zero_le _) (Finset.mem_univ w)
+    omega
+  have e : (s(Term.app α as, Term.app β bs) ::ₘ Δ) + Γ =
+      s(Term.app α as, Term.app β bs) ::ₘ (Δ + Γ) := Multiset.cons_add _ _ _
+  have := Step.mk α β r hr as bs (Δ + Γ) f hf (fun w hw => by
+    rw [← e, Net.vars_add, Multiset.mem_add] at hw
+    exact hw.elim (hfresh w) (hΓ w))
+  rw [e, add_assoc]
+  exact this
+
 /-- Reduction in any number of interactions. -/
 abbrev Steps (I : System S) : Net S ℕ → Net S ℕ → Prop := Relation.ReflTransGen (Step I)
 
