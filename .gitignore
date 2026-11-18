@@ -1,2 +1,6 @@
 /.lake
+/.papers
+/worktrees
+/sessions
+/.pool
 .claude/.pod-checksums
