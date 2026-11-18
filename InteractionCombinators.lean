@@ -33,6 +33,7 @@ import InteractionCombinators.Lafont.TranspositorPermCheck
 import InteractionCombinators.Lafont.DupPackage
 import InteractionCombinators.Lafont.DupPackageCheck
 import InteractionCombinators.Lafont.Copier
+import InteractionCombinators.Lafont.CopierCheck
 import InteractionCombinators.Lafont.PackageDecomp
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
