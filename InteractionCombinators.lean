@@ -10,6 +10,7 @@ import InteractionCombinators.RenameStep
 import InteractionCombinators.EquivAdd
 import InteractionCombinators.NetTrEquiv
 import InteractionCombinators.StepsEAdd
+import InteractionCombinators.Confluence
 import InteractionCombinators.Wanted
 import InteractionCombinators.Combinators
 import InteractionCombinators.WantedCheck
