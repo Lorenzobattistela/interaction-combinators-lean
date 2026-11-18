@@ -36,3 +36,7 @@ import InteractionCombinators.Lafont.Copier
 import InteractionCombinators.Lafont.PackageDecomp
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
+import InteractionCombinators.Lafont.DecompositionTools
+import InteractionCombinators.Lafont.DecompositionHalf
+import InteractionCombinators.Lafont.Decomposition
+import InteractionCombinators.Lafont.DecompositionCheck
