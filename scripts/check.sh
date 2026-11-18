@@ -33,6 +33,12 @@ base_wanted="$( (git grep -c -E '^[[:space:]]*proof_wanted[[:space:]]' "$BASE" -
 head_wanted="$( (grep -rhcE '^[[:space:]]*proof_wanted[[:space:]]' "$SRC" || true) | awk '{s+=$1} END {print s+0}')"
 [ "$head_wanted" -le "$base_wanted" ] || fail "proof_wanted went from $base_wanted to $head_wanted"
 
+step "every file is part of the library"
+while IFS= read -r f; do
+  mod="$(printf '%s' "${f%.lean}" | tr '/' '.')"
+  grep -q -x "import $mod" "$SRC.lean" || fail "$f is not imported by $SRC.lean, so it is neither built nor audited"
+done < <(find "$SRC" -name '*.lean' | sort)
+
 step "build"
 log="$(mktemp)"
 scripts/build.sh >"$log" 2>&1 || true
