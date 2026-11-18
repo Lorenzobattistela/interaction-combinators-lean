@@ -2,6 +2,8 @@ import InteractionCombinators.Term
 import InteractionCombinators.Net
 import InteractionCombinators.System
 import InteractionCombinators.Translation
+import InteractionCombinators.Rename
+import InteractionCombinators.Instance
 import InteractionCombinators.Combinators
 import InteractionCombinators.Lafont.Basic
 import InteractionCombinators.Lafont.Duplication

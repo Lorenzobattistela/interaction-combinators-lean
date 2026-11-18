@@ -13,6 +13,8 @@ differ by wire substitution (`Equiv`); only interactions count as reduction step
 - `InteractionCombinators/Net.lean` — nets, linearity, equivalence up to wires
 - `InteractionCombinators/System.lean` — rules, interaction systems, reduction
 - `InteractionCombinators/Translation.lean` — principal nets, translations, universality
+- `InteractionCombinators/Rename.lean` — renaming an internal wire gives the same graph
+- `InteractionCombinators/Instance.lean` — instances of a principal net are the same graph
 - `InteractionCombinators/Combinators.lean` — the three combinators and their six rules
 - `InteractionCombinators/Lafont/` — results of the paper, and the target statement in
   `Universality.lean`
