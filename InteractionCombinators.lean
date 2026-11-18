@@ -22,6 +22,7 @@ import InteractionCombinators.Lafont.Package
 import InteractionCombinators.Lafont.PackageCheck
 import InteractionCombinators.Lafont.DupWiring
 import InteractionCombinators.Lafont.Menu
+import InteractionCombinators.Lafont.MenuCheck
 import InteractionCombinators.Lafont.Transpositor
 import InteractionCombinators.Lafont.DupPackage
 import InteractionCombinators.Lafont.BasicCheck
