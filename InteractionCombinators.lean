@@ -4,6 +4,7 @@ import InteractionCombinators.System
 import InteractionCombinators.Translation
 import InteractionCombinators.Rename
 import InteractionCombinators.Instance
+import InteractionCombinators.RenameStep
 import InteractionCombinators.Wanted
 import InteractionCombinators.Combinators
 import InteractionCombinators.WantedCheck
