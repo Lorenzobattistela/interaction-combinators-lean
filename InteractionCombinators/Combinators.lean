@@ -1,0 +1,385 @@
+import InteractionCombinators.System
+
+/-!
+# The interaction combinators
+
+Lafont's system: three symbols and six rules. The names follow HVM: `con` is Lafont's constructor
+`γ`, `dup` his duplicator `δ`, and `era` his eraser `ε`.
+
+Port order follows Lafont's Fig. 2. Annihilation of two `con` cells exchanges the auxiliary ports;
+annihilation of two `dup` cells does not. This is Lafont's system, not the symmetric one in which
+both annihilations are the same.
+-/
+
+namespace INet
+
+/-- The three combinators. -/
+inductive Comb : Type
+  | con | dup | era
+  deriving DecidableEq
+
+namespace Comb
+
+/-- The signature of the combinators: `con` and `dup` have two auxiliary ports, `era` none. -/
+def sig : Signature where
+  Sym := Comb
+  arity
+    | con => 2
+    | dup => 2
+    | era => 0
+
+variable {ν : Type}
+
+/-- A `con` cell with trees on its auxiliary ports (Lafont's `γ`). -/
+def mkCon (a b : Term sig ν) : Term sig ν := .app Comb.con ![a, b]
+/-- A `dup` cell with trees on its auxiliary ports (Lafont's `δ`). -/
+def mkDup (a b : Term sig ν) : Term sig ν := .app Comb.dup ![a, b]
+/-- An `era` cell (Lafont's `ε`). -/
+def mkEra : Term sig ν := .app Comb.era ![]
+
+@[simp] theorem vars_mkCon (a b : Term sig ν) : (mkCon a b).vars = a.vars + b.vars := by
+  simp [mkCon, sig, Fin.sum_univ_two]
+@[simp] theorem vars_mkDup (a b : Term sig ν) : (mkDup a b).vars = a.vars + b.vars := by
+  simp [mkDup, sig, Fin.sum_univ_two]
+@[simp] theorem vars_mkEra : (mkEra : Term sig ν).vars = 0 := by
+  simp [mkEra, sig]
+
+@[simp] theorem bind_mkCon {μ : Type} (f : ν → Term sig μ) (a b : Term sig ν) :
+    (mkCon a b).bind f = mkCon (a.bind f) (b.bind f) := by
+  show Term.app Comb.con (fun i => (![a, b] i).bind f) = Term.app Comb.con _
+  congr 1; funext i; fin_cases i <;> rfl
+@[simp] theorem bind_mkDup {μ : Type} (f : ν → Term sig μ) (a b : Term sig ν) :
+    (mkDup a b).bind f = mkDup (a.bind f) (b.bind f) := by
+  show Term.app Comb.dup (fun i => (![a, b] i).bind f) = Term.app Comb.dup _
+  congr 1; funext i; fin_cases i <;> rfl
+@[simp] theorem bind_mkEra {μ : Type} (f : ν → Term sig μ) :
+    (mkEra : Term sig ν).bind f = mkEra := by
+  show Term.app (S := sig) Comb.era _ = Term.app (S := sig) Comb.era _
+  congr 1; funext (i : Fin 0); exact i.elim0
+
+@[simp] theorem below_mkCon {k : ℕ} {a b : Term sig ℕ} :
+    (mkCon a b).Below k ↔ a.Below k ∧ b.Below k := by
+  simp [Term.Below, or_imp, forall_and]
+@[simp] theorem below_mkDup {k : ℕ} {a b : Term sig ℕ} :
+    (mkDup a b).Below k ↔ a.Below k ∧ b.Below k := by
+  simp [Term.Below, or_imp, forall_and]
+@[simp] theorem below_mkEra {k : ℕ} : (mkEra : Term sig ℕ).Below k := by simp [Term.Below]
+
+/-- Induction on trees of combinators. -/
+theorem induction {P : Term sig ν → Prop} (var : ∀ x, P (.var x)) (era : P mkEra)
+    (con : ∀ a b, P a → P b → P (mkCon a b)) (dup : ∀ a b, P a → P b → P (mkDup a b)) :
+    ∀ t, P t := by
+  intro t
+  induction t with
+  | var x => exact var x
+  | app α ts ih =>
+    cases α with
+    | con =>
+      have : ts = ![ts (0 : Fin 2), ts (1 : Fin 2)] := by
+        funext (i : Fin 2); fin_cases i <;> rfl
+      rw [this]; exact con _ _ (ih (0 : Fin 2)) (ih (1 : Fin 2))
+    | dup =>
+      have : ts = ![ts (0 : Fin 2), ts (1 : Fin 2)] := by
+        funext (i : Fin 2); fin_cases i <;> rfl
+      rw [this]; exact dup _ _ (ih (0 : Fin 2)) (ih (1 : Fin 2))
+    | era =>
+      have : ts = ![] := by funext (i : Fin 0); exact i.elim0
+      rw [this]; exact era
+
+/-! ## The six rules -/
+
+section Rules
+
+/-- The `i`-th auxiliary port of the first cell. -/
+private def l {a b m : ℕ} (i : Fin a) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inl i)
+/-- The `i`-th auxiliary port of the second cell. -/
+private def r {a b m : ℕ} (i : Fin b) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inl i))
+/-- The `i`-th wire created by the rule. -/
+private def w {a b m : ℕ} (i : Fin m) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inr i))
+
+/-- `con`–`con` annihilation: the auxiliary ports are exchanged. -/
+def ruleConCon : Rule sig 2 2 := ⟨0, s(l 0, r 1) ::ₘ {s(l 1, r 0)}⟩
+/-- `dup`–`dup` annihilation: the auxiliary ports are joined in order. -/
+def ruleDupDup : Rule sig 2 2 := ⟨0, s(l 0, r 0) ::ₘ {s(l 1, r 1)}⟩
+/-- `era`–`era` annihilation: nothing is left. -/
+def ruleEraEra : Rule sig 0 0 := ⟨0, 0⟩
+/-- `era`–`con` and `era`–`dup` commutation: an eraser on each auxiliary port. -/
+def ruleEraBin : Rule sig 0 2 := ⟨0, s(mkEra, r 0) ::ₘ {s(mkEra, r 1)}⟩
+/-- `con`–`dup` commutation: each cell is copied and four wires are created. -/
+def ruleConDup : Rule sig 2 2 :=
+  ⟨4, s(l 0, mkDup (w 0) (w 1)) ::ₘ s(l 1, mkDup (w 2) (w 3)) ::ₘ
+    s(r 0, mkCon (w 0) (w 2)) ::ₘ {s(r 1, mkCon (w 1) (w 3))}⟩
+
+end Rules
+
+/-- Lafont's system of interaction combinators. -/
+def system : System sig where
+  rule
+    | con, con => some ruleConCon
+    | dup, dup => some ruleDupDup
+    | era, era => some ruleEraEra
+    | era, con => some ruleEraBin
+    | era, dup => some ruleEraBin
+    | con, dup => some ruleConDup
+    | _, _ => none
+
+/-! ## The system is well formed -/
+
+section WellFormed
+
+theorem ruleConCon_linear : ruleConCon.Linear := by
+  constructor
+  · intro i; fin_cases i <;> simp [ruleConCon, l, r]
+  · intro j; fin_cases j <;> simp [ruleConCon, l, r]
+  · intro w; exact w.elim0
+
+theorem ruleDupDup_linear : ruleDupDup.Linear := by
+  constructor
+  · intro i; fin_cases i <;> simp [ruleDupDup, l, r]
+  · intro j; fin_cases j <;> simp [ruleDupDup, l, r]
+  · intro w; exact w.elim0
+
+theorem ruleEraEra_linear : ruleEraEra.Linear :=
+  ⟨fun i => i.elim0, fun j => j.elim0, fun w => w.elim0⟩
+
+theorem ruleEraBin_linear : ruleEraBin.Linear := by
+  constructor
+  · intro i; exact i.elim0
+  · intro j; fin_cases j <;> simp [ruleEraBin, r]
+  · intro w; exact w.elim0
+
+theorem ruleConDup_linear : ruleConDup.Linear := by
+  constructor
+  · intro i; fin_cases i <;> simp [ruleConDup, l, r, w]
+  · intro j; fin_cases j <;> simp [ruleConDup, l, r, w]
+  · intro i; fin_cases i <;> simp [ruleConDup, l, r, w]
+
+theorem ruleConCon_reduced : ruleConCon.Reduced := by
+  intro e he
+  unfold ruleConCon at he
+  dsimp only at he
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inl 0, _, rfl, by simp⟩
+  obtain rfl := Multiset.mem_singleton.1 he
+  exact ⟨.inl 1, _, rfl, by simp⟩
+
+theorem ruleDupDup_reduced : ruleDupDup.Reduced := by
+  intro e he
+  unfold ruleDupDup at he
+  dsimp only at he
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inl 0, _, rfl, by simp⟩
+  obtain rfl := Multiset.mem_singleton.1 he
+  exact ⟨.inl 1, _, rfl, by simp⟩
+
+theorem ruleEraEra_reduced : ruleEraEra.Reduced := by
+  intro e he
+  exact (Multiset.notMem_zero _ he).elim
+
+theorem ruleEraBin_reduced : ruleEraBin.Reduced := by
+  intro e he
+  unfold ruleEraBin at he
+  dsimp only at he
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inr (.inl 0), mkEra, Sym2.eq_swap, by simp⟩
+  obtain rfl := Multiset.mem_singleton.1 he
+  exact ⟨.inr (.inl 1), mkEra, Sym2.eq_swap, by simp⟩
+
+theorem ruleConDup_reduced : ruleConDup.Reduced := by
+  intro e he
+  unfold ruleConDup at he
+  dsimp only at he
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inl 0, _, rfl, by simp⟩
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inl 1, _, rfl, by simp⟩
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · exact ⟨.inr (.inl 0), _, rfl, by simp⟩
+  obtain rfl := Multiset.mem_singleton.1 he
+  exact ⟨.inr (.inl 1), _, rfl, by simp⟩
+
+theorem ruleConCon_swap : ruleConCon.swap.net = ruleConCon.net := by
+  change (s(Term.var (.inr (.inl 0)), Term.var (.inl 1)) ::ₘ {s(Term.var (.inr (.inl 1)), Term.var (.inl 0))} : Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 0)) =
+    s(Term.var (.inl 0), Term.var (.inr (.inl 1))) ::ₘ {s(Term.var (.inl 1), Term.var (.inr (.inl 0)))}
+  exact (congrArg₂ (fun x y => (x ::ₘ {y} : Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 0)))
+    Sym2.eq_swap Sym2.eq_swap).trans (Multiset.pair_comm _ _)
+
+theorem ruleDupDup_swap : ruleDupDup.swap.net = ruleDupDup.net := by
+  change (s(Term.var (.inr (.inl 0)), Term.var (.inl 0)) ::ₘ {s(Term.var (.inr (.inl 1)), Term.var (.inl 1))} : Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 0)) =
+    s(Term.var (.inl 0), Term.var (.inr (.inl 0))) ::ₘ {s(Term.var (.inl 1), Term.var (.inr (.inl 1)))}
+  exact congrArg₂ (fun x y => (x ::ₘ {y} : Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 0)))
+    Sym2.eq_swap Sym2.eq_swap
+
+theorem ruleEraEra_swap : ruleEraEra.swap.net = ruleEraEra.net := by
+  simp [Rule.swap, Net.bind, ruleEraEra]
+
+/-- Lafont's combinators form an interaction system. -/
+theorem system_wellFormed : system.WellFormed where
+  linear := by
+    intro α β r h
+    cases α <;> cases β <;> cases h <;>
+      first
+        | exact ruleConCon_linear | exact ruleDupDup_linear | exact ruleEraEra_linear
+        | exact ruleEraBin_linear | exact ruleConDup_linear
+  reduced := by
+    intro α β r h
+    cases α <;> cases β <;> cases h <;>
+      first
+        | exact ruleConCon_reduced | exact ruleDupDup_reduced | exact ruleEraEra_reduced
+        | exact ruleEraBin_reduced | exact ruleConDup_reduced
+  unique := by
+    intro α β hne h
+    cases α <;> cases β <;> first | rfl | exact absurd rfl hne | cases h
+  symm := by
+    intro α r h
+    cases α <;> cases h <;>
+      first
+        | exact Equiv.of_eq ruleConCon_swap | exact Equiv.of_eq ruleDupDup_swap
+        | exact Equiv.of_eq ruleEraEra_swap
+
+end WellFormed
+
+/-- Nets of combinators with natural-number names. -/
+abbrev CNet := Net sig ℕ
+
+/-- Reduction of nets of combinators. -/
+abbrev Red : CNet → CNet → Prop := Steps system
+
+section Steps
+
+variable (a b c d : Term sig ℕ) (Δ : CNet)
+
+theorem inst_eraBin (f : Fin 0 → ℕ) :
+    ruleEraBin.inst (![] : Fin 0 → Term sig ℕ) ![a, b] f = s(mkEra, a) ::ₘ {s(mkEra, b)} := by
+  simp [Rule.inst, Net.bind, ruleEraBin, r]
+
+theorem inst_conDup (f : Fin 4 → ℕ) :
+    ruleConDup.inst ![a, b] ![c, d] f =
+      s(a, mkDup (.var (f 0)) (.var (f 1))) ::ₘ s(b, mkDup (.var (f 2)) (.var (f 3))) ::ₘ
+        s(c, mkCon (.var (f 0)) (.var (f 2))) ::ₘ {s(d, mkCon (.var (f 1)) (.var (f 3)))} := by
+  simp [Rule.inst, Net.bind, ruleConDup, l, r, w]
+
+theorem step_con_con :
+    Step system (s(mkCon a b, mkCon c d) ::ₘ Δ) (s(a, d) ::ₘ s(b, c) ::ₘ Δ) := by
+  have h : Step system (s(mkCon a b, mkCon c d) ::ₘ Δ) ((s(a, d) ::ₘ {s(b, c)} : CNet) + Δ) :=
+    Step.mk (I := system) con con ruleConCon rfl ![a, b] ![c, d] Δ
+      (fun i => i.elim0) (fun i => i.elim0) (fun i => i.elim0)
+  simpa using h
+
+theorem step_dup_dup :
+    Step system (s(mkDup a b, mkDup c d) ::ₘ Δ) (s(a, c) ::ₘ s(b, d) ::ₘ Δ) := by
+  have h : Step system (s(mkDup a b, mkDup c d) ::ₘ Δ) ((s(a, c) ::ₘ {s(b, d)} : CNet) + Δ) :=
+    Step.mk (I := system) dup dup ruleDupDup rfl ![a, b] ![c, d] Δ
+      (fun i => i.elim0) (fun i => i.elim0) (fun i => i.elim0)
+  simpa using h
+
+theorem step_era_era : Step system (s(mkEra, mkEra) ::ₘ Δ) Δ := by
+  have h : Step system (s(mkEra, mkEra) ::ₘ Δ) ((0 : CNet) + Δ) :=
+    Step.mk (I := system) era era ruleEraEra rfl ![] ![] Δ
+      (fun i => i.elim0) (fun i => i.elim0) (fun i => i.elim0)
+  simpa using h
+
+theorem step_era_con :
+    Step system (s(mkEra, mkCon a b) ::ₘ Δ) (s(mkEra, a) ::ₘ s(mkEra, b) ::ₘ Δ) := by
+  have h : Step system (s(mkEra, mkCon a b) ::ₘ Δ)
+      (ruleEraBin.inst (![] : Fin 0 → Term sig ℕ) ![a, b] (Fin.elim0 : Fin 0 → ℕ) + Δ) :=
+    Step.mk (I := system) era con ruleEraBin rfl ![] ![a, b] Δ
+      (Fin.elim0 : Fin 0 → ℕ) (fun (i : Fin 0) => i.elim0) (fun (i : Fin 0) => i.elim0)
+  rw [inst_eraBin] at h
+  simpa using h
+
+theorem step_era_dup :
+    Step system (s(mkEra, mkDup a b) ::ₘ Δ) (s(mkEra, a) ::ₘ s(mkEra, b) ::ₘ Δ) := by
+  have h : Step system (s(mkEra, mkDup a b) ::ₘ Δ)
+      (ruleEraBin.inst (![] : Fin 0 → Term sig ℕ) ![a, b] (Fin.elim0 : Fin 0 → ℕ) + Δ) :=
+    Step.mk (I := system) era dup ruleEraBin rfl ![] ![a, b] Δ
+      (Fin.elim0 : Fin 0 → ℕ) (fun (i : Fin 0) => i.elim0) (fun (i : Fin 0) => i.elim0)
+  rw [inst_eraBin] at h
+  simpa using h
+
+theorem step_con_dup (x y z t : ℕ) (hnd : [x, y, z, t].Nodup)
+    (hfresh : ∀ v ∈ [x, y, z, t], v ∉ Net.vars (s(mkCon a b, mkDup c d) ::ₘ Δ)) :
+    Step system (s(mkCon a b, mkDup c d) ::ₘ Δ)
+      (s(a, mkDup (.var x) (.var y)) ::ₘ s(b, mkDup (.var z) (.var t)) ::ₘ
+        s(c, mkCon (.var x) (.var z)) ::ₘ s(d, mkCon (.var y) (.var t)) ::ₘ Δ) := by
+  have hinj : Function.Injective (![x, y, z, t] : Fin 4 → ℕ) := by
+    intro i j h
+    simp only [List.nodup_cons, List.mem_cons, List.not_mem_nil, or_false, not_or,
+      List.nodup_nil, and_true] at hnd
+    fin_cases i <;> fin_cases j <;> simp_all
+  have hfr : ∀ i : Fin 4, (![x, y, z, t] : Fin 4 → ℕ) i ∉
+      Net.vars (s(mkCon a b, mkDup c d) ::ₘ Δ) := by
+    intro i
+    fin_cases i
+    · exact hfresh x (by simp)
+    · exact hfresh y (by simp)
+    · exact hfresh z (by simp)
+    · exact hfresh t (by simp)
+  have h : Step system (s(mkCon a b, mkDup c d) ::ₘ Δ)
+      (ruleConDup.inst ![a, b] ![c, d] (![x, y, z, t] : Fin 4 → ℕ) + Δ) :=
+    Step.mk (I := system) con dup ruleConDup rfl ![a, b] ![c, d] Δ ![x, y, z, t] hinj hfr
+  rw [inst_conDup] at h
+  simpa using h
+
+end Steps
+
+/-! ## Wire substitution at the auxiliary ports of a cell -/
+
+section WireShapes
+
+open Term
+
+variable {x : ℕ} {t r c : Term sig ℕ} {Δ : CNet}
+
+theorem subst_mkCon (a b : Term sig ℕ) (x : ℕ) (t : Term sig ℕ) :
+    (mkCon a b).subst x t = mkCon (a.subst x t) (b.subst x t) := by simp [Term.subst]
+theorem subst_mkDup (a b : Term sig ℕ) (x : ℕ) (t : Term sig ℕ) :
+    (mkDup a b).subst x t = mkDup (a.subst x t) (b.subst x t) := by simp [Term.subst]
+theorem subst_var_self (x : ℕ) (t : Term sig ℕ) : (var x : Term sig ℕ).subst x t = t := by
+  simp [Term.subst]
+
+theorem wire_con_left (hlin : Net.Linear (s(var x, t) ::ₘ s(r, mkCon (var x) c) ::ₘ Δ)) :
+    Wire (s(var x, t) ::ₘ s(r, mkCon (var x) c) ::ₘ Δ) (s(r, mkCon t c) ::ₘ Δ) := by
+  have h := Wire.mk x t r (mkCon (var x) c) Δ hlin (by simp)
+  have hx := hlin x
+  simp only [Net.vars_cons, eqVars_mk, vars_var, vars_mkCon, Multiset.count_add,
+    Multiset.count_singleton_self] at hx
+  have hr : x ∉ r.vars := Multiset.count_eq_zero.1 (by omega)
+  have hc : x ∉ c.vars := Multiset.count_eq_zero.1 (by omega)
+  rwa [subst_mkCon, subst_var_self, subst_of_notMem hr, subst_of_notMem hc] at h
+
+theorem wire_con_right (hlin : Net.Linear (s(var x, t) ::ₘ s(r, mkCon c (var x)) ::ₘ Δ)) :
+    Wire (s(var x, t) ::ₘ s(r, mkCon c (var x)) ::ₘ Δ) (s(r, mkCon c t) ::ₘ Δ) := by
+  have h := Wire.mk x t r (mkCon c (var x)) Δ hlin (by simp)
+  have hx := hlin x
+  simp only [Net.vars_cons, eqVars_mk, vars_var, vars_mkCon, Multiset.count_add,
+    Multiset.count_singleton_self] at hx
+  have hr : x ∉ r.vars := Multiset.count_eq_zero.1 (by omega)
+  have hc : x ∉ c.vars := Multiset.count_eq_zero.1 (by omega)
+  rwa [subst_mkCon, subst_var_self, subst_of_notMem hr, subst_of_notMem hc] at h
+
+theorem wire_dup_left (hlin : Net.Linear (s(var x, t) ::ₘ s(r, mkDup (var x) c) ::ₘ Δ)) :
+    Wire (s(var x, t) ::ₘ s(r, mkDup (var x) c) ::ₘ Δ) (s(r, mkDup t c) ::ₘ Δ) := by
+  have h := Wire.mk x t r (mkDup (var x) c) Δ hlin (by simp)
+  have hx := hlin x
+  simp only [Net.vars_cons, eqVars_mk, vars_var, vars_mkDup, Multiset.count_add,
+    Multiset.count_singleton_self] at hx
+  have hr : x ∉ r.vars := Multiset.count_eq_zero.1 (by omega)
+  have hc : x ∉ c.vars := Multiset.count_eq_zero.1 (by omega)
+  rwa [subst_mkDup, subst_var_self, subst_of_notMem hr, subst_of_notMem hc] at h
+
+theorem wire_dup_right (hlin : Net.Linear (s(var x, t) ::ₘ s(r, mkDup c (var x)) ::ₘ Δ)) :
+    Wire (s(var x, t) ::ₘ s(r, mkDup c (var x)) ::ₘ Δ) (s(r, mkDup c t) ::ₘ Δ) := by
+  have h := Wire.mk x t r (mkDup c (var x)) Δ hlin (by simp)
+  have hx := hlin x
+  simp only [Net.vars_cons, eqVars_mk, vars_var, vars_mkDup, Multiset.count_add,
+    Multiset.count_singleton_self] at hx
+  have hr : x ∉ r.vars := Multiset.count_eq_zero.1 (by omega)
+  have hc : x ∉ c.vars := Multiset.count_eq_zero.1 (by omega)
+  rwa [subst_mkDup, subst_var_self, subst_of_notMem hr, subst_of_notMem hc] at h
+
+end WireShapes
+
+end Comb
+
+end INet

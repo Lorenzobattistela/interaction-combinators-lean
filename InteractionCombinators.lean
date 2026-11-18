@@ -1,0 +1,8 @@
+import InteractionCombinators.Term
+import InteractionCombinators.Net
+import InteractionCombinators.System
+import InteractionCombinators.Translation
+import InteractionCombinators.Combinators
+import InteractionCombinators.Lafont.Basic
+import InteractionCombinators.Lafont.Duplication
+import InteractionCombinators.Lafont.Universality
