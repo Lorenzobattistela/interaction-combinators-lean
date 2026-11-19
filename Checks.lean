@@ -20,6 +20,7 @@ import Checks.CodeGammaExtractCheck
 import Checks.CodeGammaMeetCheck
 import Checks.CodeGammaReview
 import Checks.CodeMeetReview
+import Checks.CodeSizesCReview
 import Checks.CodeTermExtractCheck
 import Checks.CodeTrCheck
 import Checks.CodeTrReview
