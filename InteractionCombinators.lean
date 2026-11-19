@@ -81,6 +81,7 @@ import InteractionCombinators.Lafont.CodeGammaExtract
 import InteractionCombinators.Lafont.CodeGammaExtractCheck
 import InteractionCombinators.Lafont.CodeGammaMeet
 import InteractionCombinators.Lafont.CodeGammaMeetCheck
+import InteractionCombinators.Lafont.CodeMeetReview
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
