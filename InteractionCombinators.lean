@@ -56,3 +56,5 @@ import InteractionCombinators.Lafont.ExpandCheck
 import InteractionCombinators.TranslationExistsCheck
 import InteractionCombinators.Lafont.DecompositionSymmLiteral
 import InteractionCombinators.Lafont.DecompositionSymmLiteralCheck
+import InteractionCombinators.Lafont.DecompositionSymm
+import InteractionCombinators.Lafont.DecompositionSymmCheck
