@@ -17,40 +17,105 @@ Fig. 9 is done here by induction on the list of cells (`decode_cells`), one cell
 followed by `mux_muxStar` on each copy, with the interactions taken in a different order. For
 `n = 0` the eraser `M_0` erases the `dup`, and the two erasers left meet the two `M_0*`.
 
-* `decode_cells` — the induction.
-* `code_decoder_tree` — Fig. 9 for any tree, with new names above the names of the net.
-* `code_decoder_package` — Fig. 9 for a package, as stated in the issue (stage 6.3 of `PLAN.md`).
+Contents, in the order of the file:
+
+1. Definition: `decodeNet`, the net left by the first stage of Fig. 9.
+2. Auxiliary lemmas: `muxStar_cons_cons`, `mux_cons_cons` (`M_n*` and `M_n` unfolded once),
+   `vars_decodeNet` (the names of `decodeNet`).
+3. The rest of Fig. 9: `decode_cells`, by induction on the cells.
+4. Main results: `code_decoder_tree`, Fig. 9 for any tree, with new names above the names of the
+   net; `code_decoder_package`, Fig. 9 for a package (stage 6, item 3, of `history/PLAN.md`).
 -/
 
 namespace INet.Comb
 
 open Term Decomp
 
-/-- `M_n*` of a list with at least two elements, unfolded once. -/
-theorem muxStar_cons_cons (u u' : Term sig ℕ) (us : List (Term sig ℕ)) :
-    muxStar (u :: u' :: us) = mkCon (muxStar (u' :: us)) u := rfl
-
-/-- `M_n` of a list with at least two elements, unfolded once. -/
-theorem mux_cons_cons (t t' : Term sig ℕ) (ts : List (Term sig ℕ)) :
-    mux (t :: t' :: ts) = mkCon t (mux (t' :: ts)) := rfl
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
 
 /-- The net left by the first stage of Fig. 9 (page 89), on a list of cells
 `cs = [(x_i, l_i, r_i)]`: `M_n` on the names `x_i` against a `dup` cell with auxiliary ports `a`,
 `b`; `M_n*` of the trees `l_i` (auxiliary port 0 of the cells) on `a`; `M_n*` of the trees `r_i`
 (auxiliary port 1) on `b`; and the rest `Δ`. -/
-def decodeNet (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a b : ℕ) (Δ : CNet) : CNet :=
+def decodeNet
+    -- the cells `x_i = dup(l_i, r_i)`, as triples `(x_i, l_i, r_i)`
+    (cs : List (ℕ × Term sig ℕ × Term sig ℕ))
+    -- the names on the auxiliary ports 0 and 1 of the `dup` cell
+    (a b : ℕ)
+    -- the rest of the net
+    (Δ : CNet) :
+    CNet :=
   s(mux (cs.map fun c => var c.1), mkDup (var a) (var b)) ::ₘ
     s(muxStar (cs.map fun c => c.2.1), var a) ::ₘ
     s(muxStar (cs.map fun c => c.2.2), var b) ::ₘ Δ
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: unfolding the multiplexors, the names of `decodeNet`
+-- ============================================================================================
+
+/-- `M_n*` of a list with at least two elements, unfolded once. -/
+theorem muxStar_cons_cons
+    -- the first two trees and the others
+    (u u' : Term sig ℕ)
+    (us : List (Term sig ℕ)) :
+    muxStar (u :: u' :: us) = mkCon (muxStar (u' :: us)) u := rfl
+
+/-- `M_n` of a list with at least two elements, unfolded once. -/
+theorem mux_cons_cons
+    -- the first two trees and the others
+    (t t' : Term sig ℕ)
+    (ts : List (Term sig ℕ)) :
+    mux (t :: t' :: ts) = mkCon t (mux (t' :: ts)) := rfl
+
+/-- The names of the net left by the first stage of Fig. 9: the cut names (on `M_n`), the names of
+the trees `l_i`, `r_i` (on the two `M_n*`), the two ends of `a` and of `b`, and the rest. -/
+theorem vars_decodeNet
+    -- the cells, and any tree `τ` (`ports` and `auxVars` do not depend on it)
+    (cs : List (ℕ × Term sig ℕ × Term sig ℕ))
+    (τ : Term sig ℕ)
+    -- the names on the auxiliary ports of the `dup` cell
+    (a b : ℕ)
+    -- the rest of the net
+    (Δ : CNet) :
+    -- the cut names, the names of the trees of the cells, `a` and `b` twice each, and those of `Δ`
+    Net.vars (decodeNet cs a b Δ)
+      = (Decomp.mk τ cs 0).ports + (Decomp.mk τ cs 0).auxVars
+        + ({a, a, b, b} : Multiset ℕ) + Net.vars Δ := by
+  simp only [decodeNet, Net.vars_cons, eqVars_mk, vars_mkDup, vars_var, vars_mux, vars_muxStar,
+    ports, auxVars, List.map_map]
+  induction cs with
+  | nil =>
+    simp only [List.map_nil, List.sum_nil, Multiset.coe_nil, Multiset.insert_eq_cons,
+      ← Multiset.singleton_add]
+    ms
+  | cons c cs ih =>
+    simp only [List.map_cons, List.sum_cons, Function.comp, vars_var, ← Multiset.cons_coe] at ih ⊢
+    rw [← Multiset.singleton_add]
+    have h := congrArg (({c.1} + c.2.1.vars + c.2.2.vars) + ·) ih
+    refine Eq.trans ?_ (h.trans ?_) <;> abel
+
+-- ============================================================================================
+-- 3. The rest of Fig. 9, by induction on the cells
+-- ============================================================================================
 
 /-- The rest of Fig. 9 (page 89), by induction on the cells: `M_n` on the names `x_i`, against a
 `dup` cell whose auxiliary port 0, `a`, is joined to `M_n*` of the trees `l_i` and whose auxiliary
 port 1, `b`, to `M_n*` of the trees `r_i`, reduces to the `n` cells
 `x_i = dup(l_i, r_i)`. The net must be linear and its names below `j`, the first new name. -/
-theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a b j : ℕ) (Δ : CNet),
-    Net.Linear (decodeNet cs a b Δ) → Net.Below j (decodeNet cs a b Δ) →
-    ∃ M, StepsE system (decodeNet cs a b Δ) M ∧
-      Equiv M ((cs.map cellEq : List _) + Δ)
+theorem decode_cells :
+    -- for the cells `(x_i, l_i, r_i)`, the names `a`, `b` of the `dup` cell, the first new name
+    -- `j` and the rest of the net `Δ`,
+    ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a b j : ℕ) (Δ : CNet),
+      -- if the net is linear
+      Net.Linear (decodeNet cs a b Δ) →
+      -- and its names are below `j`,
+      Net.Below j (decodeNet cs a b Δ) →
+      -- then it reduces, up to wires, to a net `M`
+      ∃ M, StepsE system (decodeNet cs a b Δ) M ∧
+        -- that is the same graph as the cells `x_i = dup(l_i, r_i)` and `Δ`
+        Equiv M ((cs.map cellEq : List _) + Δ)
   | [], a, b, j, Δ, hlin, hb => by
     -- `M_0 = ε` erases the `dup`; the two erasers meet the two `M_0* = ε`
     simp only [decodeNet, List.map_nil, mux, muxStar] at hlin hb ⊢
@@ -150,33 +215,30 @@ theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a 
     simp only [List.map_cons, ← Multiset.cons_coe]
     ms
 
-/-- The names of the net left by the first stage of Fig. 9: the cut names (on `M_n`), the names of
-the trees `l_i`, `r_i` (on the two `M_n*`), the two ends of `a` and of `b`, and the rest. -/
-theorem vars_decodeNet (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (τ : Term sig ℕ) (a b : ℕ)
-    (Δ : CNet) :
-    Net.vars (decodeNet cs a b Δ) = (Decomp.mk τ cs 0).ports + (Decomp.mk τ cs 0).auxVars +
-      ({a, a, b, b} : Multiset ℕ) + Net.vars Δ := by
-  simp only [decodeNet, Net.vars_cons, eqVars_mk, vars_mkDup, vars_var, vars_mux, vars_muxStar,
-    ports, auxVars, List.map_map]
-  induction cs with
-  | nil =>
-    simp only [List.map_nil, List.sum_nil, Multiset.coe_nil, Multiset.insert_eq_cons,
-      ← Multiset.singleton_add]
-    ms
-  | cons c cs ih =>
-    simp only [List.map_cons, List.sum_cons, Function.comp, vars_var, ← Multiset.cons_coe] at ih ⊢
-    rw [← Multiset.singleton_add]
-    have h := congrArg (({c.1} + c.2.1.vars + c.2.2.vars) + ·) ih
-    refine Eq.trans ?_ (h.trans ?_) <;> abel
+-- ============================================================================================
+-- 4. Main results: the decoder extracts the tree from its code
+-- ============================================================================================
 
 /-- Fig. 9 (page 89) for any tree `t`: the code `code k t` against the decoder `decoder w k₀`
 reduces to a net that is `Equiv` to `t` on the free port `w` of the decoder. The new names of the
 code start at `k`, above every name of the net `s(var w, t) ::ₘ Δ`; the loop `k₀, k₀ + 1` of the
 decoder and the new wires of the reduction start at or above the next unused name of the code. -/
-theorem code_decoder_tree (t : Term sig ℕ) (k w k₀ : ℕ) (Δ : CNet)
-    (hlin : Net.Linear (s(var w, t) ::ₘ Δ)) (hb : Net.Below k (s(var w, t) ::ₘ Δ))
+theorem code_decoder_tree
+    -- the tree, the first new name `k` of its code, the free port `w` of the decoder, and the
+    -- first name `k₀` of the loop of the decoder
+    (t : Term sig ℕ)
+    (k w k₀ : ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net `t` on `w`, with `Δ`, is linear and its names are below `k`
+    (hlin : Net.Linear (s(var w, t) ::ₘ Δ))
+    (hb : Net.Below k (s(var w, t) ::ₘ Δ))
+    -- the loop of the decoder is at or above the names of the code
     (hk₀ : (decomp k t).k ≤ k₀) :
-    ∃ M, StepsE system (s(code k t, decoder w k₀) ::ₘ Δ) M ∧ Equiv M (s(var w, t) ::ₘ Δ) := by
+    -- the code against the decoder reduces, up to wires, to a net `M`
+    ∃ M, StepsE system (s(code k t, decoder w k₀) ::ₘ Δ) M ∧
+      -- that is the same graph as `t` on `w`, with `Δ`
+      Equiv M (s(var w, t) ::ₘ Δ) := by
   set D := decomp k t with hD
   -- the first stage: `M_4` against `M_4*`
   have h1 : Red (s(code k t, decoder w k₀) ::ₘ Δ)
@@ -238,10 +300,24 @@ reduces, by interactions up to wires, to a net that is `Equiv` to `π` on `w`. T
 wires of the reduction are taken at or above `(decomp k π).k`, the next name unused by the code.
 
 The hypothesis that `π` is a package is not needed: see `code_decoder_tree`. -/
-theorem code_decoder_package (π : Term sig ℕ) (_hπ : π.IsPackage) (k w k₀ : ℕ) (Δ : CNet)
-    (hlin : Net.Linear (s(var w, π) ::ₘ Δ)) (hb : Net.Below k (s(var w, π) ::ₘ Δ))
+theorem code_decoder_package
+    -- the package (the hypothesis is not used)
+    (π : Term sig ℕ)
+    (_hπ : π.IsPackage)
+    -- the first new name `k` of the code, the free port `w` of the decoder, and the first name
+    -- `k₀` of the loop of the decoder
+    (k w k₀ : ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net `π` on `w`, with `Δ`, is linear and its names are below `k`
+    (hlin : Net.Linear (s(var w, π) ::ₘ Δ))
+    (hb : Net.Below k (s(var w, π) ::ₘ Δ))
+    -- the loop of the decoder is at or above the names of the code
     (hk₀ : (decomp k π).k ≤ k₀) :
-    ∃ M, StepsE system (s(code k π, decoder w k₀) ::ₘ Δ) M ∧ Equiv M (s(var w, π) ::ₘ Δ) :=
+    -- the code `!π` against the decoder reduces, up to wires, to a net `M`
+    ∃ M, StepsE system (s(code k π, decoder w k₀) ::ₘ Δ) M ∧
+      -- that is the same graph as `π` on `w`, with `Δ`
+      Equiv M (s(var w, π) ::ₘ Δ) :=
   code_decoder_tree π k w k₀ Δ hlin hb hk₀
 
 end INet.Comb
