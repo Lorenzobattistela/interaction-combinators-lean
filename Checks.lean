@@ -71,6 +71,7 @@ import Checks.PlugsNetTrCheck
 import Checks.PlugsReview
 import Checks.RecursionFreeCheck
 import Checks.ReducedClosedCheck
+import Checks.ReducedDecompCheck
 import Checks.RecursionFreeCompatibleReview
 import Checks.RecursionFreeFig7Check
 import Checks.RecursionFreeTrReview

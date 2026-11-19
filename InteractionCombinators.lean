@@ -82,6 +82,7 @@ import InteractionCombinators.Lafont.CutChain
 import InteractionCombinators.Lafont.Vicious
 import InteractionCombinators.Lafont.ViciousReflect
 import InteractionCombinators.Lafont.ReducedClosed
+import InteractionCombinators.Lafont.ReducedDecomp
 import InteractionCombinators.Lafont.SimulationStrict
 import InteractionCombinators.Lafont.TranslationComp
 import InteractionCombinators.Lafont.TranslationCompAssoc
