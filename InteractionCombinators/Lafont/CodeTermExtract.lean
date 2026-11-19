@@ -288,6 +288,139 @@ theorem sum_map_cons_univ {n : ℕ} (e : Fin n → Sym2 (Term sig ℕ)) (A : Fin
   rw [show (fun i => ({e i} : CNet)) = (fun a => {a}) ∘ e from rfl, ← Multiset.map_map,
     Multiset.sum_map_singleton]
 
+/-! ## The statement for any enumeration of the symbols -/
+
+section Enum
+
+variable {S : Signature} {n : ℕ} (e : S.Sym ≃ Fin n)
+  (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- **`⟨t⟩` with a copy of `!Γ` on each extra port reduces to `[t]`, for any numbering `e` of the
+symbols** (Lafont 1997, Fig. 10, pages 89–90; page 90: no order on the symbols is needed). This is
+`codeTerm_extract` with the `n` symbols numbered by any `e : S.Sym ≃ Fin n`:
+`Γ = codeMenusE e side k₀`, `!Γ = code K Γ` with `K` above the names of `Γ`, the cells `⟨α⟩` of `codeTerm` selecting the menu
+`e α` among `n`, and `t'` a translation of `t` by `codeTranslationE e side`. -/
+theorem codeTerm_extractE (k₀ K : ℕ) (hK : k₀ + ∑ i, codeMenuSizesE e side i ≤ K)
+    (t : Term S ℕ) :
+    ∀ (b : ℕ) (P : Term sig ℕ) (fs : List (ℕ → ℕ)) (Δ : CNet),
+      fs.length = (codeExtras n (fun α => (e α : ℕ)) b t).length →
+      (∀ f ∈ fs, Set.InjOn f {x | x ∈ (code K (menu (codeMenusE e side k₀))).vars}) →
+      Net.Linear (s(P, codeTerm n (fun α => (e α : ℕ)) b t) ::ₘ
+        (codeCopies (code K (menu (codeMenusE e side k₀)))
+          (codeExtras n (fun α => (e α : ℕ)) b t) fs + Δ)) →
+      ∃ M t', StepsE system (s(P, codeTerm n (fun α => (e α : ℕ)) b t) ::ₘ
+          (codeCopies (code K (menu (codeMenusE e side k₀)))
+            (codeExtras n (fun α => (e α : ℕ)) b t) fs + Δ)) M ∧
+        Equiv M (s(P, t') ::ₘ Δ) ∧ (codeTranslationE e side).TermTr t t' := by
+  set C := code K (menu (codeMenusE e side k₀)) with hC
+  have hm : (codeMenusE e side k₀).length = n := length_codeMenusE e side k₀
+  induction t with
+  | var x =>
+    intro b P fs Δ hlen _ _
+    have : fs = [] := List.length_eq_zero_iff.1 (by simpa [codeExtras] using hlen)
+    subst this
+    refine ⟨_, var x, .refl, Equiv.of_eq ?_, .var x⟩
+    simp [codeTerm, codeExtras, codeCopies]
+  | app β ts ih =>
+    intro b P fs Δ hlen hinj hlin
+    set idx : S.Sym → ℕ := fun α => (e α : ℕ)
+    set c : Fin (S.arity β) → Term sig ℕ :=
+      fun i => codeTerm n idx (b + 5 + off (fun j => codeSize (ts j)) i) (ts i) with hc
+    set E : Fin (S.arity β) → List (Term sig ℕ) :=
+      fun i => codeExtras n idx (b + 5 + off (fun j => codeSize (ts j)) i) (ts i) with hE
+    have eT : codeTerm n idx b (.app β ts) =
+        cellSkel (var (b + 2)) n (idx β) (var (b + 1) :: List.ofFn c) b := rfl
+    have eX : codeExtras n idx b (.app β ts) =
+        codeExtra n (idx β) (b + 2) (b + 1) (b + 3) :: (List.ofFn E).flatten := rfl
+    rw [eT, eX] at hlin ⊢
+    rw [eX] at hlen
+    obtain ⟨f₀, fs', rfl⟩ : ∃ f₀ fs', fs = f₀ :: fs' := by
+      cases fs with
+      | nil => simp at hlen
+      | cons f fs => exact ⟨f, fs, rfl⟩
+    have hlen' : fs'.length = ∑ i, (E i).length := by
+      simp only [List.length_cons, List.length_flatten, List.map_ofFn, List.sum_ofFn,
+        Function.comp_def, add_left_inj] at hlen
+      exact hlen
+    obtain ⟨fss, hfl, hfm, hsplit⟩ := codeCopies_flatten_ofFn C E fs' hlen'
+    rw [codeCopies_cons, hsplit] at hlin ⊢
+    set e₀ := codeExtra n (idx β) (b + 2) (b + 1) (b + 3) with he₀
+    set X : CNet := ∑ i, codeCopies C (E i) (fss i) with hX
+    set C₀ := C.bind fun x => var (f₀ x) with hC₀
+    -- 1. cut the subtrees off the cell, along the fresh wires `Z + 1 + j`
+    obtain ⟨Z, hZ⟩ := Net.exists_below (s(P, cellSkel (var (b + 2)) n (idx β)
+      (var (b + 1) :: List.ofFn c) b) ::ₘ (s(e₀, C₀) ::ₘ X + Δ))
+    obtain ⟨hlin₁, hE₁, hv₁⟩ := cellSkel_cut (var (b + 2)) (var (b + 1)) P n (idx β) b (Z + 1) c _
+      hlin (hZ.mono (Nat.le_succ Z))
+    set Q₀ := cellSkel (var (b + 2)) n (idx β)
+      (var (b + 1) :: List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b with hQ₀
+    set R : CNet := X + Δ + wiresOf (Z + 1) c with hR
+    have e1 : s(P, Q₀) ::ₘ (s(e₀, C₀) ::ₘ X + Δ) + wiresOf (Z + 1) c =
+        s(e₀, C₀) ::ₘ s(P, Q₀) ::ₘ R := by
+      rw [hR, Multiset.cons_add, Multiset.cons_add, Multiset.cons_add, Multiset.cons_swap]
+    rw [e1] at hlin₁ hE₁ hv₁
+    -- 2. the cell `⟨β⟩` takes its copy of `!Γ` and becomes `[β]`
+    have hw : Z ∉ Net.vars (s(e₀, C₀) ::ₘ s(P, Q₀) ::ₘ R) := by
+      rw [hv₁]
+      intro hm'
+      rcases Multiset.mem_add.1 hm' with h | h
+      · exact absurd (hZ _ h) (lt_irrefl _)
+      · have : Z ∈ ∑ j : Fin (S.arity β), ({Z + 1 + (j : ℕ)} : Multiset ℕ) := by
+          rcases Multiset.mem_add.1 h with h | h <;> exact h
+        obtain ⟨j, -, hj⟩ := Multiset.mem_sum.1 this
+        rw [Multiset.mem_singleton] at hj
+        omega
+    have hlin₂ := codeCell_add_linear n (idx β) P C₀ _ b (b + 1) Z (b + 2) (b + 3) R hlin₁ hw
+    have E₂ := codeCell_equiv n (idx β) P C₀ _ b (b + 1) Z (b + 2) (b + 3) R hlin₂
+    rw [Sym2.eq_swap] at E₂
+    have key := codeCell_code_codeMenusE e side k₀ K hK β f₀ (hinj f₀ List.mem_cons_self) P
+      (List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b (b + 1) Z (b + 2) (b + 3) R
+    rw [hm] at key
+    obtain ⟨g, g', M₀, -, -, hS₀, hE₀⟩ := key hlin₂
+    obtain ⟨M₀', hS₀', hE₀'⟩ := stepsE_of_equiv (hE₁.trans E₂.symm) hS₀
+    have hlin₃ := (hE₀'.trans hE₀).linear (hS₀'.linear system_wellFormed.linear hlin)
+    -- 3. the subtrees, with their copies, reduce one after the other
+    set Q₁ := cellSkel
+      ((menu (codeCellMenuE e side β (k₀ + off (codeMenuSizesE e side) (e β)))).bind
+        fun x => var (g x)) n (e β) ((C.bind fun x => var (g' x)) ::
+          List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b with hQ₁
+    set J : Fin (S.arity β) → CNet :=
+      fun i => s(var (Z + 1 + i), c i) ::ₘ codeCopies C (E i) (fss i) with hJ
+    have e3 : s(P, Q₁) ::ₘ R = (Finset.univ.val.map J).sum + s(P, Q₁) ::ₘ Δ := by
+      rw [hJ, sum_map_cons_univ, hR, hX, wiresOf]
+      rw [Multiset.add_cons]
+      congr 1
+      abel
+    have hE₀'' := hE₀'.trans hE₀
+    rw [e3] at hlin₃ hE₀''
+    obtain ⟨M₁, t'', hS₁, hE₁', hR₁⟩ := stepsE_jobs J (fun i => Z + 1 + i)
+      (fun i t' => (codeTranslationE e side).TermTr (ts i) t')
+      (fun i Δ' hl => by
+        have e : J i + Δ' = s(var (Z + 1 + i), c i) ::ₘ (codeCopies C (E i) (fss i) + Δ') :=
+          Multiset.cons_add _ _ _
+        rw [e] at hl ⊢
+        exact ih i _ _ (fss i) Δ' (hfl i)
+          (fun f hf => hinj f (List.mem_cons_of_mem _ (hfm i f hf))) hl)
+      Finset.univ.val Finset.univ.nodup _ hlin₃
+    obtain ⟨M₁', hS₁', hE₁''⟩ := stepsE_of_equiv hE₀'' hS₁
+    have hlin₄ := (hE₁''.trans hE₁').linear (hS₁'.linear system_wellFormed.linear
+      (hS₀'.linear system_wellFormed.linear hlin))
+    -- 4. the wires are contracted, and the cell is an instance of `[β]`
+    have e4 : (Finset.univ.val.map fun i : Fin (S.arity β) => s(var (Z + 1 + (i : ℕ)), t'' i)) + s(P, Q₁) ::ₘ Δ =
+        s(P, Q₁) ::ₘ Δ + wiresOf (Z + 1) t'' := add_comm _ _
+    rw [e4] at hlin₄ hE₁'
+    have E₄ := cellSkel_uncut _ _ P n (e β) b (Z + 1) t'' Δ hlin₄
+    obtain ⟨F, hF⟩ := codeNetE_inst_eq e side β (k₀ + off (codeMenuSizesE e side) (e β)) k₀ K
+      g g' b t''
+    have hTr : (codeTranslationE e side).TermTr (.app β ts) ((codeNetE e side β).inst t'' F) :=
+      TermTr.app (Φ := codeTranslationE e side) β ts t'' F fun i => hR₁ i (Finset.mem_univ i)
+    refine ⟨M₁', (codeNetE e side β).inst t'' F, hS₀'.trans hS₁',
+      hE₁''.trans (hE₁'.trans (E₄.trans (Equiv.of_eq (by rw [hF])))),
+      hTr⟩
+
+
+end Enum
+
 /-! ## The statement -/
 
 variable {S : Signature} [Finite S.Sym]
@@ -311,111 +444,7 @@ theorem codeTerm_extract (k₀ K : ℕ) (hK : k₀ + ∑ i, codeMenuSizes side i
       ∃ M t', StepsE system (s(P, codeTerm (Nat.card S.Sym) (fun α => symEnum S α) b t) ::ₘ
           (codeCopies (code K (menu (codeMenus side k₀)))
             (codeExtras (Nat.card S.Sym) (fun α => symEnum S α) b t) fs + Δ)) M ∧
-        Equiv M (s(P, t') ::ₘ Δ) ∧ (codeTranslation side).TermTr t t' := by
-  set C := code K (menu (codeMenus side k₀)) with hC
-  have hm : (codeMenus side k₀).length = Nat.card S.Sym := length_codeMenus side k₀
-  induction t with
-  | var x =>
-    intro b P fs Δ hlen _ _
-    have : fs = [] := List.length_eq_zero_iff.1 (by simpa [codeExtras] using hlen)
-    subst this
-    refine ⟨_, var x, .refl, Equiv.of_eq ?_, .var x⟩
-    simp [codeTerm, codeExtras, codeCopies]
-  | app β ts ih =>
-    intro b P fs Δ hlen hinj hlin
-    set m := Nat.card S.Sym
-    set idx : S.Sym → ℕ := fun α => symEnum S α
-    set c : Fin (S.arity β) → Term sig ℕ :=
-      fun i => codeTerm m idx (b + 5 + off (fun j => codeSize (ts j)) i) (ts i) with hc
-    set E : Fin (S.arity β) → List (Term sig ℕ) :=
-      fun i => codeExtras m idx (b + 5 + off (fun j => codeSize (ts j)) i) (ts i) with hE
-    have eT : codeTerm m idx b (.app β ts) =
-        cellSkel (var (b + 2)) m (idx β) (var (b + 1) :: List.ofFn c) b := rfl
-    have eX : codeExtras m idx b (.app β ts) =
-        codeExtra m (idx β) (b + 2) (b + 1) (b + 3) :: (List.ofFn E).flatten := rfl
-    rw [eT, eX] at hlin ⊢
-    rw [eX] at hlen
-    obtain ⟨f₀, fs', rfl⟩ : ∃ f₀ fs', fs = f₀ :: fs' := by
-      cases fs with
-      | nil => simp at hlen
-      | cons f fs => exact ⟨f, fs, rfl⟩
-    have hlen' : fs'.length = ∑ i, (E i).length := by
-      simp only [List.length_cons, List.length_flatten, List.map_ofFn, List.sum_ofFn,
-        Function.comp_def, add_left_inj] at hlen
-      exact hlen
-    obtain ⟨fss, hfl, hfm, hsplit⟩ := codeCopies_flatten_ofFn C E fs' hlen'
-    rw [codeCopies_cons, hsplit] at hlin ⊢
-    set e₀ := codeExtra m (idx β) (b + 2) (b + 1) (b + 3) with he₀
-    set X : CNet := ∑ i, codeCopies C (E i) (fss i) with hX
-    set C₀ := C.bind fun x => var (f₀ x) with hC₀
-    -- 1. cut the subtrees off the cell, along the fresh wires `Z + 1 + j`
-    obtain ⟨Z, hZ⟩ := Net.exists_below (s(P, cellSkel (var (b + 2)) m (idx β)
-      (var (b + 1) :: List.ofFn c) b) ::ₘ (s(e₀, C₀) ::ₘ X + Δ))
-    obtain ⟨hlin₁, hE₁, hv₁⟩ := cellSkel_cut (var (b + 2)) (var (b + 1)) P m (idx β) b (Z + 1) c _
-      hlin (hZ.mono (Nat.le_succ Z))
-    set Q₀ := cellSkel (var (b + 2)) m (idx β)
-      (var (b + 1) :: List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b with hQ₀
-    set R : CNet := X + Δ + wiresOf (Z + 1) c with hR
-    have e1 : s(P, Q₀) ::ₘ (s(e₀, C₀) ::ₘ X + Δ) + wiresOf (Z + 1) c =
-        s(e₀, C₀) ::ₘ s(P, Q₀) ::ₘ R := by
-      rw [hR, Multiset.cons_add, Multiset.cons_add, Multiset.cons_add, Multiset.cons_swap]
-    rw [e1] at hlin₁ hE₁ hv₁
-    -- 2. the cell `⟨β⟩` takes its copy of `!Γ` and becomes `[β]`
-    have hw : Z ∉ Net.vars (s(e₀, C₀) ::ₘ s(P, Q₀) ::ₘ R) := by
-      rw [hv₁]
-      intro hm'
-      rcases Multiset.mem_add.1 hm' with h | h
-      · exact absurd (hZ _ h) (lt_irrefl _)
-      · have : Z ∈ ∑ j : Fin (S.arity β), ({Z + 1 + (j : ℕ)} : Multiset ℕ) := by
-          rcases Multiset.mem_add.1 h with h | h <;> exact h
-        obtain ⟨j, -, hj⟩ := Multiset.mem_sum.1 this
-        rw [Multiset.mem_singleton] at hj
-        omega
-    have hlin₂ := codeCell_add_linear m (idx β) P C₀ _ b (b + 1) Z (b + 2) (b + 3) R hlin₁ hw
-    have E₂ := codeCell_equiv m (idx β) P C₀ _ b (b + 1) Z (b + 2) (b + 3) R hlin₂
-    rw [Sym2.eq_swap] at E₂
-    have key := codeCell_code_codeMenus side k₀ K hK β f₀ (hinj f₀ List.mem_cons_self) P
-      (List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b (b + 1) Z (b + 2) (b + 3) R
-    rw [hm] at key
-    obtain ⟨g, g', M₀, -, -, hS₀, hE₀⟩ := key hlin₂
-    obtain ⟨M₀', hS₀', hE₀'⟩ := stepsE_of_equiv (hE₁.trans E₂.symm) hS₀
-    have hlin₃ := (hE₀'.trans hE₀).linear (hS₀'.linear system_wellFormed.linear hlin)
-    -- 3. the subtrees, with their copies, reduce one after the other
-    set Q₁ := cellSkel ((menu (codeCellMenu side β (k₀ + off (codeMenuSizes side) (symEnum S β)))).bind
-        fun x => var (g x)) m (symEnum S β) ((C.bind fun x => var (g' x)) ::
-          List.ofFn fun j : Fin (S.arity β) => var (Z + 1 + j)) b with hQ₁
-    set J : Fin (S.arity β) → CNet :=
-      fun i => s(var (Z + 1 + i), c i) ::ₘ codeCopies C (E i) (fss i) with hJ
-    have e3 : s(P, Q₁) ::ₘ R = (Finset.univ.val.map J).sum + s(P, Q₁) ::ₘ Δ := by
-      rw [hJ, sum_map_cons_univ, hR, hX, wiresOf]
-      rw [Multiset.add_cons]
-      congr 1
-      abel
-    have hE₀'' := hE₀'.trans hE₀
-    rw [e3] at hlin₃ hE₀''
-    obtain ⟨M₁, t'', hS₁, hE₁', hR₁⟩ := stepsE_jobs J (fun i => Z + 1 + i)
-      (fun i t' => (codeTranslation side).TermTr (ts i) t')
-      (fun i Δ' hl => by
-        have e : J i + Δ' = s(var (Z + 1 + i), c i) ::ₘ (codeCopies C (E i) (fss i) + Δ') :=
-          Multiset.cons_add _ _ _
-        rw [e] at hl ⊢
-        exact ih i _ _ (fss i) Δ' (hfl i)
-          (fun f hf => hinj f (List.mem_cons_of_mem _ (hfm i f hf))) hl)
-      Finset.univ.val Finset.univ.nodup _ hlin₃
-    obtain ⟨M₁', hS₁', hE₁''⟩ := stepsE_of_equiv hE₀'' hS₁
-    have hlin₄ := (hE₁''.trans hE₁').linear (hS₁'.linear system_wellFormed.linear
-      (hS₀'.linear system_wellFormed.linear hlin))
-    -- 4. the wires are contracted, and the cell is an instance of `[β]`
-    have e4 : (Finset.univ.val.map fun i : Fin (S.arity β) => s(var (Z + 1 + (i : ℕ)), t'' i)) + s(P, Q₁) ::ₘ Δ =
-        s(P, Q₁) ::ₘ Δ + wiresOf (Z + 1) t'' := add_comm _ _
-    rw [e4] at hlin₄ hE₁'
-    have E₄ := cellSkel_uncut _ _ P m (symEnum S β) b (Z + 1) t'' Δ hlin₄
-    obtain ⟨F, hF⟩ := codeNet_inst_eq side β (k₀ + off (codeMenuSizes side) (symEnum S β)) k₀ K
-      g g' b t''
-    have hTr : (codeTranslation side).TermTr (.app β ts) ((codeNet side β).inst t'' F) :=
-      TermTr.app (Φ := codeTranslation side) β ts t'' F fun i => hR₁ i (Finset.mem_univ i)
-    refine ⟨M₁', (codeNet side β).inst t'' F, hS₀'.trans hS₁',
-      hE₁''.trans (hE₁'.trans (E₄.trans (Equiv.of_eq (by rw [hF])))),
-      hTr⟩
+        Equiv M (s(P, t') ::ₘ Δ) ∧ (codeTranslation side).TermTr t t' :=
+  codeTerm_extractE (symEnum S) side k₀ K hK t
 
 end INet.Comb

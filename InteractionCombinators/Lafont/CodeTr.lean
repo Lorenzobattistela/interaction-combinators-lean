@@ -309,6 +309,11 @@ theorem codeNetE_inst (α : S.Sym) :
 theorem codeNetE_strict (α : S.Sym) : (codeNetE e side α).Strict :=
   treePNet_strict _ _ _ _ (codeTreeE_ne_var e side α)
 
+/-- **The translation of Fig. 10** (pages 89–90), with the symbols numbered by `e`: every symbol
+`α` is translated into the principal net `codeNetE e side α`. -/
+def codeTranslationE : Translation S sig :=
+  ⟨codeNetE e side⟩
+
 end Enum
 
 /-! ## The tree of `[α]` for the enumeration `symEnum S` -/
@@ -393,6 +398,10 @@ theorem codeNet_eq (α : S.Sym) :
 net `[α]`, built from the choice `side` of expanded sides. -/
 noncomputable def codeTranslation : Translation S sig :=
   ⟨codeNet side⟩
+
+/-- `codeTranslation` is `codeTranslationE` with the symbols numbered by `symEnum` (page 90). -/
+theorem codeTranslation_eq_E : codeTranslation side = codeTranslationE (symEnum S) side :=
+  rfl
 
 /-- The principal net `[α]` is the tree of Fig. 10 (page 89): its instance with the port `i` named
 `i` and the internal wires named back is `codeTree side α`. -/

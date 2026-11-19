@@ -29,6 +29,7 @@ import Checks.CodeNetEReview
 import Checks.CodeTreeEReview
 import Checks.CodeSizesCReview
 import Checks.CodeTermExtractCheck
+import Checks.CodeTermExtractECheck
 import Checks.CodeTrCheck
 import Checks.CodeTrReview
 import Checks.CopierCheck
