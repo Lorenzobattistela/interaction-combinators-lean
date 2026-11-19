@@ -53,6 +53,7 @@ import InteractionCombinators.Lafont.Decode
 import InteractionCombinators.Lafont.DecodeCheck
 import InteractionCombinators.Lafont.DecodeReview
 import InteractionCombinators.Lafont.DecodeCopy
+import InteractionCombinators.Lafont.DecodeCopyChain
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
