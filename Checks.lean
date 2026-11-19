@@ -46,6 +46,7 @@ import Checks.MenuCheck
 import Checks.NetTrEquivCheck
 import Checks.NetTrWireCheck
 import Checks.NormalFormECheck
+import Checks.NormalFormEReview
 import Checks.PackageCheck
 import Checks.PackageDecompCheck
 import Checks.PlugTermTrCheck
