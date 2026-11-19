@@ -1,5 +1,6 @@
 import InteractionCombinators
 import Checks
+import Demo
 
 /-!
 Axiom audit, run by `scripts/check.sh`.
@@ -21,7 +22,7 @@ run_cmd do
   for (n, ci) in env.constants.map₁.toList do
     let some idx := env.getModuleIdxFor? n | continue
     unless (`InteractionCombinators).isPrefixOf mods[idx.toNat]! ||
-        (`Checks).isPrefixOf mods[idx.toNat]! do continue
+        (`Checks).isPrefixOf mods[idx.toNat]! || (`Demo).isPrefixOf mods[idx.toNat]! do continue
     if ci matches .axiomInfo _ then
       bad := bad.push s!"axiom declared in the project: {n}"
       continue

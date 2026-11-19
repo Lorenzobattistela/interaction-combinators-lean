@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 BASE="${GATE_BASE:-origin/main}"
-LIBS="InteractionCombinators Checks"
+LIBS="InteractionCombinators Checks Demo"
 
 fail() { echo "GATE FAILED: $*" >&2; exit 1; }
 step() { echo "== $*"; }
@@ -24,7 +24,7 @@ done < <(git show "$BASE:scripts/protected.txt" 2>/dev/null || cat scripts/prote
 
 step "forbidden constructs"
 W="[^A-Za-z0-9_.']"
-if grep -rnE "(^|$W)(sorry|admit|native_decide)($W|\$)|^[[:space:]]*(private |protected )?(axiom|unsafe)[[:space:]]|implemented_by|set_option[[:space:]]+debug" $LIBS InteractionCombinators.lean Checks.lean; then
+if grep -rnE "(^|$W)(sorry|admit|native_decide)($W|\$)|^[[:space:]]*(private |protected )?(axiom|unsafe)[[:space:]]|implemented_by|set_option[[:space:]]+debug" $LIBS InteractionCombinators.lean Checks.lean Demo.lean; then
   fail "forbidden construct in the sources (see lines above)"
 fi
 
@@ -45,7 +45,7 @@ for lib in $LIBS; do
 done
 
 step "the library does not depend on the checks"
-if grep -rnE '^import Checks' InteractionCombinators InteractionCombinators.lean; then
+if grep -rnE '^import (Checks|Demo)' InteractionCombinators InteractionCombinators.lean; then
   fail "a library file imports a check"
 fi
 
