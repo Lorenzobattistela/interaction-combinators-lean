@@ -1,6 +1,6 @@
 # Paths that only the project owner may change. One prefix per line.
 # A pull request that touches any of them is rejected by scripts/check.sh.
-history/
+history/PLAN.md
 PLAN.md
 PAPER.md
 README.md
