@@ -129,6 +129,7 @@ import Checks.MultiplicationReview
 import Checks.GraphStepCheck
 import Checks.GraphStepReview
 import Checks.GraphStepECheck
+import Checks.GraphStepEReview
 import Checks.PrintCheck
 import Checks.RuleReducedCheck
 import Checks.ArithmeticTrReview
