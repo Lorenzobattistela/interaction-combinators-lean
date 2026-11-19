@@ -200,7 +200,7 @@ variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
 /-- The first name of the menu `Γ` in `[α]`, with the symbols numbered by `e`: after the ports
-`0, …, n - 1`, the loop `n` and the block of the menu `Γ_α` (page 89). -/
+`0, …, k - 1`, the loop `k` and the block of the menu `Γ_α` (page 89), where `k = S.arity α`. -/
 def codeMenuBaseE (α : S.Sym) : ℕ :=
   S.arity α + 1 + ∑ j, codeCellSizesE e side α j
 
@@ -209,19 +209,20 @@ of the menu `Γ` (page 89). -/
 def codeKeyE (α : S.Sym) : ℕ :=
   codeMenuBaseE e side α + ∑ i, codeMenuSizesE e side i
 
-/-- **The tree of `[α]` of Fig. 10** (top left, page 89), with the symbols numbered by
-`e : S.Sym ≃ Fin m`: the transpositor `T_{1,1}` carrying the menu `Γ_α` (names from `n + 1`) and the
-selector `S^α_m` (`α` numbered `e α`) on the multiplexor `M_{n+2}`, whose leaves are, from left to
-right, the code `!Γ` of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (`Γ` named from `codeMenuBaseE`, the cut names of
-the code from `codeKeyE`), the ports `0, …, n - 1`, and the loop `ℓ = n`. Here `n = S.arity α`. -/
+/-- **The tree of `[α]` of Fig. 10** (top left, page 89), with the `n` symbols numbered by
+`e : S.Sym ≃ Fin n`: the transpositor `T_{1,1}` carrying the menu `Γ_α` (names from `k + 1`) and the
+selector `S^{e α}_n` on the multiplexor `M_{k+2}`, whose leaves are, from left to right, the code
+`!Γ` of `Γ = Γ_0 & ⋯ & Γ_{n-1}` (`Γ` named from `codeMenuBaseE`, the cut names of the code from
+`codeKeyE`), the ports `0, …, k - 1`, and the loop `ℓ = k`. Here `k = S.arity α`; Fig. 10 writes
+`m` for the number of symbols and `n_i` for the arity. -/
 def codeTreeE (α : S.Sym) : Term sig ℕ :=
   cellSkel (menu (codeCellMenuE e side α (S.arity α + 1))) n (e α)
     (code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α))) ::
       List.ofFn fun j : Fin (S.arity α) => var (j : ℕ)) (S.arity α)
 
 /-- **The names of `[α]` of Fig. 10** (page 89), for any numbering `e` of the symbols: the ports
-`0, …, n - 1` once, and twice each the names of `[n, codeKeyE)` (the loop, the names of `Γ_α` and
-those of `Γ`) and the cut names of the code `!Γ`. -/
+`0, …, k - 1` once, and twice each the names of `[k, codeKeyE)` (the loop, the names of `Γ_α` and
+those of `Γ`) and the cut names of the code `!Γ`, where `k = S.arity α`. -/
 theorem vars_codeTreeE (α : S.Sym) :
     (codeTreeE e side α).vars = Multiset.Ico 0 (S.arity α) +
       2 • (Multiset.Ico (S.arity α) (codeKeyE e side α) +

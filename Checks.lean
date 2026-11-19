@@ -23,6 +23,7 @@ import Checks.CodeMeetReview
 import Checks.CodeMenusECheck
 import Checks.CodeTreeECheck
 import Checks.CodeMenusEReview
+import Checks.CodeTreeEReview
 import Checks.CodeSizesCReview
 import Checks.CodeTermExtractCheck
 import Checks.CodeTrCheck
