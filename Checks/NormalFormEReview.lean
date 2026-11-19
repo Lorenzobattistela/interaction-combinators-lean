@@ -1,15 +1,15 @@
 import Checks.NormalFormECheck
+import InteractionCombinators.Lafont.NormalFormCut
 
 /-!
 # Review of `NormalFormE.lean` (issue #260, pages 73-74)
 
 Checks written for the review of `StepE.Normal` and `StepsEN.normal_unique`.
 
-* `stepE_of_hasCut` — the converse of `StepE.Normal.of_not_hasCut` for a system with a rule for
-  every pair of symbols *in one order or the other*: a cut then always fires, so irreducible means
-  "no cut" (`normal_iff_not_hasCut`). The combinators are such a system (`system_complete`).
-  `Net.HasCut.stepE` in `Lafont/Cut.lean` asks for a rule in *both* orders, which no well-formed
-  system with two distinct symbols has (`not_both_orders`).
+* `not_both_orders` — no well-formed system with two distinct symbols has a rule in *both*
+  orders, the hypothesis that `Net.HasCut.stepE` used to take. The library now takes "one order
+  or the other" (`Net.HasCut.stepE`, `StepE.Normal.iff_not_hasCut`, `Comb.system_complete` in
+  `Lafont/Cut.lean` and `Lafont/NormalFormCut.lean`), and a check below applies it.
 * `emptySys` — a well-formed system without rules: the cut `era = era` is irreducible there, so
   without completeness "irreducible" and "no cut" differ. In that system no counted reduction has
   a positive length (`emptySys_stepsEN_zero`), although wire substitutions exist: `StepsEN` counts
@@ -28,63 +28,28 @@ variable {S : Signature}
 
 /-! ## Irreducible and "no cut" -/
 
-/-- One interaction on a literal cut, with fresh names above the names of the net. -/
-theorem stepE_of_mem {I : System S} {α β : S.Sym} {r : Rule S (S.arity α) (S.arity β)}
-    (hr : I.rule α β = some r) {N : Net S ℕ} {ts : Fin (S.arity α) → Term S ℕ}
-    {us : Fin (S.arity β) → Term S ℕ} (Δ : Net S ℕ)
-    (hE : Equiv N (s(Term.app α ts, Term.app β us) ::ₘ Δ)) : ∃ M, StepE I N M := by
-  let k : ℕ := (Net.vars (s(Term.app α ts, Term.app β us) ::ₘ Δ)).sup + 1
-  refine ⟨_, _, hE, Step.mk α β r hr ts us Δ (fun w => k + w)
-    (fun a b hab => Fin.ext (by simpa using hab)) (fun w hw => ?_)⟩
-  have := Multiset.le_sup hw
-  omega
-
-/-- **A cut always fires in a complete system** (Lafont 1997, page 73: irreducible nets; page 80:
-cuts). If every pair of symbols has a rule in one order or the other, a net with a cut reduces in
-one interaction up to wires. -/
-theorem stepE_of_hasCut {I : System S}
-    (hI : ∀ α β, (I.rule α β).isSome ∨ (I.rule β α).isSome) {N : Net S ℕ} (h : N.HasCut) :
-    ∃ M, StepE I N M := by
-  obtain ⟨N', hE, α, β, ts, us, hm⟩ := h
-  obtain ⟨Δ, rfl⟩ := Multiset.exists_cons_of_mem hm
-  rcases hI α β with h | h
-  · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 h
-    exact stepE_of_mem hr Δ hE
-  · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 h
-    rw [Sym2.eq_swap] at hE
-    exact stepE_of_mem hr Δ hE
-
-/-- **Irreducible is "no cut" in a complete system** (Lafont 1997, page 73). -/
-theorem normal_iff_not_hasCut {I : System S}
-    (hI : ∀ α β, (I.rule α β).isSome ∨ (I.rule β α).isSome) {N : Net S ℕ} :
-    StepE.Normal I N ↔ ¬ N.HasCut :=
-  ⟨fun h hc => (stepE_of_hasCut hI hc).elim h, StepE.Normal.of_not_hasCut⟩
-
-/-- No well-formed system has a rule for two distinct symbols in both orders, so the hypothesis of
-`Net.HasCut.stepE` fails for every well-formed system with two distinct symbols. -/
+/-- No well-formed system has a rule for two distinct symbols in both orders. This is why
+`Net.HasCut.stepE` asks for a rule in one order *or* the other: the earlier hypothesis, a rule in
+both orders, held for no well-formed system with two distinct symbols. -/
 theorem not_both_orders {I : System S} (hI : I.WellFormed) {α β : S.Sym} (hαβ : α ≠ β) :
     ¬ ((I.rule α β).isSome ∧ (I.rule β α).isSome) := by
   rintro ⟨h1, h2⟩
   rw [hI.unique α β hαβ h1] at h2
   exact absurd h2 (by simp)
 
-/-- The combinators have a rule for every pair of symbols, in one order or the other (Lafont 1997,
-page 83, Fig. 2). -/
-theorem system_complete :
-    ∀ α β : sig.Sym, (system.rule α β).isSome ∨ (system.rule β α).isSome := by
-  intro α β
-  cases α <;> cases β <;> first | exact Or.inl rfl | exact Or.inr rfl
-
-/-- **For the combinators, irreducible is "no cut"** (Lafont 1997, pages 73 and 80). -/
-theorem combinators_normal_iff {N : Net sig ℕ} : StepE.Normal system N ↔ ¬ N.HasCut :=
-  normal_iff_not_hasCut system_complete
-
-/-- `Net.HasCut.stepE` does not apply to the combinators: `con`–`dup` has a rule and `dup`–`con`
-has none. -/
+/-- The combinators have no rule in both orders for `con` and `dup`: a rule for every ordered pair
+of symbols is impossible for them. -/
 example : ¬ ∀ α β : sig.Sym, (system.rule α β).isSome := fun h =>
   not_both_orders system_wellFormed (α := (Comb.con : sig.Sym)) (β := Comb.dup)
     (show (Comb.con : Comb) ≠ Comb.dup by decide)
     ⟨h _ _, h _ _⟩
+
+/-- The library hypothesis of `Net.HasCut.stepE` holds for the combinators, so a cut of
+`con(0, 1) = dup(2, 3)` fires. -/
+example : ∃ M, StepE system
+    (s(Term.app (Comb.con : sig.Sym) ![.var 0, .var 1],
+      Term.app (Comb.dup : sig.Sym) ![(.var 2 : Term sig ℕ), .var 3]) ::ₘ 0) M :=
+  Net.HasCut.stepE Comb.system_complete (Net.hasCut_of_mem (Multiset.mem_cons_self _ _))
 
 /-! ## A system without rules -/
 

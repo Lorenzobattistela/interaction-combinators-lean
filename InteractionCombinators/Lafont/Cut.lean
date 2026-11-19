@@ -13,8 +13,9 @@ A net is text, so a cut is a cut of the graph: two principal ports joined *up to
 
 * `Net.HasCut` — some net equivalent to `N` has an equation `α(…) = β(…)`.
 * `Net.HasCut.of_equiv` — the definition does not depend on the spelling of the net.
-* `Net.HasCut.stepE` — in a system with a rule for every pair of symbols, a net with a cut can
-  be reduced.
+* `Net.stepE_of_cut_mem` — a cut that has a rule fires.
+* `Net.HasCut.stepE` — in a system with a rule for every pair of symbols, in one order or the
+  other, a net with a cut can be reduced.
 * `Translation.NetTr.hasCut_of_strict` — the second point of the proof of Proposition 3: if `Φ`
   is strict and `N` has a cut, so does `Φ(N)`.
 -/
@@ -48,20 +49,35 @@ theorem HasCut.of_equiv {N M : Net S ℕ} (h : N.HasCut) (e : Equiv N M) : M.Has
 theorem hasCut_iff_of_equiv {N M : Net S ℕ} (e : Equiv N M) : N.HasCut ↔ M.HasCut :=
   ⟨fun h => h.of_equiv e, fun h => h.of_equiv e.symm⟩
 
-/-- **A cut can be reduced** (Lafont 1997, page 80: a net is reduced when it has no cut and no
-vicious circle). In a system with a rule for every pair of symbols, a net with a cut reduces in
-one interaction up to wires. No linearity is needed: the names given to the new wires are taken
-above every name of the net. -/
-theorem HasCut.stepE {I : System S} (hI : ∀ α β, (I.rule α β).isSome) {N : Net S ℕ}
-    (h : N.HasCut) : ∃ M, StepE I N M := by
-  obtain ⟨N', hE, α, β, ts, us, hm⟩ := h
-  obtain ⟨Δ, rfl⟩ := Multiset.exists_cons_of_mem hm
-  obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 (hI α β)
+/-- **A cut with a rule fires** (Lafont 1997, page 73: interaction; page 80: cuts). If `N` is the
+same graph as `α(…) = β(…), Δ` and the system has a rule for `α`–`β`, then `N` reduces in one
+interaction up to wires. No linearity is needed: the names given to the new wires are taken above
+every name of the net. -/
+theorem stepE_of_cut_mem {I : System S} {α β : S.Sym} {r : Rule S (S.arity α) (S.arity β)}
+    (hr : I.rule α β = some r) {N : Net S ℕ} {ts : Fin (S.arity α) → Term S ℕ}
+    {us : Fin (S.arity β) → Term S ℕ} (Δ : Net S ℕ)
+    (hE : Equiv N (s(Term.app α ts, Term.app β us) ::ₘ Δ)) : ∃ M, StepE I N M := by
   let k : ℕ := (Net.vars (s(Term.app α ts, Term.app β us) ::ₘ Δ)).sup + 1
   refine ⟨_, _, hE, Step.mk α β r hr ts us Δ (fun w => k + w)
     (fun a b hab => Fin.ext (by simpa using hab)) (fun w hw => ?_)⟩
   have := Multiset.le_sup hw
   omega
+
+/-- **A cut can be reduced** (Lafont 1997, page 80: a net is reduced when it has no cut and no
+vicious circle). In a system with a rule for every pair of symbols, in one order or the other, a
+net with a cut reduces in one interaction up to wires. The combinators are such a system
+(`Comb.system_complete`). No linearity is needed. -/
+theorem HasCut.stepE {I : System S}
+    (hI : ∀ α β, (I.rule α β).isSome ∨ (I.rule β α).isSome) {N : Net S ℕ}
+    (h : N.HasCut) : ∃ M, StepE I N M := by
+  obtain ⟨N', hE, α, β, ts, us, hm⟩ := h
+  obtain ⟨Δ, rfl⟩ := Multiset.exists_cons_of_mem hm
+  rcases hI α β with h | h
+  · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 h
+    exact stepE_of_cut_mem hr Δ hE
+  · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 h
+    rw [Sym2.eq_swap] at hE
+    exact stepE_of_cut_mem hr Δ hE
 
 end Net
 

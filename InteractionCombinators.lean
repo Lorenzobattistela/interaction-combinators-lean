@@ -90,5 +90,6 @@ import InteractionCombinators.Lafont.SimulationUniform
 import InteractionCombinators.Lafont.PairStepE
 import InteractionCombinators.Lafont.PairStepEReduced
 import InteractionCombinators.Lafont.NormalFormE
+import InteractionCombinators.Lafont.NormalFormCut
 import InteractionCombinators.Lafont.StrongConfluenceE
 import InteractionCombinators.Graph
