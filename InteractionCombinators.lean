@@ -75,6 +75,8 @@ import InteractionCombinators.Lafont.CodeDataReview
 import InteractionCombinators.Lafont.CodeShift
 import InteractionCombinators.Lafont.CodeTermExtract
 import InteractionCombinators.Lafont.CodeTermExtractCheck
+import InteractionCombinators.Lafont.CodeCellsMeet
+import InteractionCombinators.Lafont.CodeCellsMeetCheck
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
