@@ -34,6 +34,7 @@ import Checks.DecompositionSymmCheck
 import Checks.DecompositionSymmLiteralCheck
 import Checks.DecompositionSymmReview
 import Checks.DupPackageCheck
+import Checks.DupDupCheck
 import Checks.DupWiringExamples
 import Checks.DuplicationExamples
 import Checks.ExpandCheck

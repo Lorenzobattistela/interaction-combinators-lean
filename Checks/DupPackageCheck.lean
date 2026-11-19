@@ -21,12 +21,8 @@ checks test the statement.
   an invariant of reduction (`stepsE_free_iff`), and a copy of a tree with a free leaf has a free
   port too many.
 
-Not shown here: that `DupFree` is needed. The paper's example is `π = dup(0, 0)`: the `dup`–`dup`
-rule joins `u` to `v` instead of copying (page 87: "δ cannot duplicate δ"). Refuting the conclusion
-in Lean needs an invariant that tells `u – v` apart from `u – dup(a, a), v – dup(b, b)` up to
-reduction. The free ports, the parity of the number of cells and the names occurring three times
-are the same on both sides. A proof would need confluence up to wires (`Step.strong_confluence`
-covers literal steps only) together with the fact that the second net has no active pair.
+That `DupFree` is needed is shown in `Checks/DupDupCheck.lean` (`dup_package_needs_dupFree`), on
+the paper's example `π = dup(0, 0)` (page 87: "δ cannot duplicate δ").
 -/
 
 namespace INet.Comb.DupPackageCheck
