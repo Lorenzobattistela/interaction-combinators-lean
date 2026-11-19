@@ -18,6 +18,7 @@ to its wire, and gives back the wires of `G`; erasing each `ln j` gives back its
 * `Graph.contracts_loops` — erasing the names of wires `z — z` makes cyclic wires.
 * `Graph.cellGraph_iso` — the raw graph of the equations of some cells is isomorphic to their
   stubs.
+* `Graph.WF.hasGraph_flatB` — the flat text of `G` has a graph isomorphic to `G`.
 * `Graph.WF.exists_net_free` — the theorem, with the free ports.
 * `Graph.WF.exists_net` — the theorem as stated in PLAN.md.
 -/
@@ -516,20 +517,16 @@ end flat
 
 /-! ## The theorem -/
 
-/-- **Every well-formed graph is the graph of a linear net, with the same free ports** (Lafont
-1997, Section 1.1, page 71; PLAN.md Stage C, statement 4). If `G` is well formed, its flat text
-`N` is linear, has a graph isomorphic to `G`, and a name occurs once in `N` exactly when it is a
-free port of `G`. -/
-theorem WF.exists_net_free {G : Graph S ℕ} (h : G.WF) :
-    ∃ (N : Net S ℕ) (G' : Graph S ℕ), N.Linear ∧ N.HasGraph G' ∧ G'.Iso G ∧
-      ∀ x, N.vars.count x = 1 ↔ x ∈ G.free := by
+/-- **The flat text of a well-formed graph has a graph isomorphic to it** (Lafont 1997,
+Section 1.1, page 71): the raw graph of the flat text, contracted, is `G` up to `Iso`. -/
+theorem WF.hasGraph_flatB {G : Graph S ℕ} (h : G.WF) :
+    ∃ G' : Graph S ℕ, (flatB G).HasGraph G' ∧ G'.Iso G := by
   have hB : ∀ x, End.name x ∈ G.ends → x < freeBound G := fun x hx => lt_freeBound hx
   suffices H : ∃ L : List (Term S ℕ × Term S ℕ), Net.ofList L = flatB G ∧
       ∃ H, Relation.ReflTransGen Contract (raw 0 L) H ∧ G.Iso H by
     obtain ⟨L, hL, H, hH, iH⟩ := H
-    refine ⟨flatB G, H, linear_flatB h, ⟨L, 0, hL.symm, hH,
-      fun x => (iH.count_name x).trans_le (h.name x)⟩, iH.symm h.portsIn,
-      count_vars_flatB_eq_one h⟩
+    exact ⟨H, ⟨L, 0, hL.symm, hH, fun x => (iH.count_name x).trans_le (h.name x)⟩,
+      iH.symm h.portsIn⟩
   simp only [flatB]
   generalize hb : freeBound G = B at hB
   -- the text: the equations of the cells, of the wires and of the cyclic wires
@@ -647,6 +644,16 @@ theorem WF.exists_net_free {G : Graph S ℕ} (h : G.WF) :
   rw [zero_add] at hC
   obtain ⟨H, hH, iH⟩ := hR.contracts (hA.trans hC)
   exact ⟨H, hH, iH⟩
+
+/-- **Every well-formed graph is the graph of a linear net, with the same free ports** (Lafont
+1997, Section 1.1, page 71; PLAN.md Stage C, statement 4). If `G` is well formed, its flat text
+`N` is linear, has a graph isomorphic to `G`, and a name occurs once in `N` exactly when it is a
+free port of `G`. -/
+theorem WF.exists_net_free {G : Graph S ℕ} (h : G.WF) :
+    ∃ (N : Net S ℕ) (G' : Graph S ℕ), N.Linear ∧ N.HasGraph G' ∧ G'.Iso G ∧
+      ∀ x, N.vars.count x = 1 ↔ x ∈ G.free := by
+  obtain ⟨G', hG', iG⟩ := h.hasGraph_flatB
+  exact ⟨flatB G, G', linear_flatB h, hG', iG, count_vars_flatB_eq_one h⟩
 
 /-- **Every well-formed graph is the graph of a linear net** (Lafont 1997, Section 1.1, page 71;
 PLAN.md Stage C, statement 4). The graph of the net is isomorphic to `G`, not equal: the cells of

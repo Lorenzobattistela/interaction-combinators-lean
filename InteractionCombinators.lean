@@ -110,4 +110,6 @@ import InteractionCombinators.Lafont.GraphIsoEquiv
 import InteractionCombinators.Lafont.GraphRealize
 import InteractionCombinators.Lafont.GraphStep
 import InteractionCombinators.Lafont.GraphStepE
+import InteractionCombinators.Lafont.GraphInteractUnique
+import InteractionCombinators.Lafont.GraphStepEConverse
 import InteractionCombinators.Graph
