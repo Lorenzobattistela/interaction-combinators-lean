@@ -129,6 +129,8 @@ theorem tsys_wellFormed : tsys.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> simp_all [tsys]
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h
 
@@ -273,6 +275,8 @@ theorem tsys'_wellFormed : tsys'.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> simp_all [tsys']
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h
 

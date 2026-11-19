@@ -210,6 +210,8 @@ theorem usys_wellFormed : usys.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> first | exact absurd rfl hne | rfl
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h <;> exact Equiv.refl _
 
@@ -232,6 +234,8 @@ theorem vsys_wellFormed : vsys.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> first | exact absurd rfl hne | rfl
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h
     · exact Equiv.refl _

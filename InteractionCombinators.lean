@@ -112,6 +112,7 @@ import InteractionCombinators.Lafont.DecompositionSymmCheck
 import InteractionCombinators.Lafont.DecompositionSymmReview
 import InteractionCombinators.Lafont.SymmPerm
 import InteractionCombinators.Lafont.SymmPermCheck
+import InteractionCombinators.Lafont.StrongConfluence
 import InteractionCombinators.Lafont.Gamma
 import InteractionCombinators.Lafont.GammaCheck
 import InteractionCombinators.Lafont.GammaReview

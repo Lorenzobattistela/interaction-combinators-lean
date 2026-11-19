@@ -120,7 +120,7 @@ theorem parSys_wellFormed : parSys.WellFormed where
   linear _ _ r h := by cases h; exact rulePar_linear
   reduced _ _ r h := by cases h; exact rulePar_reduced
   unique α β hne _ := absurd (Subsingleton.elim (α := Unit) α β) hne
-  symm _ r h := by cases h; exact Equiv.of_eq rulePar_swap
+  symm _ r h := by cases h; exact Rule.symm_of_equiv (Equiv.of_eq rulePar_swap)
 
 /-- **`permTr sw` is a translation of `parSys` into itself** (Lafont 1997, page 81): the pair
 `α(x₁, x₀) = α(y₁, y₀)` of the translated cells reduces in one interaction to `x₁ = y₁, x₀ = y₀`,

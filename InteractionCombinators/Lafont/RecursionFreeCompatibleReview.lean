@@ -161,6 +161,8 @@ theorem tsys_wellFormed : tsys.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> first | rfl | exact absurd rfl hne | cases h
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h
     exact Equiv.of_eq (show (show Net tsig (Fin 1 ⊕ Fin 1 ⊕ Fin 0) from ruleBB.swap.net) =

@@ -231,6 +231,8 @@ theorem system_wellFormed : system.WellFormed where
     intro α β hne h
     cases α <;> cases β <;> first | rfl | exact absurd rfl hne | cases h
   symm := by
+    refine fun α r h => Rule.symm_of_equiv ?_
+    revert α r h
     intro α r h
     cases α <;> cases h <;>
       first

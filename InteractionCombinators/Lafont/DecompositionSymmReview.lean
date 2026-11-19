@@ -1,5 +1,6 @@
 import InteractionCombinators.Lafont.DecompositionReview
 import InteractionCombinators.Lafont.DecompositionSymm
+import InteractionCombinators.Lafont.SymmPerm
 
 /-!
 # Review of the symmetric decomposition (page 86)
@@ -48,17 +49,11 @@ binary symbol `β`. It is linear and reduced, and read from the other cell it is
 `w₀` and `w₁` exchanged (`twin_swap`): it satisfies the paper's condition. But it is not `Equiv`
 to its swap (`twin_not_symm`), because neither net admits a wire substitution in either direction
 (`Net.equiv_eq_of_rigid`). So the system `sysT` with the single rule `α`–`α` given by `twin` is an
-interaction system in the sense of page 73, while `¬ sysT.WellFormed` (`sysT_not_wellFormed`).
-Since `Universal` and `StrictlyUniversal` (`Translation.lean`) quantify over well-formed systems
-only, the target theorem as stated says nothing about `sysT`. Every text of this graph that is
-linear and reduced has the same shape (two equations `a = β(x, y)`, `b = β(y, x)` with `x ≠ y`
-internal), so no choice of text repairs it (argued here, not proved in Lean).
-
-This concerns protected definitions (`System.lean`, `Translation.lean`); the fix is the owner's.
-The proof of `Rule.exists_symm_decomposition` itself does not seem to be at fault: its step 3 turns
-`Equiv` into "`r'.swap.net` is `r'.net` renamed by a permutation of the internal wires"
-(`Rule.exists_perm_of_equiv`), which is exactly what a graph symmetry gives, so the theorem should
-hold under that weaker hypothesis with the same proof (argued, not proved).
+interaction system in the sense of page 73. When this review was written, `System.WellFormed.symm`
+asked for `Equiv r.swap.net r.net`, and `sysT` was therefore not well-formed, so that the target
+theorem said nothing about it. The owner has since changed the condition to symmetry up to a
+permutation of the internal wires (issue #136); `sysT` is now well-formed
+(`sysT_wellFormed` in `Lafont/SymmPermCheck.lean`).
 -/
 
 namespace INet.Comb.DecompositionSymmReview
@@ -77,7 +72,7 @@ theorem exists_symm_decomposition_of_wellFormed {S : Signature} {I : System S} (
       ∃ ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal, Function.Injective ι ∧
         Equiv (Rule.plug D.φ D.ψ D.σ).net
           (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)) :=
-  r.exists_symm_decomposition (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h)
+  r.exists_symm_decomposition_of_symmPerm (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h)
 
 /-! ### `con`–`con`: which `σ` -/
 
@@ -275,12 +270,6 @@ def sysT : System sigT where
   rule
     | .α, .α => some twin
     | _, _ => none
-
-/-- `sysT` is not well-formed, only because `System.WellFormed.symm` fails on `twin`. So
-`Universal` and `StrictlyUniversal`, which quantify over well-formed systems, do not cover this
-interaction system of page 73. -/
-theorem sysT_not_wellFormed : ¬ sysT.WellFormed :=
-  fun h => twin_not_symm (h.symm .α twin rfl)
 
 /-- The other conditions of `System.WellFormed` hold for `sysT`: every rule is linear and reduced,
 and the uniqueness condition holds. -/

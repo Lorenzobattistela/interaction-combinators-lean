@@ -1,5 +1,6 @@
 import InteractionCombinators.Lafont.RecursionFree
 import InteractionCombinators.Lafont.DecompositionSymm
+import InteractionCombinators.Lafont.SymmPerm
 
 /-!
 # Normalising a decomposition (page 86)
@@ -158,7 +159,7 @@ noncomputable def System.WellFormed.symmDec {I : System S} (hI : I.WellFormed) (
     (r : Rule S (S.arity α) (S.arity α)) (h : I.rule α α = some r) :
     Decomposition S (S.arity α) (S.arity α) :=
   Classical.choose
-    (r.exists_symm_decomposition (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h))
+    (r.exists_symm_decomposition_of_symmPerm (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h))
 
 /-- The symmetric decomposition of a rule `α`–`α` (page 86) has `ψ = φ`, an involutive `σ`, a
 linear and reduced side, and plugs back the rule. -/
@@ -168,6 +169,6 @@ theorem System.WellFormed.symmDec_spec {I : System S} (hI : I.WellFormed) (α : 
       Function.Involutive (hI.symmDec α r h).σ ∧ (hI.symmDec α r h).φ.Linear ∧
       (hI.symmDec α r h).φ.Reduced ∧ (hI.symmDec α r h).Plugs r :=
   Classical.choose_spec
-    (r.exists_symm_decomposition (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h))
+    (r.exists_symm_decomposition_of_symmPerm (hI.linear α α r h) (hI.reduced α α r h) (hI.symm α r h))
 
 end INet

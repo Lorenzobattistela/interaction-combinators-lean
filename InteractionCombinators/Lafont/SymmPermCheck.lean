@@ -31,4 +31,17 @@ theorem twin_exists_symm_decomposition :
           (twin.net.bind fun x => Term.var (Sum.map id (Sum.map id ι) x)) :=
   twin.exists_symm_decomposition_of_symmPerm twin_linear twin_reduced twin_symmPerm
 
+/-- **The one-rule system `sysT` is well-formed.** With the symmetry condition of page 73 read as
+symmetry of graphs (`System.WellFormed.symm`, up to a permutation of the internal wires), the
+system that the earlier condition `Equiv r.swap.net r.net` excluded is an interaction system, so
+Theorem 1 applies to it. -/
+theorem sysT_wellFormed : sysT.WellFormed where
+  linear := sysT_rest.1
+  reduced := sysT_rest.2.1
+  unique := sysT_rest.2.2
+  symm := by
+    intro α r h
+    cases α <;> cases h
+    exact twin_symmPerm
+
 end INet.DecompositionSymmReview

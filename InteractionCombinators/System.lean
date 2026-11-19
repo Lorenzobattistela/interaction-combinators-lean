@@ -89,6 +89,31 @@ inductive Step (I : System S) : Net S ℕ → Net S ℕ → Prop
       (hfresh : ∀ i, f i ∉ Net.vars (s(Term.app α as, Term.app β bs) ::ₘ Δ)) :
       Step I (s(Term.app α as, Term.app β bs) ::ₘ Δ) (r.inst as bs f + Δ)
 
+/-- A rule that is the same net as its swap up to wires is symmetric in the sense of
+`System.WellFormed.symm`, with the identity permutation. -/
+theorem Rule.symm_of_equiv {a : ℕ} {r : Rule S a a} (h : Equiv r.swap.net r.net) :
+    ∃ π : _root_.Equiv.Perm (Fin r.internal),
+      Equiv r.swap.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id π) x)) := by
+  refine ⟨1, ?_⟩
+  have hb : ∀ t : Term S (Fin a ⊕ Fin a ⊕ Fin r.internal), t.bind (fun x => Term.var
+      (Sum.map id (Sum.map id (1 : _root_.Equiv.Perm (Fin r.internal))) x)) = t := by
+    intro t
+    induction t with
+    | var x => rcases x with i | j | w <;> rfl
+    | app α ts ih =>
+      show Term.app α _ = Term.app α _
+      congr 1
+      funext i
+      exact ih i
+  have e : (r.net.bind fun x =>
+      Term.var (Sum.map id (Sum.map id (1 : _root_.Equiv.Perm (Fin r.internal))) x)) = r.net := by
+    unfold Net.bind
+    conv_rhs => rw [← Multiset.map_id r.net]
+    refine Multiset.map_congr rfl fun e _ => ?_
+    induction e using Sym2.ind with
+    | _ x y => exact congrArg₂ (fun u v => s(u, v)) (hb x) (hb y)
+  exact h.trans (Equiv.of_eq e.symm)
+
 /-- An interaction system in the sense of Lafont: rules are linear and reduced, and can be applied
 without ambiguity. -/
 structure System.WellFormed (I : System S) : Prop where
@@ -98,8 +123,12 @@ structure System.WellFormed (I : System S) : Prop where
   reduced : ∀ α β r, I.rule α β = some r → r.Reduced
   /-- A rule given for `α`, `β` excludes another rule for `β`, `α`. -/
   unique : ∀ α β, α ≠ β → (I.rule α β).isSome → I.rule β α = none
-  /-- A rule of a symbol with itself is symmetric. -/
-  symm : ∀ α r, I.rule α α = some r → Equiv r.swap.net r.net
+  /-- A rule of a symbol with itself is symmetric: read from the other cell it is the same graph
+  (Lafont 1997, page 73), that is, the same net up to wires and up to a permutation of its
+  internal wires. The permutation is needed because the internal wires of a rule are named by
+  `Fin r.internal`, which leaves no spare name through which `Equiv` could exchange two of them. -/
+  symm : ∀ α r, I.rule α α = some r → ∃ π : _root_.Equiv.Perm (Fin r.internal),
+    Equiv r.swap.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id π) x))
 
 /-- An interaction of a linear rule keeps the net linear. -/
 theorem Step.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
