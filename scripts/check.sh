@@ -57,6 +57,17 @@ grep -E "^error|✖|Build completed|declaration uses 'sorry'" "$log" || true
 grep -q "Build completed successfully" "$log" || fail "build failed (log: $log)"
 if grep -q "declaration uses 'sorry'" "$log"; then fail "a declaration uses sorry (log: $log)"; fi
 
+step "declarations unchanged"
+# While scripts/decls-baseline.txt exists, the project is being reformatted, not extended: the
+# name, the type and (for definitions) the body of every declaration must stay what they were.
+if [ -f scripts/decls-baseline.txt ]; then
+  lake env lean scripts/Decls.lean > .lake/decls.txt 2>/dev/null || fail "could not fingerprint the declarations"
+  if ! cmp -s scripts/decls-baseline.txt .lake/decls.txt; then
+    diff scripts/decls-baseline.txt .lake/decls.txt | head -20
+    fail "a declaration changed (lines above: < before, > now); only layout and comments may change"
+  fi
+fi
+
 step "axiom audit"
 lake env lean scripts/Audit.lean || fail "axiom audit"
 
