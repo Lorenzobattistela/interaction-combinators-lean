@@ -148,4 +148,5 @@ import InteractionCombinators.Lafont.SimulationStrictCheck
 import InteractionCombinators.Lafont.SimulationCorollaryReview
 import InteractionCombinators.Lafont.TranslationComp
 import InteractionCombinators.Lafont.TranslationCompCheck
+import InteractionCombinators.Lafont.TranslationCompReview
 import InteractionCombinators.Lafont.ViciousReview
