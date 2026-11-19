@@ -10,15 +10,24 @@ Lafont 1997, page 86 (PDF page 18): "To sum up, one can assume that in all cases
 A linear reduced rule `r : Rule S a a` whose net, read from the other cell, is `Equiv` to itself
 (the first form of the symmetry condition; for `System.WellFormed.symm` as it is now, up to a
 permutation of the internal wires, see `Rule.exists_symm_decomposition_of_symmPerm` in
-`Lafont/SymmPerm.lean`) has a decomposition `(φ, φ, σ)` with `σ` involutive whose plug is `r`.
-The proof assembles the three parts:
+`RecursionFree/SymmPerm.lean`) has a decomposition `(φ, φ, σ)` with `σ` involutive whose plug
+is `r`. The proof assembles the three parts:
 
-1. `Rule.exists_expanded` (`Lafont/Expand.lean`): `r` is `Equiv` to an expanded rule `r'`;
+1. `Rule.exists_expanded` (`RecursionFree/Expand.lean`): `r` is `Equiv` to an expanded rule `r'`;
 2. the symmetry passes to `r'`, and `r'.swap` is linear and expanded, so
-   `Rule.exists_perm_of_equiv` (`Lafont/ExpandedIso.lean`) makes it literal:
+   `Rule.exists_perm_of_equiv` (`RecursionFree/ExpandedIso.lean`) makes it literal:
    `r'.swap.net = r'.net` renamed by a permutation of the internal wires;
-3. `Rule.SymmLit.exists_symm_decomposition` (`Lafont/DecompositionSymmLiteral.lean`) applies
-   to `r'`.
+3. `Rule.SymmLit.exists_symm_decomposition` (`RecursionFree/DecompositionSymmLiteral.lean`)
+   applies to `r'`.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: `DecompositionSymm.swap_net`, `DecompositionSymm.swapName_map`,
+   `DecompositionSymm.swap_linear`, `DecompositionSymm.swap_expanded`. Reading a rule from the
+   other cell is a renaming of its names, which commutes with renaming the internal wires and
+   keeps a rule linear and expanded.
+2. Main result: `Rule.exists_symm_decomposition`, the decomposition `(φ, φ, σ)` with `σ`
+   involutive of a symmetric rule `α`–`α` (page 86).
 -/
 
 namespace INet
@@ -29,17 +38,35 @@ open Term
 
 namespace DecompositionSymm
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: a rule read from the other cell
+-- ============================================================================================
+
 /-- The net of `r.swap` is the net of `r` renamed by `Rule.swapName`. -/
-theorem swap_net {b : ℕ} (r : Rule S a b) :
+theorem swap_net
+    -- a rule between a symbol of arity `a` and one of arity `b`
+    {b : ℕ}
+    (r : Rule S a b) :
     r.swap.net = r.net.bind fun x => var (Rule.swapName x) := rfl
 
 /-- Renaming the internal wires commutes with exchanging the two groups of ports. -/
-theorem swapName_map {b n m : ℕ} (f : Fin n → Fin m) (x : Fin a ⊕ Fin b ⊕ Fin n) :
-    Rule.swapName (Sum.map id (Sum.map id f) x) = Sum.map id (Sum.map id f) (Rule.swapName x) := by
+theorem swapName_map
+    -- the renaming of the internal wires
+    {b n m : ℕ}
+    (f : Fin n → Fin m)
+    -- a name of a rule: a port of the first cell, a port of the second, or an internal wire
+    (x : Fin a ⊕ Fin b ⊕ Fin n) :
+    Rule.swapName (Sum.map id (Sum.map id f) x)
+      = Sum.map id (Sum.map id f) (Rule.swapName x) := by
   rcases x with i | j | w <;> rfl
 
 /-- A rule read from the other cell is linear when the rule is. -/
-theorem swap_linear {b : ℕ} (r : Rule S a b) (hl : r.Linear) : r.swap.Linear := by
+theorem swap_linear
+    -- a linear rule
+    {b : ℕ}
+    (r : Rule S a b)
+    (hl : r.Linear) :
+    r.swap.Linear := by
   classical
   have hv : Net.vars (show Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) from r.swap.net) =
       r.net.vars.map Rule.swapName :=
@@ -64,7 +91,12 @@ theorem swap_linear {b : ℕ} (r : Rule S a b) (hl : r.Linear) : r.swap.Linear :
     exact hl.internal w'
 
 /-- A rule read from the other cell is in expanded form when the rule is. -/
-theorem swap_expanded {b : ℕ} (r : Rule S a b) (he : r.Expanded) : r.swap.Expanded := by
+theorem swap_expanded
+    -- a rule in expanded form
+    {b : ℕ}
+    (r : Rule S a b)
+    (he : r.Expanded) :
+    r.swap.Expanded := by
   show ∀ e ∈ (show Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) from r.swap.net), ∃ p t,
     e = s(Term.var p, t) ∧ (∀ w : Fin r.internal, p ≠ .inr (.inr w)) ∧
       ∀ x ∈ Term.vars (S := S) t, ∃ w : Fin r.internal, x = .inr (.inr w)
@@ -86,6 +118,10 @@ theorem swap_expanded {b : ℕ} (r : Rule S a b) (he : r.Expanded) : r.swap.Expa
 
 end DecompositionSymm
 
+-- ============================================================================================
+-- 2. Main result: the symmetric decomposition
+-- ============================================================================================
+
 open DecompositionSymm in
 /-- **The symmetric decomposition of a rule `α`–`α`** (Lafont 1997, page 86: "To sum up, one can
 assume that in all cases `φ_{j,i} = ψ_{i,j}`, `σ_{j,i} = σ_{i,j}`, and `σ_{i,j}` is involutive";
@@ -93,16 +129,34 @@ Fig. 7). Let `r` be a linear reduced rule of a symbol with itself which, read fr
 is `Equiv` to itself. Then `r` has a decomposition `(φ, ψ, σ)` with `ψ = φ` and `σ` involutive,
 whose side `φ` is linear and reduced, and whose plug is `r` up to `Equiv` and an injective
 renaming of the internal wires. -/
-theorem Rule.exists_symm_decomposition (r : Rule S a a) (hl : r.Linear) (hr : r.Reduced)
+theorem Rule.exists_symm_decomposition
+    -- a linear reduced rule between a symbol of arity `a` and itself
+    (r : Rule S a a)
+    (hl : r.Linear)
+    (hr : r.Reduced)
+    -- the rule, read from the other cell, is the same graph
     (hsym : Equiv r.swap.net r.net) :
-    ∃ D : Decomposition S a a, D.ψ = D.φ ∧ (∀ l, D.σ (D.σ l) = l) ∧ D.φ.Linear ∧ D.φ.Reduced ∧
-      ∃ ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal, Function.Injective ι ∧
+    -- there is a decomposition `D` such that
+    ∃ D : Decomposition S a a,
+      -- its two sides are the same,
+      D.ψ = D.φ ∧
+      -- its permutation `σ` is involutive,
+      (∀ l, D.σ (D.σ l) = l) ∧
+      -- its side `φ` is linear and reduced,
+      D.φ.Linear ∧
+      D.φ.Reduced ∧
+      -- and there is an injective renaming `ι` of the internal wires of `r` into those of the
+      -- plug of `D`,
+      ∃ ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal,
+        Function.Injective ι ∧
+        -- such that the plug of `D` is the same graph as `r` renamed by `ι`
         Equiv (Rule.plug D.φ D.ψ D.σ).net
           (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)) := by
   -- 1. an expanded form `r'` of `r`
   obtain ⟨r', ι₀, hι₀, hl', he', heq⟩ := r.exists_expanded hl hr
   have hren : ∀ {n m : ℕ} {f : Fin n → Fin m}, Function.Injective f →
-      Function.Injective (Sum.map id (Sum.map id f) : Fin a ⊕ Fin a ⊕ Fin n → Fin a ⊕ Fin a ⊕ Fin m) :=
+      Function.Injective (Sum.map id (Sum.map id f) :
+        Fin a ⊕ Fin a ⊕ Fin n → Fin a ⊕ Fin a ⊕ Fin m) :=
     fun hf => Sum.map_injective.2 ⟨Function.injective_id,
       Sum.map_injective.2 ⟨Function.injective_id, hf⟩⟩
   -- 2. `r'` is symmetric up to `Equiv`
