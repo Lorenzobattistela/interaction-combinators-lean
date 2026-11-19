@@ -130,6 +130,65 @@ theorem codeGammaOpt_bind_codeRen {a n k : ℕ} (o : Option (ExpSide S a)) (φ :
   simp only [codeRen, show ¬ B + i < n by omega, dite_false]
   omega
 
+section Enum
+
+variable {n : ℕ} (e : S.Sym ≃ Fin n)
+  (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots, to the end, for any numbering `e`
+of the symbols** (Lafont 1997, Fig. 10, pages 89–90; page 90: no order on the symbols is needed).
+This is `codeCells_meet_end` with the `n` symbols numbered by any `e : S.Sym ≃ Fin n`: the cells
+are `codeNetE e side α`, `codeNetE e side β`, and the menus, keys and sizes are the `E` versions.
+Let the side of `α` against `β` be `φ` and the side of `β` against `α` be `ψ`, with the same `k`
+middle ports and involution `σ`. The net reduces up to wires to: the renamed code `!Γ` of each
+cell against the copier `C_p` of the package it meets, each port `xs p` (`ys q`) against the tree
+of `⟨φ⟩` (`⟨ψ⟩`) at that port, and the tree of `⟨φ⟩` at the middle port `l` against the tree of
+`⟨ψ⟩` at `σ l`. It composes `codeCells_meetE` with `codeGamma_meet`. -/
+theorem codeCells_meet_endE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+    (f : Fin (codeNetE e side α).internal → ℕ) (g : Fin (codeNetE e side β).internal → ℕ)
+    (Δ : CNet) {k : ℕ} (φ : Rule S (S.arity α) k) (ψ : Rule S (S.arity β) k)
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ) (hl : φ.Linear) (he : φ.Expanded) (hl' : ψ.Linear)
+    (he' : ψ.Expanded) (hs : side α β = some ⟨k, φ, σ, hl, he, hσ⟩)
+    (hs' : side β α = some ⟨k, ψ, σ, hl', he', hσ⟩)
+    (hlin : Net.Linear (s((codeNetE e side α).inst (fun i => var (xs i)) f,
+      (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    ∃ (K K' : ℕ) (M : CNet),
+      StepsE system (s((codeNetE e side α).inst (fun i => var (xs i)) f,
+        (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      Equiv M
+        (s((code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
+              (fun x => var (codeRen xs K x)),
+            copier (codeGammaExtras n (fun γ => (e γ : ℕ)) φ
+              (K' + (S.arity β + 1 + off (codeCellSizesE e side β) (e α))))) ::ₘ
+          s((code (codeKeyE e side β) (menu (codeMenusE e side (codeMenuBaseE e side β)))).bind
+              (fun x => var (codeRen ys K' x)),
+            copier (codeGammaExtras n (fun γ => (e γ : ℕ)) ψ
+              (K + (S.arity α + 1 + off (codeCellSizesE e side α) (e β))))) ::ₘ
+          ((Finset.univ.val.map fun p : Fin (S.arity α) =>
+              s(var (xs p), codePort n (fun γ => (e γ : ℕ)) φ
+                (K' + (S.arity β + 1 + off (codeCellSizesE e side β) (e α))) (.inl p))) +
+            (Finset.univ.val.map fun q : Fin (S.arity β) =>
+              s(var (ys q), codePort n (fun γ => (e γ : ℕ)) ψ
+                (K + (S.arity α + 1 + off (codeCellSizesE e side α) (e β))) (.inl q))) +
+            (Finset.univ.val.map fun l : Fin k =>
+              s(codePort n (fun γ => (e γ : ℕ)) φ
+                  (K' + (S.arity β + 1 + off (codeCellSizesE e side β) (e α))) (.inr l),
+                codePort n (fun γ => (e γ : ℕ)) ψ
+                  (K + (S.arity α + 1 + off (codeCellSizesE e side α) (e β)))
+                  (.inr (σ l)))) + Δ)) := by
+  obtain ⟨K, K', M1, hS1, hE1⟩ := codeCells_meetE e side α β xs ys f g Δ hlin
+  rw [codeGammaOpt_bind_codeRen _ φ σ hl he hσ hs _ _ ys K' _ (by omega),
+    codeGammaOpt_bind_codeRen _ ψ σ hl' he' hσ hs' _ _ xs K _ (by omega)] at hE1
+  have L1 := hE1.linear (hS1.linear system_wellFormed.linear hlin)
+  obtain ⟨M2, hS2, hE2⟩ := codeGamma_meet n (fun γ => (e γ : ℕ)) φ ψ σ hσ _ _ _ _
+    _ _ (List.length_ofFn) (List.length_ofFn) _ Δ L1
+  obtain ⟨M3, hS3, hE3⟩ := stepsE_of_equiv hE1 hS2
+  refine ⟨K, K', M3, hS1.trans hS3, hE3.trans (hE2.trans (Equiv.of_eq ?_))⟩
+  simp only [List.getElem_ofFn]
+
+end Enum
+
 variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
 /-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots, to the end** (Lafont 1997, Fig. 10,
@@ -178,15 +237,7 @@ theorem codeCells_meet_end (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys :
                   (K' + (S.arity β + 1 + off (codeCellSizes side β) (symEnum S α))) (.inr l),
                 codePort (Nat.card S.Sym) (fun γ => symEnum S γ) ψ
                   (K + (S.arity α + 1 + off (codeCellSizes side α) (symEnum S β)))
-                  (.inr (σ l)))) + Δ)) := by
-  obtain ⟨K, K', M1, hS1, hE1⟩ := codeCells_meet side α β xs ys f g Δ hlin
-  rw [codeGammaOpt_bind_codeRen _ φ σ hl he hσ hs _ _ ys K' _ (by omega),
-    codeGammaOpt_bind_codeRen _ ψ σ hl' he' hσ hs' _ _ xs K _ (by omega)] at hE1
-  have L1 := hE1.linear (hS1.linear system_wellFormed.linear hlin)
-  obtain ⟨M2, hS2, hE2⟩ := codeGamma_meet (Nat.card S.Sym) (fun γ => symEnum S γ) φ ψ σ hσ _ _ _ _
-    _ _ (List.length_ofFn) (List.length_ofFn) _ Δ L1
-  obtain ⟨M3, hS3, hE3⟩ := stepsE_of_equiv hE1 hS2
-  refine ⟨K, K', M3, hS1.trans hS3, hE3.trans (hE2.trans (Equiv.of_eq ?_))⟩
-  simp only [List.getElem_ofFn]
+                  (.inr (σ l)))) + Δ)) :=
+  codeCells_meet_endE (symEnum S) side α β xs ys f g Δ φ ψ σ hσ hl he hl' he' hs hs' hlin
 
 end INet.Comb

@@ -96,6 +96,99 @@ theorem zipWith_bind_var_comp (C : Term sig ℕ) (g : ℕ → ℕ) (us : List (T
   rw [Term.bind_bind]
   rfl
 
+/-! ## The statement for any enumeration of the symbols -/
+
+section Enum
+
+variable {S : Signature} {n : ℕ} (e : S.Sym ≃ Fin n)
+  (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- **Inside `Γ_{i,j}`, `C_p` against `!Γ` and the trees `⟨φ⟩` reduce to `[φ]`, for any numbering
+`e` of the symbols** (Lafont 1997, Fig. 10, pages 89–90; page 90: no order on the symbols is
+needed). This is `codeGamma_extract` with the `n` symbols numbered by any `e : S.Sym ≃ Fin n`:
+`Γ = codeMenusE e side B`, `!Γ = code K Γ` with `K` above the names of `Γ`, renamed by `g`
+injective on its names; the copier on the extra ports of the cells of `⟨φ⟩` (`codeGammaExtras`,
+base `k₀`, the cells selecting the menu `e α` among `n`) against that copy of `!Γ`, the equations
+`P p = ⟨φ⟩_p` (`codePort`) for every port `p : Fin a ⊕ Fin k` of `φ`, and any context `Δ`, if
+linear, reduce to a net `Equiv` to the equations `P p = t' p` beside `Δ`, where each `t' p` is a
+translation of `gammaTree φ k₀ p` by `codeTranslationE e side`. -/
+theorem codeGamma_extractE {a k : ℕ} (φ : Rule S a k) (k₀ B K : ℕ)
+    (hK : B + ∑ i, codeMenuSizesE e side i ≤ K) (g : ℕ → ℕ)
+    (hg : Set.InjOn g {x | x ∈ (code K (menu (codeMenusE e side B))).vars})
+    (P : Fin a ⊕ Fin k → Term sig ℕ) (Δ : CNet)
+    (hlin : Net.Linear (s(copier (codeGammaExtras n (fun α => (e α : ℕ)) φ k₀),
+      (code K (menu (codeMenusE e side B))).bind fun x => var (g x)) ::ₘ
+      ((∑ q, {s(P q, codePort n (fun α => (e α : ℕ)) φ k₀ q)}) + Δ))) :
+    ∃ (M : CNet) (t' : Fin a ⊕ Fin k → Term sig ℕ),
+      StepsE system (s(copier (codeGammaExtras n (fun α => (e α : ℕ)) φ k₀),
+        (code K (menu (codeMenusE e side B))).bind fun x => var (g x)) ::ₘ
+        ((∑ q, {s(P q, codePort n (fun α => (e α : ℕ)) φ k₀ q)}) + Δ)) M ∧
+      Equiv M ((∑ q, {s(P q, t' q)}) + Δ) ∧
+      ∀ q, (codeTranslationE e side).TermTr (gammaTree φ k₀ q) (t' q) := by
+  set idx : S.Sym → ℕ := fun α => (e α : ℕ)
+  set C := code K (menu (codeMenusE e side B)) with hC
+  have hb : (menu (codeMenusE e side B)).Below K := fun x hx =>
+    (menu_codeMenusE_below e side B x hx).trans_le hK
+  have hCp : C.IsPackage := code_isPackage K _ (menu_codeMenusE_isPackage e side B) hb
+  set Δ' : CNet := (∑ q, {s(P q, codePort n idx φ k₀ q)}) + Δ with hΔ'
+  -- 1. the copier makes one copy of `!Γ` per extra port
+  obtain ⟨fs, N, hlen, hinj, hS₁, hE₁⟩ := copier_package _ (IsPackage.bind_var hCp g hg)
+    ((code_dupFree K _).bind_var g) (codeGammaExtras n idx φ k₀) Δ' hlin
+  rw [zipWith_bind_var_comp] at hE₁
+  set fs' := fs.map fun f x => f (g x) with hfs'
+  have hinj' : ∀ f ∈ fs', Set.InjOn f {x | x ∈ C.vars} := fun f hf => by
+    obtain ⟨f₀, hf₀, rfl⟩ := List.mem_map.1 hf
+    exact injOn_comp_bind_var hg (hinj f₀ hf₀)
+  -- 2. the copies, port by port
+  set E : Fin (a + k) → List (Term sig ℕ) :=
+    fun q => codePortExtras n idx φ k₀ (finSumFinEquiv.symm q) with hE
+  have hlen' : fs'.length = ∑ q, (E q).length := by
+    rw [hfs', List.length_map, hlen, codeGammaExtras, List.length_flatten, List.map_ofFn,
+      List.sum_ofFn]
+    rfl
+  obtain ⟨fss, hfl, hfm, hsplit⟩ := codeCopies_flatten_ofFn C E fs' hlen'
+  have hcop : (List.zipWith (fun e f => s(e, C.bind fun x => var (f x)))
+      (codeGammaExtras n idx φ k₀) fs' : CNet) =
+      ∑ p : Fin a ⊕ Fin k, codeCopies C (codePortExtras n idx φ k₀ p) (fss (finSumFinEquiv p)) := by
+    have : (List.zipWith (fun e f => s(e, C.bind fun x => var (f x)))
+        (codeGammaExtras n idx φ k₀) fs' : CNet) = codeCopies C (List.ofFn E).flatten fs' := rfl
+    rw [this, hsplit, ← Equiv.sum_comp finSumFinEquiv]
+    simp only [hE, Equiv.symm_apply_apply]
+  rw [hcop] at hE₁
+  -- 3. each port reduces, beside the others
+  set J : Fin a ⊕ Fin k → CNet := fun p =>
+    s(P p, codePort n idx φ k₀ p) ::ₘ
+      codeCopies C (codePortExtras n idx φ k₀ p) (fss (finSumFinEquiv p)) with hJ
+  have eJ : (∑ p, codeCopies C (codePortExtras n idx φ k₀ p) (fss (finSumFinEquiv p))) + Δ' =
+      (Finset.univ.val.map J).sum + Δ := by
+    rw [hJ, sum_map_cons_univ_gen (fun p => s(P p, codePort n idx φ k₀ p))
+      (fun p => codeCopies C (codePortExtras n idx φ k₀ p) (fss (finSumFinEquiv p))), hΔ',
+      sum_singleton_univ]
+    abel
+  rw [eJ] at hE₁
+  have hlin₁ := hE₁.linear (hS₁.linear system_wellFormed.linear hlin)
+  obtain ⟨M₂, t', hS₂, hE₂, hR₂⟩ := stepsE_jobs_gen J P
+    (fun p t => (codeTranslationE e side).TermTr (gammaTree φ k₀ p) t)
+    (fun p Δ'' hl => by
+      have e' : J p + Δ'' = s(P p, codeTerm n idx (codeBase φ k₀ p) (gammaTree φ k₀ p)) ::ₘ
+          (codeCopies C (codeExtras n idx (codeBase φ k₀ p) (gammaTree φ k₀ p))
+            (fss (finSumFinEquiv p)) + Δ'') := Multiset.cons_add _ _ _
+      rw [e'] at hl ⊢
+      refine codeTerm_extractE e side B K hK (gammaTree φ k₀ p) (codeBase φ k₀ p) (P p)
+        (fss (finSumFinEquiv p)) Δ'' ?_ (fun f hf => hinj' f (hfm _ f hf)) hl
+      rw [hfl]
+      simp [hE, codePortExtras]
+      rfl)
+    Finset.univ.val Finset.univ.nodup Δ hlin₁
+  obtain ⟨M', hS', hE'⟩ := stepsE_of_equiv hE₁ hS₂
+  refine ⟨M', t', hS₁.trans hS', hE'.trans (hE₂.trans (Equiv.of_eq ?_)),
+    fun q => hR₂ q (Finset.mem_univ q)⟩
+  rw [sum_singleton_univ]
+
+end Enum
+
+/-! ## The statement -/
+
 variable {S : Signature} [Finite S.Sym]
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
@@ -122,66 +215,7 @@ theorem codeGamma_extract {a k : ℕ} (φ : Rule S a k) (k₀ B K : ℕ)
         (code K (menu (codeMenus side B))).bind fun x => var (g x)) ::ₘ
         ((∑ q, {s(P q, codePort (Nat.card S.Sym) (fun α => symEnum S α) φ k₀ q)}) + Δ)) M ∧
       Equiv M ((∑ q, {s(P q, t' q)}) + Δ) ∧
-      ∀ q, (codeTranslation side).TermTr (gammaTree φ k₀ q) (t' q) := by
-  set m := Nat.card S.Sym
-  set idx : S.Sym → ℕ := fun α => symEnum S α
-  set C := code K (menu (codeMenus side B)) with hC
-  have hb : (menu (codeMenus side B)).Below K := fun x hx =>
-    (menu_codeMenus_below side B x hx).trans_le hK
-  have hCp : C.IsPackage := code_isPackage K _ (menu_codeMenus_isPackage side B) hb
-  set Δ' : CNet := (∑ q, {s(P q, codePort m idx φ k₀ q)}) + Δ with hΔ'
-  -- 1. the copier makes one copy of `!Γ` per extra port
-  obtain ⟨fs, N, hlen, hinj, hS₁, hE₁⟩ := copier_package _ (IsPackage.bind_var hCp g hg)
-    ((code_dupFree K _).bind_var g) (codeGammaExtras m idx φ k₀) Δ' hlin
-  rw [zipWith_bind_var_comp] at hE₁
-  set fs' := fs.map fun f x => f (g x) with hfs'
-  have hinj' : ∀ f ∈ fs', Set.InjOn f {x | x ∈ C.vars} := fun f hf => by
-    obtain ⟨f₀, hf₀, rfl⟩ := List.mem_map.1 hf
-    exact injOn_comp_bind_var hg (hinj f₀ hf₀)
-  -- 2. the copies, port by port
-  set E : Fin (a + k) → List (Term sig ℕ) :=
-    fun q => codePortExtras m idx φ k₀ (finSumFinEquiv.symm q) with hE
-  have hlen' : fs'.length = ∑ q, (E q).length := by
-    rw [hfs', List.length_map, hlen, codeGammaExtras, List.length_flatten, List.map_ofFn,
-      List.sum_ofFn]
-    rfl
-  obtain ⟨fss, hfl, hfm, hsplit⟩ := codeCopies_flatten_ofFn C E fs' hlen'
-  have hcop : (List.zipWith (fun e f => s(e, C.bind fun x => var (f x)))
-      (codeGammaExtras m idx φ k₀) fs' : CNet) =
-      ∑ p : Fin a ⊕ Fin k, codeCopies C (codePortExtras m idx φ k₀ p) (fss (finSumFinEquiv p)) := by
-    have : (List.zipWith (fun e f => s(e, C.bind fun x => var (f x)))
-        (codeGammaExtras m idx φ k₀) fs' : CNet) = codeCopies C (List.ofFn E).flatten fs' := rfl
-    rw [this, hsplit, ← Equiv.sum_comp finSumFinEquiv]
-    simp only [hE, Equiv.symm_apply_apply]
-  rw [hcop] at hE₁
-  -- 3. each port reduces, beside the others
-  set J : Fin a ⊕ Fin k → CNet := fun p =>
-    s(P p, codePort m idx φ k₀ p) ::ₘ
-      codeCopies C (codePortExtras m idx φ k₀ p) (fss (finSumFinEquiv p)) with hJ
-  have eJ : (∑ p, codeCopies C (codePortExtras m idx φ k₀ p) (fss (finSumFinEquiv p))) + Δ' =
-      (Finset.univ.val.map J).sum + Δ := by
-    rw [hJ, sum_map_cons_univ_gen (fun p => s(P p, codePort m idx φ k₀ p))
-      (fun p => codeCopies C (codePortExtras m idx φ k₀ p) (fss (finSumFinEquiv p))), hΔ',
-      sum_singleton_univ]
-    abel
-  rw [eJ] at hE₁
-  have hlin₁ := hE₁.linear (hS₁.linear system_wellFormed.linear hlin)
-  obtain ⟨M₂, t', hS₂, hE₂, hR₂⟩ := stepsE_jobs_gen J P
-    (fun p t => (codeTranslation side).TermTr (gammaTree φ k₀ p) t)
-    (fun p Δ'' hl => by
-      have e : J p + Δ'' = s(P p, codeTerm m idx (codeBase φ k₀ p) (gammaTree φ k₀ p)) ::ₘ
-          (codeCopies C (codeExtras m idx (codeBase φ k₀ p) (gammaTree φ k₀ p))
-            (fss (finSumFinEquiv p)) + Δ'') := Multiset.cons_add _ _ _
-      rw [e] at hl ⊢
-      refine codeTerm_extract side B K hK (gammaTree φ k₀ p) (codeBase φ k₀ p) (P p)
-        (fss (finSumFinEquiv p)) Δ'' ?_ (fun f hf => hinj' f (hfm _ f hf)) hl
-      rw [hfl]
-      simp [hE, codePortExtras]
-      rfl)
-    Finset.univ.val Finset.univ.nodup Δ hlin₁
-  obtain ⟨M', hS', hE'⟩ := stepsE_of_equiv hE₁ hS₂
-  refine ⟨M', t', hS₁.trans hS', hE'.trans (hE₂.trans (Equiv.of_eq ?_)),
-    fun q => hR₂ q (Finset.mem_univ q)⟩
-  rw [sum_singleton_univ]
+      ∀ q, (codeTranslation side).TermTr (gammaTree φ k₀ q) (t' q) :=
+  codeGamma_extractE (symEnum S) side φ k₀ B K hK g hg P Δ hlin
 
 end INet.Comb
