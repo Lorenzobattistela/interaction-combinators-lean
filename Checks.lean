@@ -128,5 +128,6 @@ import Checks.GraphRealizeCheck
 import Checks.MultiplicationReview
 import Checks.GraphStepCheck
 import Checks.GraphStepReview
+import Checks.GraphStepECheck
 import Checks.PrintCheck
 import Checks.RuleReducedCheck
