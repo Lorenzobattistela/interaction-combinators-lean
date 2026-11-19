@@ -127,4 +127,5 @@ import Checks.GraphIsoEquivCheck
 import Checks.GraphRealizeCheck
 import Checks.MultiplicationReview
 import Checks.GraphStepCheck
+import Checks.GraphStepReview
 import Checks.PrintCheck
