@@ -131,6 +131,7 @@ import Checks.GraphStepReview
 import Checks.GraphStepECheck
 import Checks.GraphStepEReview
 import Checks.GraphStepEConverseCheck
+import Checks.GraphStepEConverseReview
 import Checks.PrintCheck
 import Checks.RuleReducedCheck
 import Checks.RuleReducedReview
