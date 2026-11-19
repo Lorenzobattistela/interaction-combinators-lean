@@ -1,4 +1,5 @@
 import InteractionCombinators.Instance
+import InteractionCombinators.NetLemmas
 
 /-!
 # Reduction is invariant under injective renaming
@@ -32,12 +33,6 @@ theorem Net.bind_add {ν μ : Type} (f : ν → Term S μ) (N M : Net S ν) :
 theorem Net.bind_cons {ν μ : Type} (f : ν → Term S μ) (a b : Term S ν) (N : Net S ν) :
     Net.bind f (s(a, b) ::ₘ N) = s(a.bind f, b.bind f) ::ₘ N.bind f := by
   simp [Net.bind]
-
-/-- The names of a renamed net are the renamed names. -/
-theorem Net.vars_bind_var {ν μ : Type} (f : ν → μ) (N : Net S ν) :
-    (N.bind fun x => (Term.var (f x) : Term S μ)).vars = N.vars.map f := by
-  rw [Net.vars_bind]
-  simp [Multiset.bind_singleton]
 
 /-- **An instance of a rule, renamed.** Renaming every name of an instance of a rule gives the
 instance of the same rule on the renamed trees, with the renamed new wires. Reduction is defined

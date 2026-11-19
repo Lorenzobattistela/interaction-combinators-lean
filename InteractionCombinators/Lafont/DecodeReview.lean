@@ -35,7 +35,7 @@ theorem decode_nestedRight : ∃ M, StepsE system
     {s(code 6 πr, decoder 3 (decomp 6 πr).k), s(var 4, var 5)} M ∧
     Equiv M {s(var 3, πr), s(var 4, var 5)} :=
   code_decoder_package πr πr_isPackage 6 3 _ {s(var 4, var 5)}
-    (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide) le_rfl
+    (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide) le_rfl
 
 /-- `code_decoder_tree` (page 89) on the tree `dup(0, dup(1, 1))`, which is not a package: its name
 `0` is free, and the context `0 = ε` shares it. -/
@@ -43,7 +43,7 @@ theorem decode_tree_shared : ∃ M, StepsE system
     {s(code 3 (mkDup (var 0) (mkDup (var 1) (var 1))), decoder 2 20), s(var 0, mkEra)} M ∧
     Equiv M {s(var 2, mkDup (var 0) (mkDup (var 1) (var 1))), s(var 0, mkEra)} :=
   code_decoder_tree _ 3 2 20 {s(var 0, mkEra)}
-    (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide) (by decide)
+    (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide) (by decide)
 
 /-- The package of `CodeCheck`, `dup(dup(0, 1), con(0, 1))`, two nested `dup` cells. -/
 def πn : Term sig ℕ := mkDup (mkDup (var 0) (var 1)) (mkCon (var 0) (var 1))
@@ -84,7 +84,7 @@ theorem N₁_back : Net.bind (fun x => (var (back x) : Term sig ℕ)) N₁ =
 /-- The copy against the decoder is the same graph as `code 3 πn` against it (page 70: the names of
 internal wires do not matter). -/
 theorem N₁_equiv : Equiv N₁ {s(code 3 πn, decoder 2 30)} := by
-  have hlin : N₁.Linear := linear_of_forall_mem _ (by decide)
+  have hlin : N₁.Linear := Net.linear_of_forall_mem (by decide)
   have hinj : ∀ x ∈ Net.vars N₁, ∀ y ∈ Net.vars N₁, back x = back y → x = y := by decide
   have hfree : ∀ x ∈ Net.vars N₁, (Net.vars N₁).count x = 1 → back x = x := by decide
   rw [← N₁_back]
@@ -95,7 +95,7 @@ theorem N₁_equiv : Equiv N₁ {s(code 3 πn, decoder 2 30)} := by
 extracts `πn` from the copy, through `N₁_equiv` and `code_decoder_package`. -/
 theorem decode_renamedCopy : ∃ M, StepsE system N₁ M ∧ Equiv M {s(var 2, πn)} := by
   obtain ⟨M, hS, hE⟩ := code_decoder_package πn (by unfold Term.IsPackage; decide) 3 2 30 0
-    (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide) (by decide)
+    (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide) (by decide)
   obtain ⟨M', hS', hE'⟩ := stepsE_of_equiv N₁_equiv hS
   exact ⟨M', hS', hE'.trans hE⟩
 

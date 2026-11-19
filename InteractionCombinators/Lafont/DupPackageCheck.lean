@@ -1,3 +1,4 @@
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.DupPackage
 import InteractionCombinators.Lafont.PackageCheck
 
@@ -109,13 +110,6 @@ theorem dup_package_separate (π : Term sig ℕ) (hπ : π.IsPackage) (u v : Ter
 
 /-! ## The hypotheses can hold -/
 
-/-- A net is linear as soon as every name that occurs in it occurs at most twice. -/
-private theorem linear_of_forall_mem {N : CNet} (h : ∀ y ∈ N.vars, N.vars.count y ≤ 2) :
-    N.Linear := fun y => by
-  by_cases hy : y ∈ N.vars
-  · exact h y hy
-  · rw [Multiset.count_eq_zero.2 hy]; omega
-
 /-- `dup_package` (page 87) applies to the package `con(con(0, 1), con(1, 0))`, with two crossed
 wires, next to a context `con(3, 4) – 2` that shares the names `2` and `3` with the auxiliary
 trees `u = 2` and `v = 3`. The copies are separate: the wires of the first copy are not those of
@@ -133,7 +127,7 @@ theorem dup_package_two_wires :
   have hπ : π.IsPackage := by unfold Term.IsPackage; decide
   have hd : DupFree π := by simp [hπdef, DupFree]
   have hlin : Net.Linear (s(mkDup (var 2) (var 3), π) ::ₘ {s(var 2, mkCon (var 3) (var 4))}) :=
-    linear_of_forall_mem (by decide)
+    Net.linear_of_forall_mem (by decide)
   obtain ⟨f, g, N, -, -, hS, hE⟩ := dup_package π hπ hd (var 2) (var 3) _ hlin
   obtain ⟨hif, hig, hfg, hfu, hgu⟩ := dup_package_separate π hπ _ _ _ hlin f g N hS hE
   have m0 : (0 : ℕ) ∈ π.vars := by decide

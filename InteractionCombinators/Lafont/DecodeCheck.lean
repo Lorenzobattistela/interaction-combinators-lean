@@ -24,7 +24,7 @@ computation. -/
 theorem decode_π₂_general : ∃ M, StepsE system {s(code 3 π₂, decoder 2 13)} M ∧
     Equiv M {s(var 2, π₂)} :=
   code_decoder_package π₂ π₂_isPackage 3 2 13 0
-    (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide) (by decide)
+    (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide) (by decide)
 
 /-- Fig. 9 for `n = 0`: the package `con(0, 0)` on `1`, next to the equation `6 = 7` of the
 context; new names of the code from `8`, loop at `10`. -/
@@ -32,13 +32,13 @@ theorem decode_dupFree : ∃ M, StepsE system
     {s(code 8 (mkCon (var 0) (var 0)), decoder 1 10), s(var 6, var 7)} M ∧
     Equiv M {s(var 1, mkCon (var 0) (var 0)), s(var 6, var 7)} :=
   code_decoder_package (mkCon (var 0) (var 0)) (by unfold Term.IsPackage; decide) 8 1 10
-    {s(var 6, var 7)} (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide)
+    {s(var 6, var 7)} (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide)
     (by decide)
 
 /-- Fig. 9 for `n = 1`: the package `dup(0, 0)` on `1`. -/
 theorem decode_oneDup : ∃ M, StepsE system {s(code 2 (mkDup (var 0) (var 0)), decoder 1 5)} M ∧
     Equiv M {s(var 1, mkDup (var 0) (var 0))} :=
   code_decoder_package (mkDup (var 0) (var 0)) (by unfold Term.IsPackage; decide) 2 1 5 0
-    (linear_of_forall_mem _ (by decide)) (by unfold Net.Below; decide) (by decide)
+    (Net.linear_of_forall_mem (by decide)) (by unfold Net.Below; decide) (by decide)
 
 end INet.Comb.DecodeCheck

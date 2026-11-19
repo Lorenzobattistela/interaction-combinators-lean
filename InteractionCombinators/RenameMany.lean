@@ -1,4 +1,5 @@
 import InteractionCombinators.Instance
+import InteractionCombinators.NetLemmas
 
 /-!
 # Renaming several internal wires at once
@@ -75,12 +76,6 @@ theorem bind_var_self {ν : Type} (N : Net S ν) : N.bind var = N := by
   refine Multiset.map_congr rfl fun e _ => ?_
   induction e using Sym2.ind with
   | _ a b => simp [Term.bind_var_self]
-
-/-- The names of a renamed net are the renamed names. -/
-theorem vars_bind_var {ν μ : Type} (f : ν → μ) (N : Net S ν) :
-    (N.bind fun x => (var (f x) : Term S μ)).vars = N.vars.map f := by
-  rw [Net.vars_bind]
-  simp [Multiset.bind_singleton]
 
 /-- Renaming one name (`Net.rename`, by `Term.subst`) is a renaming of all names by a function
 that moves that name only. -/

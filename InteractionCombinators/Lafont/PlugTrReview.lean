@@ -119,7 +119,7 @@ theorem rot_target :
 theorem rot_linear :
     Net.Linear (plugTarget (Translation.id sig) ruleK3 ruleK3b rot3 0 10 ![30] ![31, 32]) := by
   rw [rot_target]
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   decide
 
 /-- **`netTr_plug_gamma` for a non-involutive `σ`** (pages 85–86): with the 3-cycle `rot3`, every
@@ -202,7 +202,7 @@ theorem k0_netTr :
   have hlin : Net.Linear (plugTarget (Translation.id sig) ruleK0 ruleK0 1 5 6 ![30, 31]
       ![32, 33]) := by
     rw [k0_target]
-    apply linear_of_forall_mem
+    apply Net.linear_of_forall_mem
     decide
   obtain ⟨h, N', hN, hE⟩ := netTr_plug_gamma (Translation.id sig) ruleK0_expanded ruleK0_linear
     ruleK0_expanded ruleK0_linear 1 5 6 ![30, 31] ![32, 33] hlin
@@ -226,7 +226,7 @@ theorem k3_netTr :
         (fun i => .var (![30] i)) (fun j => .var (![31, 32] j)) h) N' := by
   refine mux_gamma_mux_gamma_netTr (Translation.id sig) ruleK3_expanded ruleK3_linear
     ruleK3b_expanded ruleK3b_linear (Equiv.swap 0 2) hs02 0 10 ![30] ![31, 32] 35 ?_
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   simp only [List.ofFn_succ, List.ofFn_zero, Matrix.cons_val_zero, Matrix.cons_val_one,
     Fin.succ_zero_eq_one, Fin.isValue, gamma_k3, gamma_K3b]
   decide

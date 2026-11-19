@@ -1,4 +1,4 @@
-import InteractionCombinators.Net
+import InteractionCombinators.NetLemmas
 
 /-!
 # Renaming all names by an injective function
@@ -37,14 +37,6 @@ theorem Term.bind_var_subst (f : ν → μ) (hf : Function.Injective f) (r : Ter
     congr 1
     funext i
     exact ih i
-
-omit [DecidableEq ν] [DecidableEq μ] in
-/-- The names of a net renamed by `f` are the images of its names. -/
-theorem Net.vars_bind_var (f : ν → μ) (N : Net S ν) :
-    (N.bind fun y => Term.var (f y)).vars = N.vars.map f := by
-  rw [Net.vars_bind]
-  simp only [Term.vars_var]
-  exact Multiset.bind_singleton _ _
 
 /-- Renaming by an injective function keeps the number of occurrences of every name: `f x` occurs
 in the renamed net as often as `x` in the net (Lafont 1997, Section 1.1, pages 70 to 72). -/

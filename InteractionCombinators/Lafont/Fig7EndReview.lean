@@ -161,7 +161,7 @@ noncomputable abbrev NK3 : CNet :=
     {s(var 30, mkCon (var 33) (var 34))}
 
 theorem NK3_linear : Net.Linear NK3 := by
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   rw [NK3, gamma_k3, gamma_K3b]
   decide
 
@@ -195,7 +195,7 @@ noncomputable abbrev NW : CNet :=
     s(mux ([var 1] ++ [var 5]), gamma (Translation.id sig) ruleWire 1 (hid 1) 20) ::ₘ 0
 
 theorem NW_linear : Net.Linear NW := by
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   rw [NW, gamma_wire, gamma_wire]
   decide
 

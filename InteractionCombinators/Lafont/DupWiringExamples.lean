@@ -1,3 +1,4 @@
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.DupWiring
 
 /-!
@@ -17,14 +18,6 @@ namespace INet.Comb
 
 open Term
 
-/-- A net is linear as soon as every name that occurs in it occurs at most twice. This turns
-linearity of a concrete net into a finite check. -/
-private theorem linear_of_forall_mem {N : CNet} (h : ∀ y ∈ N.vars, N.vars.count y ≤ 2) :
-    N.Linear := fun y => by
-  by_cases hy : y ∈ N.vars
-  · exact h y hy
-  · rw [Multiset.count_eq_zero.2 hy]; omega
-
 /-- Two wires `0` and `1`, all eight auxiliary ports free (`10` to `17`). The first copy of the
 wiring joins the left auxiliary ports `10—12` and `14—16`, the second the right ones `11—13` and
 `15—17` (Lemma 3 (ii), page 87). -/
@@ -34,7 +27,7 @@ example : StepsE system
     {s(var 10, var 12), s(var 14, var 16), s(var 11, var 13), s(var 15, var 17)} := by
   have h := dup_wiring {0, 1} (fun x => var (10 + 4 * x)) (fun x => var (11 + 4 * x))
     (fun x => var (12 + 4 * x)) (fun x => var (13 + 4 * x)) 0
-    (linear_of_forall_mem (by decide))
+    (Net.linear_of_forall_mem (by decide))
   simpa only [Multiset.insert_eq_cons, Multiset.map_cons, Multiset.map_singleton,
     Multiset.cons_add, Multiset.singleton_add, add_zero] using h
 
@@ -48,7 +41,7 @@ example : StepsE system
     {s(var 5, var 23), s(var 20, var 5), s(var 21, var 24), s(var 22, var 25)} := by
   have h := dup_wiring {0, 1} (fun x => if x = 0 then var 5 else var 20)
     (fun x => if x = 0 then var 21 else var 22) (fun x => if x = 0 then var 23 else var 5)
-    (fun x => if x = 0 then var 24 else var 25) 0 (linear_of_forall_mem (by decide))
+    (fun x => if x = 0 then var 24 else var 25) 0 (Net.linear_of_forall_mem (by decide))
   simpa only [Multiset.insert_eq_cons, Multiset.map_cons, Multiset.map_singleton,
     Multiset.cons_add, Multiset.singleton_add, add_zero, one_ne_zero,
     reduceIte] using h
@@ -60,7 +53,7 @@ example : StepsE system
     ({s(mkDup (var 5) (var 1), var 0), s(mkDup (var 5) (var 2), var 0)} : CNet)
     {s(var 5, var 5), s(var 1, var 2)} := by
   have h := dup_wiring {0} (fun _ => var 5) (fun _ => var 1) (fun _ => var 5) (fun _ => var 2) 0
-    (linear_of_forall_mem (by decide))
+    (Net.linear_of_forall_mem (by decide))
   simpa only [Multiset.insert_eq_cons, Multiset.map_singleton, Multiset.singleton_add,
     add_zero] using h
 
@@ -72,7 +65,7 @@ example : StepsE system
       s(mkEra, var 5)} : CNet)
     {s(mkCon (var 5) mkEra, var 3), s(var 1, var 4), s(mkEra, var 5)} := by
   have h := dup_wiring {0} (fun _ => mkCon (var 5) mkEra) (fun _ => var 1) (fun _ => var 3)
-    (fun _ => var 4) {s(mkEra, var 5)} (linear_of_forall_mem (by decide))
+    (fun _ => var 4) {s(mkEra, var 5)} (Net.linear_of_forall_mem (by decide))
   simpa only [Multiset.insert_eq_cons, Multiset.map_singleton, Multiset.singleton_add,
     Multiset.cons_add] using h
 

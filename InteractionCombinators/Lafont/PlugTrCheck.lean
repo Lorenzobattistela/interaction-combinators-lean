@@ -54,7 +54,7 @@ theorem plugTarget_conDup_linear :
     Net.Linear (plugTarget (Translation.id sig) ruleConDup ruleConDup (Equiv.swap 0 1) 10 20
       ![0, 1] ![2, 3]) := by
   rw [plugTarget_conDup]
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   decide
 
 /-- **`netTr_plug_gamma` is not vacuous** (Fig. 7, page 86): on the side `ruleConDup`, whose trees

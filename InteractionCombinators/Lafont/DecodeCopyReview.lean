@@ -53,7 +53,7 @@ theorem decode_copy_adversarial : ∃ M, StepsE system
       mkDup (mkDup (var 7) (var 2)) (mkCon (var 7) (var 2)) := by decide
   have h := code_decoder_copy πn (by unfold Term.IsPackage; decide) 3
     (by unfold Term.Below; decide) rev (fun x hx y hy hxy => hinj x hx y hy hxy) 4 0
-    {s(var 3, var 6)} (linear_of_forall_mem _ (by decide))
+    {s(var 3, var 6)} (Net.linear_of_forall_mem (by decide))
   rw [hπ] at h
   exact h
 
@@ -69,7 +69,7 @@ theorem copier_decoder_instance : ∃ (g g' : ℕ → ℕ) (M : CNet),
   have hinj : ∀ x ∈ (code 3 πn).vars, ∀ y ∈ (code 3 πn).vars, rev x = rev y → x = y := by decide
   exact copier_decoder_copy πn (by unfold Term.IsPackage; decide) 3
     (by unfold Term.Below; decide) rev (fun x hx y hy hxy => hinj x hx y hy hxy) 4 0 (var 8)
-    {s(var 3, var 6)} (linear_of_forall_mem _ (by decide))
+    {s(var 3, var 6)} (Net.linear_of_forall_mem (by decide))
 
 /-! ## `Decomp.rename` -/
 

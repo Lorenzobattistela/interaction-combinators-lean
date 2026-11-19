@@ -1,3 +1,4 @@
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.Fig7End
 
 /-!
@@ -38,21 +39,13 @@ theorem gamma_φ₀ (k₀ : ℕ) :
     List.map_nil, Fin.succ_zero_eq_one, Fin.isValue, h0, h1, h2, h3]
   rfl
 
-/-- A net over `ℕ` is linear as soon as every name that occurs, occurs at most twice. -/
-theorem linear_of_forall_mem {N : CNet} (h : ∀ y ∈ N.vars, N.vars.count y ≤ 2) : N.Linear :=
-  fun y => by
-    by_cases hy : y ∈ N.vars
-    · exact h y hy
-    · rw [Multiset.count_eq_zero.2 hy]
-      omega
-
 /-- The net of the last rows of Fig. 7 for this instance. -/
 noncomputable abbrev N0 : CNet :=
   s(mux ([var 0, var 1] ++ [var 5]), gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs 10) ::ₘ
     s(mux ([var 2, var 3] ++ [var 5]), gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs 20) ::ₘ 0
 
 theorem N0_linear : Net.Linear N0 := by
-  apply linear_of_forall_mem
+  apply Net.linear_of_forall_mem
   rw [N0, gamma_φ₀, gamma_φ₀]
   decide
 
@@ -87,7 +80,7 @@ theorem cellSkel_dupDup :
           [var 0, var 1] 5,
         cellSkel (menu [gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs 10]) 1 0
           [var 2, var 3] 6) ::ₘ 0) := by
-    apply linear_of_forall_mem
+    apply Net.linear_of_forall_mem
     rw [gamma_φ₀, gamma_φ₀]
     decide
   have hp : ∀ k₀, ∀ π ∈ [gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs k₀], π.IsPackage := by

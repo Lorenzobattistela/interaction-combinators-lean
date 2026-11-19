@@ -1,5 +1,6 @@
 import InteractionCombinators.Term
 import InteractionCombinators.Net
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.System
 import InteractionCombinators.Translation
 import InteractionCombinators.Rename

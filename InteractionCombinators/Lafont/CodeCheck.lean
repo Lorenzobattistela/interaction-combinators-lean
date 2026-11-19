@@ -1,3 +1,4 @@
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.Code
 import InteractionCombinators.Lafont.DecompositionCheck
 
@@ -26,19 +27,12 @@ open Term
 
 /-! ## Helpers for concrete nets -/
 
-/-- Linearity only needs checking on the names of the net; this form is decidable. -/
-theorem linear_of_forall_mem (N : CNet) (h : ∀ x ∈ N.vars, N.vars.count x ≤ 2) : N.Linear :=
-  fun x => by
-    by_cases hx : x ∈ N.vars
-    · exact h x hx
-    · rw [Multiset.count_eq_zero.2 hx]; omega
-
 /-- One wire substitution on a concrete net, with every side condition in decidable form. -/
 theorem wire_of (x : ℕ) (t a b : Term sig ℕ) (Δ N M : CNet)
     (hN : N = s(var x, t) ::ₘ s(a, b) ::ₘ Δ) (hM : M = s(a.subst x t, b.subst x t) ::ₘ Δ)
     (hlin : ∀ y ∈ N.vars, N.vars.count y ≤ 2) (hx : x ∈ a.vars + b.vars) : Equiv N M := by
   subst hN hM
-  exact (Wire.mk x t a b Δ (linear_of_forall_mem _ hlin) hx).equiv
+  exact (Wire.mk x t a b Δ (Net.linear_of_forall_mem hlin) hx).equiv
 
 /-! ## The hypotheses of `code_isPackage` -/
 

@@ -307,7 +307,7 @@ theorem decode_copy_instance : ∃ M, StepsE system ({s(copy, decoder 2 30)} : C
       mkDup (mkDup (var 40) (var 41)) (mkCon (var 40) (var 41)) := by decide
   have h := code_decoder_copy πn (by unfold Term.IsPackage; decide) 3
     (by unfold Term.Below; decide) fwd (fun x hx y hy hxy => hinj x hx y hy hxy) 2 30 0
-    (linear_of_forall_mem _ (by decide))
+    (Net.linear_of_forall_mem (by decide))
   rw [hπ] at h
   exact h
 

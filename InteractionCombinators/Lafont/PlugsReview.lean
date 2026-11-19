@@ -1,3 +1,4 @@
+import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.PlugsExpand
 import InteractionCombinators.Lafont.PlugsNetTr
 
@@ -150,12 +151,6 @@ theorem twist_netTr_inst_of_sides (xs ys : Fin 2 → ℕ)
 
 /-! ### `NetTr.inst_of_equiv_rename` with a non-trivial `ι` -/
 
-private theorem linear_of_forall_mem {N : Net sig ℕ} (h : ∀ y ∈ N.vars, N.vars.count y ≤ 2) :
-    N.Linear := fun y => by
-  by_cases hy : y ∈ N.vars
-  · exact h y hy
-  · rw [Multiset.count_eq_zero_of_notMem hy]; omega
-
 /-- The instance of `twistSide'` with ports `10, 11`, `12, 13` and internal wires `20, 21`. -/
 theorem twist'_inst :
     twistSide'.inst (fun i => .var (![10, 11] i)) (fun j => .var (![12, 13] j)) ![20, 21] =
@@ -177,7 +172,7 @@ theorem twist_inst_of_equiv_rename :
   have hlin : Net.Linear (twistSide'.inst (fun i => .var (![10, 11] i))
       (fun j => .var (![12, 13] j)) ![20, 21]) := by
     rw [twist'_inst]
-    apply linear_of_forall_mem
+    apply Net.linear_of_forall_mem
     decide
   exact Translation.NetTr.inst_of_equiv_rename twistSide' twistSide twistSide'_linear ι₁
     twist_equiv _ _ _ ⟨Multiset.rel_refl_of_refl_on fun e _ => Translation.eqTr_id e, hlin⟩
