@@ -131,3 +131,4 @@ import Checks.GraphStepReview
 import Checks.GraphStepECheck
 import Checks.PrintCheck
 import Checks.RuleReducedCheck
+import Checks.ArithmeticTrReview
