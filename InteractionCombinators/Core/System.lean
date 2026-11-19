@@ -8,11 +8,27 @@ import InteractionCombinators.Core.Net
   wires.
 * `System S` — at most one rule for each pair of symbols.
 * `Step`, `Steps` — reduction. Only interactions are steps; wire substitution is not.
+
+Contents, in the order of the file:
+
+1. Rules: `Rule`, `Rule.inst`, `Rule.Linear`, `Rule.Reduced`, `Rule.swap`,
+   `Rule.count_vars_inst`.
+2. Systems and one interaction: `System`, `Step`, `Rule.symm_of_equiv`, `System.WellFormed`.
+3. One interaction and linearity: `Step.linear`, `Step.add_right`.
+4. Reduction: `Steps`, `Steps.single`, `Steps.cast`, `Steps.linear`.
+5. Reduction up to wires: `StepE`, `StepsE`, `Step.stepE`, `Steps.stepsE`, `StepE.linear`,
+   `StepsE.linear`.
+6. The tactic `ms`, which reorders a sum of multisets.
 -/
 
 namespace INet
 
+-- the signature, for the whole file
 variable {S : Signature}
+
+-- ============================================================================================
+-- 1. Rules
+-- ============================================================================================
 
 /-- The right-hand side of an interaction rule. Its names are the `a` auxiliary ports of the first
 cell, the `b` auxiliary ports of the second, and `internal` new wires. -/
@@ -24,35 +40,70 @@ structure Rule (S : Signature) (a b : ℕ) where
 
 /-- The right-hand side of a rule, with trees plugged into the auxiliary ports and the internal
 wires named by `f`. -/
-def Rule.inst {a b : ℕ} (r : Rule S a b) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ)
-    (f : Fin r.internal → ℕ) : Net S ℕ :=
+def Rule.inst
+    -- the rule, between a cell with `a` auxiliary ports and a cell with `b`
+    {a b : ℕ}
+    (r : Rule S a b)
+    -- the trees plugged into the auxiliary ports of the first cell
+    (as : Fin a → Term S ℕ)
+    -- the trees plugged into the auxiliary ports of the second cell
+    (bs : Fin b → Term S ℕ)
+    -- the names given to the wires created by the rule
+    (f : Fin r.internal → ℕ) :
+    Net S ℕ :=
   r.net.bind (Sum.elim as (Sum.elim bs fun i => Term.var (f i)))
 
 namespace Rule
 
+-- the numbers of auxiliary ports of the two cells
 variable {a b : ℕ}
 
 /-- In the right-hand side of a rule, every auxiliary port of the two cells occurs exactly once and
 every internal wire exactly twice. -/
 structure Linear (r : Rule S a b) : Prop where
+  -- every auxiliary port of the first cell occurs exactly once
   left : ∀ i, r.net.vars.count (.inl i) = 1
+  -- every auxiliary port of the second cell occurs exactly once
   right : ∀ j, r.net.vars.count (.inr (.inl j)) = 1
+  -- every wire created by the rule has exactly two ends
   internal : ∀ w, r.net.vars.count (.inr (.inr w)) = 2
 
 /-- The right-hand side is a reduced net, written as trees rooted at the auxiliary ports: every
 equation has an auxiliary port on one side. Together with linearity this excludes pairs of cells
 plugged by their principal ports, vicious circles and cyclic wires. -/
-def Reduced (r : Rule S a b) : Prop :=
-  ∀ e ∈ r.net, ∃ p t, e = s(Term.var p, t) ∧ ∀ w, p ≠ .inr (.inr w)
+def Reduced
+    (r : Rule S a b) :
+    Prop :=
+  -- for every equation `e` of the right-hand side,
+  ∀ e ∈ r.net,
+    -- there are a name `p` and a tree `t` such that
+    ∃ p t,
+      -- the equation is `p = t`,
+      e = s(Term.var p, t) ∧
+      -- and `p` is an auxiliary port of one of the two cells, not a wire created by the rule
+      ∀ w, p ≠ .inr (.inr w)
 
 /-- The same rule read from the other cell: the two groups of auxiliary ports are exchanged. -/
-def swap (r : Rule S a b) : Rule S b a where
+def swap
+    (r : Rule S a b) :
+    Rule S b a where
+  -- the same number of wires is created
   internal := r.internal
+  -- the ports of the first cell become those of the second and conversely; the wires are kept
   net := r.net.bind fun p =>
     Term.var (Sum.elim (fun i => .inr (.inl i)) (Sum.elim .inl fun w => .inr (.inr w)) p)
 
-theorem _root_.Multiset.count_bind_fintype {P ν : Type} [Fintype P] [DecidableEq P]
-    [DecidableEq ν] (m : Multiset P) (g : P → Multiset ν) (y : ν) :
+/-- The count of an element in a `Multiset.bind` over a finite type, as a sum over the type. -/
+theorem _root_.Multiset.count_bind_fintype
+    {P ν : Type}
+    [Fintype P]
+    [DecidableEq P]
+    [DecidableEq ν]
+    -- the multiset, and the function applied to every element
+    (m : Multiset P)
+    (g : P → Multiset ν)
+    -- the element that is counted
+    (y : ν) :
     (m.bind g).count y = ∑ p, m.count p * (g p).count y := by
   rw [Multiset.count_bind, Finset.sum_multiset_map_count]
   simp only [smul_eq_mul]
@@ -61,10 +112,21 @@ theorem _root_.Multiset.count_bind_fintype {P ν : Type} [Fintype P] [DecidableE
 
 /-- The names of an instance of a linear rule: those of the trees plugged into the ports, and both
 ends of each internal wire. -/
-theorem count_vars_inst (r : Rule S a b) (hr : r.Linear) (as : Fin a → Term S ℕ)
-    (bs : Fin b → Term S ℕ) (f : Fin r.internal → ℕ) (y : ℕ) :
+theorem count_vars_inst
+    -- the rule, which is linear
+    (r : Rule S a b)
+    (hr : r.Linear)
+    -- the trees plugged into the auxiliary ports of the two cells
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- the names given to the wires created by the rule
+    (f : Fin r.internal → ℕ)
+    -- the name that is counted
+    (y : ℕ) :
     (r.inst as bs f).vars.count y =
+      -- its occurrences in the trees plugged into the first cell and into the second,
       ∑ i, (as i).vars.count y + ∑ j, (bs j).vars.count y +
+        -- and two for each created wire that bears this name
         2 * ∑ w, if y = f w then 1 else 0 := by
   rw [inst, Net.vars_bind, Multiset.count_bind_fintype, Fintype.sum_sum_type,
     Fintype.sum_sum_type]
@@ -73,6 +135,10 @@ theorem count_vars_inst (r : Rule S a b) (hr : r.Linear) (as : Fin a → Term S 
   ring
 
 end Rule
+
+-- ============================================================================================
+-- 2. Systems and one interaction
+-- ============================================================================================
 
 /-- An interaction system: at most one rule for each pair of symbols. An equation is unordered, so
 a rule given for `α`, `β` also applies to `β`, `α`. -/
@@ -83,16 +149,36 @@ structure System (S : Signature) where
 /-- One interaction: two cells plugged by their principal ports are replaced by the right-hand
 side of their rule. The wires the rule creates get names not used in the net. -/
 inductive Step (I : System S) : Net S ℕ → Net S ℕ → Prop
-  | mk (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)) (hr : I.rule α β = some r)
-      (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ) (Δ : Net S ℕ)
-      (f : Fin r.internal → ℕ) (hf : Function.Injective f)
+  | mk
+      -- the symbols of the two cells, and the rule of the system for them
+      (α β : S.Sym)
+      (r : Rule S (S.arity α) (S.arity β))
+      (hr : I.rule α β = some r)
+      -- the trees on the auxiliary ports of the first cell
+      (as : Fin (S.arity α) → Term S ℕ)
+      -- the trees on the auxiliary ports of the second cell
+      (bs : Fin (S.arity β) → Term S ℕ)
+      -- the rest of the net
+      (Δ : Net S ℕ)
+      -- the names given to the wires created by the rule: pairwise distinct,
+      (f : Fin r.internal → ℕ)
+      (hf : Function.Injective f)
+      -- and not used in the net one starts from
       (hfresh : ∀ i, f i ∉ Net.vars (s(Term.app α as, Term.app β bs) ::ₘ Δ)) :
+      -- the equation between the two cells is replaced by the right-hand side of the rule
       Step I (s(Term.app α as, Term.app β bs) ::ₘ Δ) (r.inst as bs f + Δ)
 
 /-- A rule that is the same net as its swap up to wires is symmetric in the sense of
 `System.WellFormed.symm`, with the identity permutation. -/
-theorem Rule.symm_of_equiv {a : ℕ} {r : Rule S a a} (h : Equiv r.swap.net r.net) :
+theorem Rule.symm_of_equiv
+    -- a rule between two cells with the same number of auxiliary ports
+    {a : ℕ}
+    {r : Rule S a a}
+    -- read from the other cell, it is the same net up to wires
+    (h : Equiv r.swap.net r.net) :
+    -- there is a permutation `π` of the wires created by the rule such that
     ∃ π : _root_.Equiv.Perm (Fin r.internal),
+      -- the rule read from the other cell is, up to wires, the rule with its wires permuted
       Equiv r.swap.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id π) x)) := by
   refine ⟨1, ?_⟩
   have hb : ∀ t : Term S (Fin a ⊕ Fin a ⊕ Fin r.internal), t.bind (fun x => Term.var
@@ -127,12 +213,29 @@ structure System.WellFormed (I : System S) : Prop where
   (Lafont 1997, page 73), that is, the same net up to wires and up to a permutation of its
   internal wires. The permutation is needed because the internal wires of a rule are named by
   `Fin r.internal`, which leaves no spare name through which `Equiv` could exchange two of them. -/
-  symm : ∀ α r, I.rule α α = some r → ∃ π : _root_.Equiv.Perm (Fin r.internal),
-    Equiv r.swap.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id π) x))
+  symm :
+    -- for every rule `r` of a symbol `α` with itself,
+    ∀ α r, I.rule α α = some r →
+      -- there is a permutation `π` of the wires created by the rule such that
+      ∃ π : _root_.Equiv.Perm (Fin r.internal),
+        -- the rule read from the other cell is, up to wires, the rule with its wires permuted
+        Equiv r.swap.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id π) x))
+
+-- ============================================================================================
+-- 3. One interaction and linearity
+-- ============================================================================================
 
 /-- An interaction of a linear rule keeps the net linear. -/
-theorem Step.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N N' : Net S ℕ} (h : Step I N N') (hN : N.Linear) : N'.Linear := by
+theorem Step.linear
+    -- the system: every rule is linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction, from `N` to `N'`
+    {N N' : Net S ℕ}
+    (h : Step I N N')
+    -- the net one starts from is linear
+    (hN : N.Linear) :
+    N'.Linear := by
   obtain ⟨α, β, r, hr, as, bs, Δ, f, hf, hfresh⟩ := h
   intro y
   have hy := hN y
@@ -157,8 +260,17 @@ theorem Step.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → 
 
 /-- An interaction can be done inside a larger net, as long as the result is linear: the names
 given to the wires created by the rule are then unused in the rest of the net. -/
-theorem Step.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : Step I N M) (Γ : Net S ℕ) (hlin : (M + Γ).Linear) :
+theorem Step.add_right
+    -- the system: every rule is linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction, from `N` to `M`
+    {N M : Net S ℕ}
+    (h : Step I N M)
+    -- the rest of the net
+    (Γ : Net S ℕ)
+    -- the larger net one arrives at is linear
+    (hlin : (M + Γ).Linear) :
     Step I (N + Γ) (M + Γ) := by
   obtain ⟨α, β, r, hr, as, bs, Δ, f, hf, hfresh⟩ := h
   have hΓ : ∀ w, f w ∉ Γ.vars := by
@@ -179,51 +291,127 @@ theorem Step.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r �
   rw [e, add_assoc]
   exact this
 
+-- ============================================================================================
+-- 4. Reduction
+-- ============================================================================================
+
 /-- Reduction in any number of interactions. -/
-abbrev Steps (I : System S) : Net S ℕ → Net S ℕ → Prop := Relation.ReflTransGen (Step I)
+abbrev Steps
+    (I : System S) :
+    Net S ℕ → Net S ℕ → Prop :=
+  Relation.ReflTransGen (Step I)
 
 namespace Steps
 
+-- a system and four nets
 variable {I : System S} {N N' M M' : Net S ℕ}
 
-theorem single (h : Step I N N') : Steps I N N' := Relation.ReflTransGen.single h
+/-- One interaction is a reduction. -/
+theorem single
+    (h : Step I N N') :
+    Steps I N N' :=
+  Relation.ReflTransGen.single h
 
-theorem cast (h : Steps I N N') (hN : N = M) (hN' : N' = M') : Steps I M M' := hN ▸ hN' ▸ h
+/-- A reduction carried along equalities of nets. -/
+theorem cast
+    (h : Steps I N N')
+    -- a net equal to the one started from, and a net equal to the one arrived at
+    (hN : N = M)
+    (hN' : N' = M') :
+    Steps I M M' :=
+  hN ▸ hN' ▸ h
 
-theorem linear (hI : ∀ α β r, I.rule α β = some r → r.Linear) (h : Steps I N N')
-    (hN : N.Linear) : N'.Linear := by
+/-- Reduction by linear rules keeps the net linear. -/
+theorem linear
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a reduction, from `N` to `N'`
+    (h : Steps I N N')
+    -- the net one starts from is linear
+    (hN : N.Linear) :
+    N'.Linear := by
   induction h with
   | refl => exact hN
   | tail _ hstep ih => exact hstep.linear hI ih
 
 end Steps
 
+-- ============================================================================================
+-- 5. Reduction up to wires
+-- ============================================================================================
+
 /-- One interaction up to wires: the net is first rewritten into an equivalent one, then two
 cells interact. This lets two cells interact when their principal ports are joined by a named
 wire, as in `x = α(…)`, `x = β(…)`, which is an active pair of the graph. -/
-def StepE (I : System S) (N M : Net S ℕ) : Prop := ∃ N', Equiv N N' ∧ Step I N' M
+def StepE
+    -- the system
+    (I : System S)
+    -- the net one starts from, and the net one arrives at
+    (N M : Net S ℕ) :
+    Prop :=
+  -- there is a net `N'` such that
+  ∃ N',
+    -- `N'` is the same graph as `N`,
+    Equiv N N' ∧
+    -- and one interaction leads from `N'` to `M`
+    Step I N' M
 
 /-- Reduction up to wires, in any number of interactions. -/
-abbrev StepsE (I : System S) : Net S ℕ → Net S ℕ → Prop := Relation.ReflTransGen (StepE I)
+abbrev StepsE
+    (I : System S) :
+    Net S ℕ → Net S ℕ → Prop :=
+  Relation.ReflTransGen (StepE I)
 
-theorem Step.stepE {I : System S} {N M : Net S ℕ} (h : Step I N M) : StepE I N M :=
+/-- One interaction is one interaction up to wires. -/
+theorem Step.stepE
+    {I : System S}
+    {N M : Net S ℕ}
+    (h : Step I N M) :
+    StepE I N M :=
   ⟨N, Equiv.refl N, h⟩
 
-theorem Steps.stepsE {I : System S} {N M : Net S ℕ} (h : Steps I N M) : StepsE I N M := by
+/-- A reduction is a reduction up to wires. -/
+theorem Steps.stepsE
+    {I : System S}
+    {N M : Net S ℕ}
+    (h : Steps I N M) :
+    StepsE I N M := by
   induction h with
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hstep ih => exact ih.tail hstep.stepE
 
-theorem StepE.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : StepE I N M) (hN : N.Linear) : M.Linear := by
+/-- An interaction up to wires, by a linear rule, keeps the net linear. -/
+theorem StepE.linear
+    -- the system: every rule is linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction up to wires, from `N` to `M`
+    {N M : Net S ℕ}
+    (h : StepE I N M)
+    -- the net one starts from is linear
+    (hN : N.Linear) :
+    M.Linear := by
   obtain ⟨N', he, hs⟩ := h
   exact hs.linear hI (he.linear hN)
 
-theorem StepsE.linear {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : StepsE I N M) (hN : N.Linear) : M.Linear := by
+/-- Reduction up to wires, by linear rules, keeps the net linear. -/
+theorem StepsE.linear
+    -- the system: every rule is linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a reduction up to wires, from `N` to `M`
+    {N M : Net S ℕ}
+    (h : StepsE I N M)
+    -- the net one starts from is linear
+    (hN : N.Linear) :
+    M.Linear := by
   induction h with
   | refl => exact hN
   | tail _ hstep ih => exact hstep.linear hI ih
+
+-- ============================================================================================
+-- 6. The tactic `ms`
+-- ============================================================================================
 
 /-- Reorder a sum of multisets. -/
 macro "ms" : tactic =>
