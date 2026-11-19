@@ -125,5 +125,6 @@ import Checks.GraphIsoCheck
 import Checks.GraphEquivCheck
 import Checks.GraphIsoEquivCheck
 import Checks.GraphRealizeCheck
+import Checks.MultiplicationReview
 import Checks.GraphStepCheck
 import Checks.PrintCheck

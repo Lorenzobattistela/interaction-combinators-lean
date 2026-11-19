@@ -23,11 +23,14 @@ the pictures on pages 76 and 77:
 * `era ~ 0`            reduces to   the empty net
 * `era ~ s(x)`         reduces to   `x ~ ε`
 
-In the rule `s×` (page 77) the new `×` cell has its first auxiliary port on the first auxiliary
-port of the `δ`, and its second auxiliary port on the principal port of the `+`, whose first
-auxiliary port is the second auxiliary port of the `δ` and whose second auxiliary port is the
-result `r`. Whether the `δ`, drawn upside down, is read with its ports in the same or in the
-opposite order changes only the names `w₀`, `w₁` of the two internal wires, not the rule.
+In `ruleMulSucc` the new `×` cell has its first auxiliary port on the first auxiliary port of the
+`δ`, and its second auxiliary port on the principal port of the `+`, whose first auxiliary port is
+the second auxiliary port of the `δ` and whose second auxiliary port is the result `r`. In the
+figure of rule `s×` (page 77) the `δ` is drawn upside down; read as a rotation by 180° (page 71),
+the `×` is on its second auxiliary port and the `+` on its first. The two readings are different
+rules, not a renaming of the internal wires (`Checks/MultiplicationReview.lean`,
+`ruleMulSuccPaper_ne`). The results below hold for both, because a duplicator makes two equal
+copies of a numeral.
 
 This file shows:
 
@@ -161,7 +164,8 @@ def ruleMulZero : Rule sig 2 0 := ⟨0, s(l 0, mkEra) ::ₘ s(l 1, mkZero) ::ₘ
 
 /-- `mul(y, r) ~ s(x)` (rule `s×`, page 77): the second argument goes to a duplicator
 `δ(w₀, w₁)`; the first copy `w₀` is the second argument of `mul` on `x`, whose result is the first
-argument of `add(w₁, r)`. -/
+argument of `add(w₁, r)`. The figure, read with the convention of page 71, has the two auxiliary
+ports of the `δ` in the other order (see the module docstring). -/
 def ruleMulSucc : Rule sig 2 1 :=
   ⟨2, s(l 0, mkDup (w 0) (w 1)) ::ₘ s(r 0, mkMul (w 0) (mkAdd (w 1) (l 1))) ::ₘ 0⟩
 
