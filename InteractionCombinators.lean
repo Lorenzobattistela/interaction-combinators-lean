@@ -86,6 +86,7 @@ import InteractionCombinators.Lafont.CodeGammaMeetCheck
 import InteractionCombinators.Lafont.CodeMeetReview
 import InteractionCombinators.Lafont.CodeCellsPlug
 import InteractionCombinators.Lafont.CodeCellsPlugCheck
+import InteractionCombinators.Lafont.CodeCompatible
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
