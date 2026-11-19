@@ -340,7 +340,8 @@ involutive").
 | Paper item | Page | Status |
 |---|---|---|
 | The consequence of Proposition 1: uniqueness of the normal form and of the length of reductions | 73-74 | not found |
-| Section 1.3, Turing machines; Section 1.4, cellular automata; Section 1.5, unary arithmetic; Fig. 1 | 74-78 | not found; no example system other than the combinators and the test systems of `Checks/` |
+| Section 1.3, Turing machines; Section 1.4, cellular automata; Fig. 1 | 74-77 | not found |
+| Section 1.5, unary arithmetic | 77-78 | addition only, as a demo: `Demo/Arithmetic.lean` (`system_wellFormed`, `two_plus_two`, `two_plus_two_in_combinators`); multiplication, which needs duplication and erasing, is not there |
 | Proposition 2 (unique decomposition of a reduced net into trees and a wiring) | 79 | not found; its conclusion is built into `Rule.Reduced`, `PNet`, `Term.IsPackage` |
 | Lemma 1 (principal paths of a principal net) | 80 | not found; avoided because a `PNet` is a tree |
 | "A reduced net with no free port is empty" | 80 | not found |
