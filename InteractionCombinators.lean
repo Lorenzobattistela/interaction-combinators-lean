@@ -97,3 +97,5 @@ import InteractionCombinators.Lafont.PlugsExpand
 import InteractionCombinators.Lafont.PlugsReview
 import InteractionCombinators.Lafont.RecursionFreeCompatible
 import InteractionCombinators.Lafont.RecursionFreeCompatibleReview
+import InteractionCombinators.Lafont.Simulation
+import InteractionCombinators.Lafont.SimulationCheck
