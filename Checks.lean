@@ -126,3 +126,4 @@ import Checks.GraphEquivCheck
 import Checks.GraphIsoEquivCheck
 import Checks.GraphRealizeCheck
 import Checks.GraphStepCheck
+import Checks.PrintCheck
