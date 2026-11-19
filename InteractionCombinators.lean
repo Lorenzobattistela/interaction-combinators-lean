@@ -145,6 +145,7 @@ import InteractionCombinators.Lafont.ViciousReflect
 import InteractionCombinators.Lafont.ViciousReflectCheck
 import InteractionCombinators.Lafont.SimulationStrict
 import InteractionCombinators.Lafont.SimulationStrictCheck
+import InteractionCombinators.Lafont.SimulationCorollaryReview
 import InteractionCombinators.Lafont.TranslationComp
 import InteractionCombinators.Lafont.TranslationCompCheck
 import InteractionCombinators.Lafont.ViciousReview
