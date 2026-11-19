@@ -58,6 +58,8 @@ import InteractionCombinators.Lafont.DecodeCopyChain
 import InteractionCombinators.Lafont.CodeCell
 import InteractionCombinators.Lafont.CodeCellCheck
 import InteractionCombinators.Lafont.CodeCellReview
+import InteractionCombinators.Lafont.CodeGamma
+import InteractionCombinators.Lafont.CodeGammaCheck
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
