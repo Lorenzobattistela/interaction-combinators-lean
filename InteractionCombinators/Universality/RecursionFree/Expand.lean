@@ -11,9 +11,24 @@ two ports may be joined by an equation. Such a port `Q`, below the root `P` of a
 The old net is obtained back by one wire substitution, so the two are `Equiv`.
 
 * `Expand.card_le`: a linear reduced rule has at most `a + b` equations (one root port each).
-* `Expand.step`: one port is pulled out; the rule stays linear and reduced and gains an equation.
+* `Expand.stepRule`: one port is pulled out; the rule stays linear and reduced and gains an
+  equation (`stepRule_linear`, `stepRule_reduced`, `card_stepRule`).
 * `Rule.exists_expanded`: every linear reduced rule is `Equiv`, up to an injective renaming of its
   internal wires, to a linear rule in expanded form.
+
+Contents, in the order of the file:
+
+1. Definitions: one step of the expansion: `Expand.ρ` (the old wires in the new rule),
+   `Expand.X` (the new wire), `Expand.σ` (the renaming of a step), `Expand.stepNet`,
+   `Expand.stepRule`.
+2. Auxiliary lemmas on reduced rules: `Expand.card_le` (at most `a + b` equations),
+   `Expand.exists_defect` (a rule that is not expanded has a port among the leaves of a tree).
+3. Auxiliary lemmas on the renamings: `Expand.ρ_injective`, `Expand.ρ_ne_X`, `Expand.ρ_port`,
+   `Expand.port_ne_X`, `Expand.σ_injective`.
+4. Auxiliary lemmas on a step: `Expand.vars_stepNet`, `Expand.stepRule_linear`,
+   `Expand.stepRule_reduced`, `Expand.card_stepRule`, `Expand.stepRule_equiv` (the step changes
+   the net only by one wire substitution).
+5. Main result: `Rule.exists_expanded`, the expanded form (page 86).
 -/
 
 namespace INet
@@ -26,9 +41,61 @@ namespace Expand
 
 open ExpandedIso
 
+-- ============================================================================================
+-- 1. Definitions: one step of the expansion
+-- ============================================================================================
+
+/-- The old internal wires, in the rule with one more internal wire. -/
+def ρ
+    {n : ℕ} :
+    Fin a ⊕ Fin b ⊕ Fin n → Fin a ⊕ Fin b ⊕ Fin (n + 1) :=
+  Sum.map id (Sum.map id Fin.castSucc)
+
+/-- The new internal wire. -/
+def X
+    {n : ℕ} :
+    Fin a ⊕ Fin b ⊕ Fin (n + 1) :=
+  .inr (.inr (Fin.last n))
+
+/-- The renaming of a step: the port `Q` becomes the new wire, the rest is kept. -/
+def σ
+    -- the number of internal wires of the old rule
+    {n : ℕ}
+    -- the port that is pulled out
+    (Q : Fin a ⊕ Fin b)
+    -- a name of the old rule
+    (y : Fin a ⊕ Fin b ⊕ Fin n) :
+    Fin a ⊕ Fin b ⊕ Fin (n + 1) :=
+  if y = port Q then X else ρ y
+
+/-- The net of a step: the port `Q` is replaced by the new wire `x`, and `x = Q` is added. -/
+def stepNet
+    -- the rule, and the port that is pulled out
+    (r : Rule S a b)
+    (Q : Fin a ⊕ Fin b) :
+    Net S (Fin a ⊕ Fin b ⊕ Fin (r.internal + 1)) :=
+  s(var X, var (port Q)) ::ₘ r.net.bind fun y => var (σ Q y)
+
+/-- The rule after one step. -/
+def stepRule
+    -- the rule, and the port that is pulled out
+    (r : Rule S a b)
+    (Q : Fin a ⊕ Fin b) :
+    Rule S a b :=
+  ⟨r.internal + 1, stepNet r Q⟩
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: equations of a reduced rule
+-- ============================================================================================
+
 /-- A linear reduced rule has at most `a + b` equations: each equation contains a port, and each
 port occurs once (page 86). -/
-theorem card_le (r : Rule S a b) (hl : r.Linear) (hr : r.Reduced) :
+theorem card_le
+    -- a linear reduced rule
+    (r : Rule S a b)
+    (hl : r.Linear)
+    (hr : r.Reduced) :
+    -- it has at most as many equations as ports
     Multiset.card r.net ≤ a + b := by
   classical
   have h1 : ∀ e ∈ r.net, 1 ≤ ∑ p, (eqVars e).count (port (n := r.internal) p) := by
@@ -64,9 +131,18 @@ theorem card_le (r : Rule S a b) (hl : r.Linear) (hr : r.Reduced) :
   omega
 
 /-- A reduced rule that is not expanded has a port `Q` among the leaves of the tree of an equation
-`P = t` rooted at a port `P`. -/
-theorem exists_defect (r : Rule S a b) (hr : r.Reduced) (he : ¬ r.Expanded) :
-    ∃ P Q t, s(var (port P), t) ∈ r.net ∧ port Q ∈ t.vars := by
+`P = t` rooted at a port `P` (page 86). -/
+theorem exists_defect
+    -- a reduced rule that is not in expanded form
+    (r : Rule S a b)
+    (hr : r.Reduced)
+    (he : ¬ r.Expanded) :
+    -- there are ports `P`, `Q` and a tree `t` such that
+    ∃ P Q t,
+      -- `P = t` is an equation of the rule,
+      s(var (port P), t) ∈ r.net ∧
+      -- and `Q` is a leaf of `t`
+      port Q ∈ t.vars := by
   by_contra hno
   apply he
   intro e hmem
@@ -78,35 +154,47 @@ theorem exists_defect (r : Rule S a b) (hr : r.Reduced) (he : ¬ r.Expanded) :
   · exact (hno ⟨P, .inr j, t, hmem, hx⟩).elim
   · exact ⟨w, rfl⟩
 
-/-- The old internal wires, in the rule with one more internal wire. -/
-def ρ {n : ℕ} : Fin a ⊕ Fin b ⊕ Fin n → Fin a ⊕ Fin b ⊕ Fin (n + 1) :=
-  Sum.map id (Sum.map id Fin.castSucc)
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the renamings of a step
+-- ============================================================================================
 
-/-- The new internal wire. -/
-def X {n : ℕ} : Fin a ⊕ Fin b ⊕ Fin (n + 1) := .inr (.inr (Fin.last n))
-
-/-- The renaming of a step: the port `Q` becomes the new wire, the rest is kept. -/
-def σ {n : ℕ} (Q : Fin a ⊕ Fin b) (y : Fin a ⊕ Fin b ⊕ Fin n) : Fin a ⊕ Fin b ⊕ Fin (n + 1) :=
-  if y = port Q then X else ρ y
-
-theorem ρ_injective {n : ℕ} : Function.Injective (ρ (a := a) (b := b) (n := n)) :=
+/-- The old wires are sent to distinct wires of the new rule. -/
+theorem ρ_injective
+    {n : ℕ} :
+    Function.Injective (ρ (a := a) (b := b) (n := n)) :=
   Sum.map_injective.2 ⟨Function.injective_id,
     Sum.map_injective.2 ⟨Function.injective_id, Fin.castSucc_injective n⟩⟩
 
-theorem ρ_ne_X {n : ℕ} (y : Fin a ⊕ Fin b ⊕ Fin n) : ρ y ≠ X := by
+/-- No old wire is sent to the new wire. -/
+theorem ρ_ne_X
+    {n : ℕ}
+    (y : Fin a ⊕ Fin b ⊕ Fin n) :
+    ρ y ≠ X := by
   rcases y with i | j | w
   · simp [ρ, X]
   · simp [ρ, X]
   · simp only [ρ, X, Sum.map_inr, ne_eq, Sum.inr.injEq]
     exact Fin.castSucc_ne_last w
 
-theorem ρ_port {n : ℕ} (p : Fin a ⊕ Fin b) : ρ (port (n := n) p) = port p := by
+/-- A port of the old rule is sent to the same port of the new rule. -/
+theorem ρ_port
+    {n : ℕ}
+    (p : Fin a ⊕ Fin b) :
+    ρ (port (n := n) p) = port p := by
   rcases p with i | j <;> rfl
 
-theorem port_ne_X {n : ℕ} (p : Fin a ⊕ Fin b) : (port p : Fin a ⊕ Fin b ⊕ Fin (n + 1)) ≠ X :=
+/-- A port is not the new wire. -/
+theorem port_ne_X
+    {n : ℕ}
+    (p : Fin a ⊕ Fin b) :
+    (port p : Fin a ⊕ Fin b ⊕ Fin (n + 1)) ≠ X :=
   port_ne_internal p _
 
-theorem σ_injective {n : ℕ} (Q : Fin a ⊕ Fin b) :
+/-- The renaming of a step is injective. -/
+theorem σ_injective
+    -- the number of internal wires, and the port that is pulled out
+    {n : ℕ}
+    (Q : Fin a ⊕ Fin b) :
     Function.Injective (σ (n := n) Q) := by
   intro y₁ y₂ h
   unfold σ at h
@@ -116,19 +204,28 @@ theorem σ_injective {n : ℕ} (Q : Fin a ⊕ Fin b) :
   · simp only [h₁, h₂, ite_true, ite_false] at h; exact absurd h (ρ_ne_X _)
   · simp only [h₁, h₂, ite_false] at h; exact ρ_injective h
 
-/-- The net of a step: the port `Q` is replaced by the new wire `x`, and `x = Q` is added. -/
-def stepNet (r : Rule S a b) (Q : Fin a ⊕ Fin b) : Net S (Fin a ⊕ Fin b ⊕ Fin (r.internal + 1)) :=
-  s(var X, var (port Q)) ::ₘ r.net.bind fun y => var (σ Q y)
+-- ============================================================================================
+-- 4. Auxiliary lemmas: one step
+-- ============================================================================================
 
-theorem vars_stepNet (r : Rule S a b) (Q : Fin a ⊕ Fin b) :
+/-- The names of the net of a step: the new wire, the port `Q`, and the names of the old net
+renamed by `σ`. -/
+theorem vars_stepNet
+    -- the rule, and the port that is pulled out
+    (r : Rule S a b)
+    (Q : Fin a ⊕ Fin b) :
     (stepNet r Q).vars = X ::ₘ port Q ::ₘ r.net.vars.map (σ Q) := by
   rw [stepNet, Net.vars_cons, Net.vars_bind_var]
   simp [eqVars_mk]
 
-/-- The rule after one step. -/
-def stepRule (r : Rule S a b) (Q : Fin a ⊕ Fin b) : Rule S a b := ⟨r.internal + 1, stepNet r Q⟩
-
-theorem stepRule_linear (r : Rule S a b) (hl : r.Linear) (Q : Fin a ⊕ Fin b) :
+/-- A step keeps a rule linear. -/
+theorem stepRule_linear
+    -- a linear rule
+    (r : Rule S a b)
+    (hl : r.Linear)
+    -- the port that is pulled out
+    (Q : Fin a ⊕ Fin b) :
+    -- the rule after the step is linear
     (stepRule r Q).Linear := by
   classical
   have hσ := σ_injective (n := r.internal) Q
@@ -184,9 +281,20 @@ theorem stepRule_linear (r : Rule S a b) (hl : r.Linear) (Q : Fin a ⊕ Fin b) :
       fun h => port_ne_internal Q _ h.symm
     simp [h1, h2]
 
-theorem stepRule_reduced (r : Rule S a b) (hl : r.Linear) (hr : r.Reduced)
-    {P Q : Fin a ⊕ Fin b} {t : Term S (Fin a ⊕ Fin b ⊕ Fin r.internal)}
-    (hmem : s(var (port P), t) ∈ r.net) (hQ : port Q ∈ t.vars) : (stepRule r Q).Reduced := by
+/-- Pulling out a port `Q` that is a leaf of the tree of an equation keeps a linear rule
+reduced. -/
+theorem stepRule_reduced
+    -- a linear reduced rule
+    (r : Rule S a b)
+    (hl : r.Linear)
+    (hr : r.Reduced)
+    -- an equation `P = t` of the rule, with the port `Q` among the leaves of `t`
+    {P Q : Fin a ⊕ Fin b}
+    {t : Term S (Fin a ⊕ Fin b ⊕ Fin r.internal)}
+    (hmem : s(var (port P), t) ∈ r.net)
+    (hQ : port Q ∈ t.vars) :
+    -- the rule after pulling `Q` out is reduced
+    (stepRule r Q).Reduced := by
   classical
   have hPQ : P ≠ Q := by
     rintro rfl
@@ -221,14 +329,24 @@ theorem stepRule_reduced (r : Rule S a b) (hl : r.Linear) (hr : r.Reduced)
     rw [bind_var, hσp]
     rfl
 
-theorem card_stepRule (r : Rule S a b) (Q : Fin a ⊕ Fin b) :
+/-- A step adds one equation. -/
+theorem card_stepRule
+    -- the rule, and the port that is pulled out
+    (r : Rule S a b)
+    (Q : Fin a ⊕ Fin b) :
     Multiset.card (stepRule r Q).net = Multiset.card r.net + 1 := by
   show Multiset.card (stepNet r Q) = _
   simp [stepNet, Net.bind]
 
 /-- The old net, with its internal wires renamed into the new rule, is obtained from the new net by
 one wire substitution: `x := Q`. -/
-theorem stepRule_equiv (r : Rule S a b) (hl : r.Linear) (Q : Fin a ⊕ Fin b) :
+theorem stepRule_equiv
+    -- a linear rule
+    (r : Rule S a b)
+    (hl : r.Linear)
+    -- the port that is pulled out
+    (Q : Fin a ⊕ Fin b) :
+    -- the new net is the same graph as the old net, its internal wires renamed by `ρ`
     Equiv (stepRule r Q).net (r.net.bind fun y => var (ρ y)) := by
   classical
   have hlin : Net.Linear (stepNet r Q) := fun y => by
@@ -257,13 +375,27 @@ theorem stepRule_equiv (r : Rule S a b) (hl : r.Linear) (Q : Fin a ⊕ Fin b) :
 
 end Expand
 
+-- ============================================================================================
+-- 5. Main result: the expanded form
+-- ============================================================================================
+
 open Expand in
 /-- **Expanded form** (page 86). Every linear reduced rule is `Equiv` to a linear rule in expanded
 form, up to an injective renaming `ι` of its internal wires: the expanded rule has extra internal
 wires, one for each port that was a leaf of a tree or joined to another port. -/
-theorem Rule.exists_expanded {a b : ℕ} (r : Rule S a b) (hl : r.Linear) (hr : r.Reduced) :
-    ∃ (r' : Rule S a b) (ι : Fin r.internal → Fin r'.internal), Function.Injective ι ∧
+theorem Rule.exists_expanded
+    -- a linear reduced rule
+    {a b : ℕ}
+    (r : Rule S a b)
+    (hl : r.Linear)
+    (hr : r.Reduced) :
+    -- there are a rule `r'` and a renaming `ι` of the internal wires of `r` such that
+    ∃ (r' : Rule S a b) (ι : Fin r.internal → Fin r'.internal),
+      -- `ι` is injective,
+      Function.Injective ι ∧
+      -- `r'` is linear and in expanded form,
       r'.Linear ∧ r'.Expanded ∧
+      -- and the net of `r'` is the same graph as that of `r`, its internal wires renamed by `ι`
       Equiv r'.net (r.net.bind fun x => Term.var (Sum.map id (Sum.map id ι) x)) := by
   classical
   suffices H : ∀ k (r : Rule S a b), r.Linear → r.Reduced → a + b ≤ Multiset.card r.net + k →
