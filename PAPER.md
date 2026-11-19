@@ -144,6 +144,7 @@ Fig. 10.
 | Proposition 1, two different active pairs | `Step.commute` :165 | `InteractionCombinators/Confluence.lean` | | read |
 | Proposition 1, the same pair `α`-`α` read both ways | `equiv_inst_swap` :28 | `InteractionCombinators/Lafont/StrongConfluence.lean` | | read |
 | **Proposition 1** (strong confluence) | `Step.strong_confluence` :46 | `InteractionCombinators/Lafont/StrongConfluence.lean` | | read. `N.Linear`, `I.WellFormed`; conclusion `Equiv M₁ M₂ ∨ ∃ P₁ P₂, Step .. ∧ Step .. ∧ Equiv P₁ P₂`. Literal `Step` only: see caveats. |
+| **Proposition 1** for reduction of graphs | `StepE.strong_confluence` :502 | `InteractionCombinators/Lafont/StrongConfluenceE.lean` | `Checks/StrongConfluenceECheck.lean` | read. Two `StepE` from a linear net: the results are `Equiv`, or each takes one more `StepE` to `Equiv` nets. Second phase. |
 | Consequence: all reductions to an irreducible net have the same length (p. 73-74) | not found | | | |
 
 ## Sections 1.3 to 1.5, Examples (pages 74-78)
@@ -374,10 +375,11 @@ the later progress files, and from reading the statements.
    `Rule.not_hasCut_inst` (`InteractionCombinators/Lafont/SimulationStrict.lean:80`, no cut, for
    distinct port names). A rule whose text has an equation between an internal wire and a tree is
    rejected even if its graph is reduced; the user must write the substituted form.
-3. **Proposition 1 is stated for literal steps.** `Step.strong_confluence`
-   (`InteractionCombinators/Lafont/StrongConfluence.lean:46`) takes two `Step`s, not two `StepE`s.
-   No version for reduction up to wires was found. `Checks/DupPackageCheck.lean` notes that this
-   is what blocked a proof that `DupFree` is necessary.
+3. **Proposition 1** exists in both forms: `Step.strong_confluence` for literal steps
+   (`InteractionCombinators/Lafont/StrongConfluence.lean:46`) and `StepE.strong_confluence` for
+   reduction of graphs (`InteractionCombinators/Lafont/StrongConfluenceE.lean:502`). Its
+   consequences (uniqueness of the normal form and of the length of reductions) and the
+   necessity of `DupFree` are not proved yet.
 4. **Which results use which reduction.** Literal `Red`: `erase_tree`, `mux_muxStar`,
    `autoMux_autoMux`, `transpositor_transpositor`, `transpositorPerm_transpositorPerm`, `dup_tree`,
    `code_decoder`. Up to wires (`StepsE`, then `Equiv` to the stated net): `erase_wiring`,
