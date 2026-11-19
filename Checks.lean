@@ -4,6 +4,7 @@ import Checks.CellSkeletonCheck
 import Checks.CellSkeletonReview
 import Checks.CodeCellCheck
 import Checks.CodeCellReview
+import Checks.CodeCellsMeetECheck
 import Checks.CodeCellsMeetCheck
 import Checks.CodeCellsPlugCheck
 import Checks.CodeCellsPlugReview

@@ -22,6 +22,10 @@ and the loop meets the transpositor `T_σ`.
 * `codeCells_meet` — the two cells meet (Fig. 7, rows 1–2, for Fig. 10).
 * `codeCells_meet_gamma` — the multiplexor of `[α]` against `Γ_{α,β}` (Fig. 7, row 3, for
   Fig. 10).
+
+The results are stated first with the symbols numbered by any `e : S.Sym ≃ Fin n` (names ending in
+`E`: `codeWiresE`, `inst_codeNetE_fresh`, `getElem_codeCellMenuE`, `codeCells_meetE`, …), then
+for `e := symEnum S` under the old names.
 -/
 
 namespace INet.Comb
@@ -63,68 +67,75 @@ theorem treePNet_inst_codeRen (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.va
       Finset.mem_filter.2 ⟨Multiset.mem_toFinset.2 hx, not_lt.1 h1⟩
     simp [h1, h2, codeRen]
 
-variable {S : Signature} [Finite S.Sym]
+variable {S : Signature}
+
+/-! ## For any numbering `e` of the symbols -/
+
+section Enum
+
+variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
-/-- The names of the internal wires of `[α]`, shifted by `K` (page 89). -/
-noncomputable def codeWires (α : S.Sym) (K : ℕ) : Fin (codeNet side α).internal → ℕ :=
-  fun w => K + ((wireNum (S.arity α) (codeTree side α)).symm w).1
+/-- The names of the internal wires of `[α]`, shifted by `K` (page 89), for any numbering `e` of the
+symbols. -/
+def codeWiresE (α : S.Sym) (K : ℕ) : Fin (codeNetE e side α).internal → ℕ :=
+  fun w => K + ((wireNum (S.arity α) (codeTreeE e side α)).symm w).1
 
 /-- **The instance of `[α]` of Fig. 10 with its wires shifted** (page 89): with the names `xs` on
-its ports and its internal wires named by `codeWires`, `[α]` is its tree renamed by `codeRen`. -/
-theorem inst_codeNet_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
-    (codeNet side α).inst (fun i => var (xs i)) (codeWires side α K) =
-      (codeTree side α).bind fun x => var (codeRen xs K x) :=
+its ports and its internal wires named by `codeWiresE`, `[α]` is its tree renamed by `codeRen`. -/
+theorem inst_codeNetE_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    (codeNetE e side α).inst (fun i => var (xs i)) (codeWiresE e side α K) =
+      (codeTreeE e side α).bind fun x => var (codeRen xs K x) :=
   treePNet_inst_codeRen _ _ _ _ xs K
 
-/-- The internal wires named by `codeWires` are distinct. -/
-theorem codeWires_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWires side α K) := by
+/-- The internal wires named by `codeWiresE` are distinct. -/
+theorem codeWiresE_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWiresE e side α K) := by
   intro a b h
-  have h' : ((wireNum (S.arity α) (codeTree side α)).symm a).1 =
-      ((wireNum (S.arity α) (codeTree side α)).symm b).1 := by
-    simpa [codeWires] using h
-  exact (wireNum (S.arity α) (codeTree side α)).symm.injective (Subtype.ext h')
+  have h' : ((wireNum (S.arity α) (codeTreeE e side α)).symm a).1 =
+      ((wireNum (S.arity α) (codeTreeE e side α)).symm b).1 := by
+    simpa [codeWiresE] using h
+  exact (wireNum (S.arity α) (codeTreeE e side α)).symm.injective (Subtype.ext h')
 
-/-- The internal wires named by `codeWires` are at least `K`. -/
-theorem le_codeWires (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
-    K ≤ codeWires side α K w :=
+/-- The internal wires named by `codeWiresE` are at least `K`. -/
+theorem le_codeWiresE (α : S.Sym) (K : ℕ) (w : Fin (codeNetE e side α).internal) :
+    K ≤ codeWiresE e side α K w :=
   Nat.le_add_right _ _
 
-/-- The internal wires named by `codeWires` are below `K` plus a bound of the names of the tree. -/
-theorem codeWires_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
-    codeWires side α K w < K + ((codeTree side α).vars.sup + 1) := by
-  have hm := Finset.mem_filter.1 ((wireNum (S.arity α) (codeTree side α)).symm w).2
+/-- The internal wires named by `codeWiresE` are below `K` plus a bound of the names of the tree. -/
+theorem codeWiresE_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNetE e side α).internal) :
+    codeWiresE e side α K w < K + ((codeTreeE e side α).vars.sup + 1) := by
+  have hm := Finset.mem_filter.1 ((wireNum (S.arity α) (codeTreeE e side α)).symm w).2
   have := Multiset.le_sup (Multiset.mem_toFinset.1 hm.1)
-  simp only [codeWires]
+  simp only [codeWiresE]
   omega
 
 /-! ## The entry `Γ_{α,β}` of the menu `Γ_β` -/
 
 /-- The menu `Γ_β` of Fig. 10 has one package per symbol (page 89). -/
-theorem length_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
-    (codeCellMenu side β k₀).length = Nat.card S.Sym :=
+theorem length_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
+    (codeCellMenuE e side β k₀).length = n :=
   List.length_ofFn
 
 /-- **The entry of `Γ_β` at the number of `α` is `Γ_{α,β}`** (Fig. 10, page 89): the package built
 from the side of `α` against `β`, on its block of names. -/
-theorem getElem_codeCellMenu (α β : S.Sym) (k₀ : ℕ)
-    (h : (symEnum S α : ℕ) < (codeCellMenu side β k₀).length) :
-    (codeCellMenu side β k₀)[(symEnum S α : ℕ)]'h =
-      codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side α β)
-        (k₀ + off (codeCellSizes side β) (symEnum S α)) := by
-  simp only [codeCellMenu_eq, List.getElem_ofFn, Fin.eta]
-  congr 2 <;> exact (symEnum S).symm_apply_apply α
+theorem getElem_codeCellMenuE (α β : S.Sym) (k₀ : ℕ)
+    (h : (e α : ℕ) < (codeCellMenuE e side β k₀).length) :
+    (codeCellMenuE e side β k₀)[(e α : ℕ)]'h =
+      codeGammaOpt n (fun γ => e γ) (side α β)
+        (k₀ + off (codeCellSizesE e side β) (e α)) := by
+  simp only [codeCellMenuE, List.getElem_ofFn, Fin.eta]
+  congr 2 <;> exact e.symm_apply_apply α
 
 /-- The packages of the menu `Γ_β` (page 89): each `Γ_{j,β}` is a package. -/
-theorem codeCellMenu_isPackage (β : S.Sym) (k₀ : ℕ) :
-    ∀ π ∈ codeCellMenu side β k₀, π.IsPackage := by
+theorem codeCellMenuE_isPackage (β : S.Sym) (k₀ : ℕ) :
+    ∀ π ∈ codeCellMenuE e side β k₀, π.IsPackage := by
   intro π hπ
   obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
   exact isPackage_of_vars_eq (vars_codeGammaOpt _ _ _ _)
 
 /-- The names of the packages of the menu `Γ_β` are above `k₀`. -/
-theorem le_of_mem_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
-    ∀ π ∈ codeCellMenu side β k₀, ∀ x ∈ π.vars, k₀ ≤ x := by
+theorem le_of_mem_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
+    ∀ π ∈ codeCellMenuE e side β k₀, ∀ x ∈ π.vars, k₀ ≤ x := by
   intro π hπ x hx
   obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
   rw [vars_codeGammaOpt] at hx
@@ -135,15 +146,15 @@ theorem le_of_mem_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
 
 /-- The tree of `[α]` renamed by `codeRen` is the cell of Fig. 6 with the renamed menu `Γ_α`, the
 renamed code `!Γ`, the ports `xs` and the loop `K + n` (page 89). -/
-theorem codeTree_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
-    (codeTree side α).bind (fun x => var (codeRen xs K x)) =
-      cellSkel (menu ((codeCellMenu side α (S.arity α + 1)).map
+theorem codeTreeE_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    (codeTreeE e side α).bind (fun x => var (codeRen xs K x)) =
+      cellSkel (menu ((codeCellMenuE e side α (S.arity α + 1)).map
           (·.bind fun x => var (codeRen xs K x))))
-        (Nat.card S.Sym) (symEnum S α)
-        ((code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).bind
+        n (e α)
+        ((code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
             (fun x => var (codeRen xs K x)) ::
           List.ofFn fun j => var (xs j)) (K + S.arity α) := by
-  rw [codeTree_eq, bind_cellSkel, menu, bind_mux, ← menu, List.map_cons, List.map_ofFn]
+  rw [codeTreeE, bind_cellSkel, menu, bind_mux, ← menu, List.map_cons, List.map_ofFn]
   have hn : codeRen xs K (S.arity α) = K + S.arity α := by simp [codeRen]
   rw [hn]
   congr 3
@@ -152,15 +163,173 @@ theorem codeTree_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : 
 
 /-- The packages of the renamed menu `Γ_α` of `[α]` are packages (page 89): `codeRen` is
 injective above the ports. -/
-theorem codeCellMenu_bind_isPackage (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
-    ∀ π ∈ (codeCellMenu side α (S.arity α + 1)).map (·.bind fun x => var (codeRen xs K x)),
+theorem codeCellMenuE_bind_isPackage (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    ∀ π ∈ (codeCellMenuE e side α (S.arity α + 1)).map (·.bind fun x => var (codeRen xs K x)),
       π.IsPackage := by
   intro π hπ
   obtain ⟨ρ, hρ, rfl⟩ := List.mem_map.1 hπ
-  refine IsPackage.bind_var (codeCellMenu_isPackage side α _ ρ hρ) _
+  refine IsPackage.bind_var (codeCellMenuE_isPackage e side α _ ρ hρ) _
     (codeRen_injOn xs K _ fun x hx => ?_)
-  have := le_of_mem_codeCellMenu side α _ ρ hρ x hx
+  have := le_of_mem_codeCellMenuE e side α _ ρ hρ x hx
   omega
+
+/-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots meet** (Lafont 1997, Fig. 10,
+pages 89–90; the analogue of Fig. 7, rows 1–2, page 86). With the names `xs`, `ys` on their ports,
+any names `f`, `g` of their internal wires, in a context `Δ` with the whole net linear, the net
+reduces up to wires to two equations: the multiplexor of `[α]`, whose leaves are its code `!Γ`, the
+ports `xs` and a loop `ℓ`, against the package `Γ_{α,β}` of the menu of `[β]` (built from the side
+of `α` against `β`); and the multiplexor of `[β]`, leaves its code, the ports `ys` and the same
+loop `ℓ`, against the package `Γ_{β,α}` of the menu of `[α]`.
+
+The renamings are explicit: the internal wires of `[α]` are first renamed above every name of the
+net, by `codeRen xs K` (the name `x` of the tree of `[α]` becomes `K + x`), and those of `[β]`
+above again, by `codeRen ys K'`. The loop is `ℓ = K + S.arity α`. The side `side` is any choice of
+expanded sides, and the `n` symbols are numbered by any `e : S.Sym ≃ Fin n` (page 90: no order on
+the symbols is needed). -/
+theorem codeCells_meetE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+    (f : Fin (codeNetE e side α).internal → ℕ) (g : Fin (codeNetE e side β).internal → ℕ) (Δ : CNet)
+    (hlin : Net.Linear (s((codeNetE e side α).inst (fun i => var (xs i)) f,
+      (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    ∃ (K K' : ℕ) (M : CNet),
+      StepsE system (s((codeNetE e side α).inst (fun i => var (xs i)) f,
+        (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      Equiv M
+        (s(mux ((code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
+                (fun x => var (codeRen xs K x)) ::
+              List.ofFn (fun i => (var (xs i) : Term sig ℕ)) ++ [var (K + S.arity α)]),
+            (codeGammaOpt n (fun γ => e γ) (side α β)
+              (S.arity β + 1 + off (codeCellSizesE e side β) (e α))).bind
+                (fun x => var (codeRen ys K' x))) ::ₘ
+          s(mux ((code (codeKeyE e side β) (menu (codeMenusE e side (codeMenuBaseE e side β)))).bind
+                (fun x => var (codeRen ys K' x)) ::
+              List.ofFn (fun j => (var (ys j) : Term sig ℕ)) ++ [var (K + S.arity α)]),
+            (codeGammaOpt n (fun γ => e γ) (side β α)
+              (S.arity α + 1 + off (codeCellSizesE e side α) (e β))).bind
+                (fun x => var (codeRen xs K x))) ::ₘ Δ) := by
+  set N : CNet := s((codeNetE e side α).inst (fun i => var (xs i)) f,
+    (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ with hN
+  obtain ⟨K, hK⟩ := Net.exists_below N
+  -- rename the internal wires of `[α]` above every name of the net
+  have E1 : Equiv N (s((codeNetE e side α).inst (fun i => var (xs i)) (codeWiresE e side α K),
+      (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ) := by
+    have L : Net.Linear (s((codeNetE e side β).inst (fun j => var (ys j)) g,
+        (codeNetE e side α).inst (fun i => var (xs i)) f)
+        ::ₘ Δ) := by
+      rw [Sym2.eq_swap]
+      exact hlin
+    have E := PNet.equiv_inst_fresh (h := codeWiresE e side α K) L (codeWiresE_injective e side α K)
+      (fun w hw => by
+        have hw' : codeWiresE e side α K w ∈ Net.vars N := by
+          rw [hN, Sym2.eq_swap]; exact hw
+        have := hK _ hw'
+        have := le_codeWiresE e side α K w
+        omega)
+    rw [Sym2.eq_swap (a := (codeNetE e side β).inst _ g),
+      Sym2.eq_swap (a := (codeNetE e side β).inst _ g)] at E
+    exact E
+  have L1 := E1.linear hlin
+  set N1 : CNet := s((codeNetE e side α).inst (fun i => var (xs i)) (codeWiresE e side α K),
+      (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ with hN1
+  obtain ⟨K', hK'⟩ := Net.exists_below N1
+  -- rename the internal wires of `[β]` above every name of the new net
+  have E2 : Equiv N1 (s((codeNetE e side α).inst (fun i => var (xs i)) (codeWiresE e side α K),
+      (codeNetE e side β).inst (fun j => var (ys j)) (codeWiresE e side β K')) ::ₘ Δ) :=
+    PNet.equiv_inst_fresh (h := codeWiresE e side β K') L1 (codeWiresE_injective e side β K')
+      fun w hw => by
+        have := hK' _ hw
+        have := le_codeWiresE e side β K' w
+        omega
+  have hA := inst_codeNetE_fresh e side α xs K
+  have hB := inst_codeNetE_fresh e side β ys K'
+  rw [codeTreeE_bind_codeRen] at hA hB
+  have L2 := E2.linear L1
+  rw [hA, hB] at L2
+  have hlen : ∀ (γ δ : S.Sym) (k : ℕ) (F : ℕ → ℕ),
+      ((codeCellMenuE e side γ k).map (·.bind fun x => var (F x))).length = n := by
+    intro γ δ k F; simp [length_codeCellMenuE]
+  obtain ⟨M, hS, hE⟩ := cellSkel_cellSkel _ _ n (e α) (e β)
+    (hlen α α _ _) (hlen β β _ _) (Fin.isLt _) (Fin.isLt _)
+    (codeCellMenuE_bind_isPackage e side α xs K)
+    (codeCellMenuE_bind_isPackage e side β ys K') _ _ _ _
+    Δ L2
+  rw [← hA, ← hB] at hS
+  obtain ⟨M', hS', hE'⟩ := stepsE_of_equiv (E1.trans E2) hS
+  refine ⟨K, K', M', hS', hE'.trans (hE.trans (Equiv.of_eq ?_))⟩
+  simp only [List.getElem_map, getElem_codeCellMenuE, List.cons_append]
+
+end Enum
+
+/-! ## For the enumeration `symEnum S` -/
+
+variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- The names of the internal wires of `[α]`, shifted by `K` (page 89). -/
+noncomputable def codeWires (α : S.Sym) (K : ℕ) : Fin (codeNet side α).internal → ℕ :=
+  codeWiresE (symEnum S) side α K
+
+/-- **The instance of `[α]` of Fig. 10 with its wires shifted** (page 89): with the names `xs` on
+its ports and its internal wires named by `codeWires`, `[α]` is its tree renamed by `codeRen`. -/
+theorem inst_codeNet_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    (codeNet side α).inst (fun i => var (xs i)) (codeWires side α K) =
+      (codeTree side α).bind fun x => var (codeRen xs K x) :=
+  inst_codeNetE_fresh (symEnum S) side α xs K
+
+/-- The internal wires named by `codeWires` are distinct. -/
+theorem codeWires_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWires side α K) :=
+  codeWiresE_injective (symEnum S) side α K
+
+/-- The internal wires named by `codeWires` are at least `K`. -/
+theorem le_codeWires (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
+    K ≤ codeWires side α K w :=
+  le_codeWiresE (symEnum S) side α K w
+
+/-- The internal wires named by `codeWires` are below `K` plus a bound of the names of the tree. -/
+theorem codeWires_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
+    codeWires side α K w < K + ((codeTree side α).vars.sup + 1) :=
+  codeWiresE_lt (symEnum S) side α K w
+
+/-- The menu `Γ_β` of Fig. 10 has one package per symbol (page 89). -/
+theorem length_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
+    (codeCellMenu side β k₀).length = Nat.card S.Sym :=
+  length_codeCellMenuE (symEnum S) side β k₀
+
+/-- **The entry of `Γ_β` at the number of `α` is `Γ_{α,β}`** (Fig. 10, page 89): the package built
+from the side of `α` against `β`, on its block of names. -/
+theorem getElem_codeCellMenu (α β : S.Sym) (k₀ : ℕ)
+    (h : (symEnum S α : ℕ) < (codeCellMenu side β k₀).length) :
+    (codeCellMenu side β k₀)[(symEnum S α : ℕ)]'h =
+      codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side α β)
+        (k₀ + off (codeCellSizes side β) (symEnum S α)) :=
+  getElem_codeCellMenuE (symEnum S) side α β k₀ h
+
+/-- The packages of the menu `Γ_β` (page 89): each `Γ_{j,β}` is a package. -/
+theorem codeCellMenu_isPackage (β : S.Sym) (k₀ : ℕ) :
+    ∀ π ∈ codeCellMenu side β k₀, π.IsPackage :=
+  codeCellMenuE_isPackage (symEnum S) side β k₀
+
+/-- The names of the packages of the menu `Γ_β` are above `k₀`. -/
+theorem le_of_mem_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
+    ∀ π ∈ codeCellMenu side β k₀, ∀ x ∈ π.vars, k₀ ≤ x :=
+  le_of_mem_codeCellMenuE (symEnum S) side β k₀
+
+/-- The tree of `[α]` renamed by `codeRen` is the cell of Fig. 6 with the renamed menu `Γ_α`, the
+renamed code `!Γ`, the ports `xs` and the loop `K + n` (page 89). -/
+theorem codeTree_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    (codeTree side α).bind (fun x => var (codeRen xs K x)) =
+      cellSkel (menu ((codeCellMenu side α (S.arity α + 1)).map
+          (·.bind fun x => var (codeRen xs K x))))
+        (Nat.card S.Sym) (symEnum S α)
+        ((code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).bind
+            (fun x => var (codeRen xs K x)) ::
+          List.ofFn fun j => var (xs j)) (K + S.arity α) :=
+  codeTreeE_bind_codeRen (symEnum S) side α xs K
+
+/-- The packages of the renamed menu `Γ_α` of `[α]` are packages (page 89): `codeRen` is
+injective above the ports. -/
+theorem codeCellMenu_bind_isPackage (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+    ∀ π ∈ (codeCellMenu side α (S.arity α + 1)).map (·.bind fun x => var (codeRen xs K x)),
+      π.IsPackage :=
+  codeCellMenuE_bind_isPackage (symEnum S) side α xs K
 
 /-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots meet** (Lafont 1997, Fig. 10,
 pages 89–90; the analogue of Fig. 7, rows 1–2, page 86). With the names `xs`, `ys` on their ports,
@@ -193,56 +362,9 @@ theorem codeCells_meet (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin
               List.ofFn (fun j => (var (ys j) : Term sig ℕ)) ++ [var (K + S.arity α)]),
             (codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side β α)
               (S.arity α + 1 + off (codeCellSizes side α) (symEnum S β))).bind
-                (fun x => var (codeRen xs K x))) ::ₘ Δ) := by
-  set N : CNet := s((codeNet side α).inst (fun i => var (xs i)) f,
-    (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ with hN
-  obtain ⟨K, hK⟩ := Net.exists_below N
-  -- rename the internal wires of `[α]` above every name of the net
-  have E1 : Equiv N (s((codeNet side α).inst (fun i => var (xs i)) (codeWires side α K),
-      (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ) := by
-    have L : Net.Linear (s((codeNet side β).inst (fun j => var (ys j)) g,
-        (codeNet side α).inst (fun i => var (xs i)) f)
-        ::ₘ Δ) := by
-      rw [Sym2.eq_swap]
-      exact hlin
-    have E := PNet.equiv_inst_fresh (h := codeWires side α K) L (codeWires_injective side α K)
-      (fun w hw => by
-        have hw' : codeWires side α K w ∈ Net.vars N := by
-          rw [hN, Sym2.eq_swap]; exact hw
-        have := hK _ hw'
-        have := le_codeWires side α K w
-        omega)
-    rw [Sym2.eq_swap (a := (codeNet side β).inst _ g),
-      Sym2.eq_swap (a := (codeNet side β).inst _ g)] at E
-    exact E
-  have L1 := E1.linear hlin
-  set N1 : CNet := s((codeNet side α).inst (fun i => var (xs i)) (codeWires side α K),
-      (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ with hN1
-  obtain ⟨K', hK'⟩ := Net.exists_below N1
-  -- rename the internal wires of `[β]` above every name of the new net
-  have E2 : Equiv N1 (s((codeNet side α).inst (fun i => var (xs i)) (codeWires side α K),
-      (codeNet side β).inst (fun j => var (ys j)) (codeWires side β K')) ::ₘ Δ) :=
-    PNet.equiv_inst_fresh (h := codeWires side β K') L1 (codeWires_injective side β K')
-      fun w hw => by
-        have := hK' _ hw
-        have := le_codeWires side β K' w
-        omega
-  have hA := inst_codeNet_fresh side α xs K
-  have hB := inst_codeNet_fresh side β ys K'
-  rw [codeTree_bind_codeRen] at hA hB
-  have L2 := E2.linear L1
-  rw [hA, hB] at L2
-  have hlen : ∀ (γ δ : S.Sym) (k : ℕ) (F : ℕ → ℕ),
-      ((codeCellMenu side γ k).map (·.bind fun x => var (F x))).length = Nat.card S.Sym := by
-    intro γ δ k F; simp [length_codeCellMenu]
-  obtain ⟨M, hS, hE⟩ := cellSkel_cellSkel _ _ (Nat.card S.Sym) (symEnum S α) (symEnum S β)
-    (hlen α α _ _) (hlen β β _ _) (Fin.isLt _) (Fin.isLt _)
-    (codeCellMenu_bind_isPackage side α xs K) (codeCellMenu_bind_isPackage side β ys K') _ _ _ _
-    Δ L2
-  rw [← hA, ← hB] at hS
-  obtain ⟨M', hS', hE'⟩ := stepsE_of_equiv (E1.trans E2) hS
-  refine ⟨K, K', M', hS', hE'.trans (hE.trans (Equiv.of_eq ?_))⟩
-  simp only [List.getElem_map, getElem_codeCellMenu, List.cons_append]
+                (fun x => var (codeRen xs K x))) ::ₘ Δ) :=
+  codeCells_meetE (symEnum S) side α β xs ys f g Δ hlin
+
 
 /-! ## The multiplexor of `[α]` against `Γ_{α,β}` -/
 

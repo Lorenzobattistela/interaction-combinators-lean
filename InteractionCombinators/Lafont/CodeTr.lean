@@ -26,6 +26,8 @@ numbered in increasing order as internal wires.
 * `codeTreeE`, `vars_codeTreeE` — the tree of `[α]` of Fig. 10 and its names, with the symbols
   numbered by an argument `e : S.Sym ≃ Fin m` (computable; page 90: no order on the symbols is
   needed); `codeTree`, `vars_codeTree` — the same with `e := symEnum S`.
+* `codeNetE`, `codeNetE_inst`, `codeNetE_strict` — `[α]` as a `PNet sig (S.arity α)`, for any
+  numbering `e` (computable).
 * `codeNet`, `codeTranslation` — `[α]` as a `PNet sig (S.arity α)` and the translation.
 * `codeTranslation_strict` — the translation is strict (definition page 80): the root of `[α]` is
   the root of `T_{1,1}`, a `dup` cell.
@@ -288,6 +290,25 @@ theorem codeTreeE_ne_var (α : S.Sym) (x : ℕ) : codeTreeE e side α ≠ var x 
   intro h'
   cases h'
 
+/-- **The principal net `[α]` of Fig. 10** (top left, page 89; principal nets, page 80), with the
+symbols numbered by `e`: the tree `codeTreeE e side α` with the ports `0, …, k - 1` and its other
+names as internal wires, where `k = S.arity α`. -/
+def codeNetE (α : S.Sym) : PNet sig (S.arity α) :=
+  treePNet (S.arity α) (codeTreeE e side α) (codeTreeE_hyps e side α).1
+    (codeTreeE_hyps e side α).2
+
+/-- The principal net `[α]` is the tree of Fig. 10 (page 89), for any numbering `e` of the symbols:
+its instance with the port `i` named `i` and the internal wires named back is
+`codeTreeE e side α`. -/
+theorem codeNetE_inst (α : S.Sym) :
+    (codeNetE e side α).inst (fun i => var (i : ℕ))
+      (fun w => ((wireNum (S.arity α) (codeTreeE e side α)).symm w).1) = codeTreeE e side α :=
+  treePNet_inst _ _ _ _
+
+/-- **`[α]` of Fig. 10 is strict** (definition page 80, Fig. 10 page 89), for any numbering `e`. -/
+theorem codeNetE_strict (α : S.Sym) : (codeNetE e side α).Strict :=
+  treePNet_strict _ _ _ _ (codeTreeE_ne_var e side α)
+
 end Enum
 
 /-! ## The tree of `[α]` for the enumeration `symEnum S` -/
@@ -357,9 +378,16 @@ theorem codeTree_hyps (α : S.Sym) :
 /-! ## The principal net `[α]` and the translation -/
 
 /-- **The principal net `[α]` of Fig. 10** (top left, page 89; principal nets, page 80): the tree
-`codeTree side α` with the ports `0, …, n - 1` and its other names as internal wires. -/
+`codeTree side α` with the ports `0, …, n - 1` and its other names as internal wires. It is
+`codeNetE` with the symbols numbered by `symEnum`. -/
 noncomputable def codeNet (α : S.Sym) : PNet sig (S.arity α) :=
-  treePNet (S.arity α) (codeTree side α) (codeTree_hyps side α).1 (codeTree_hyps side α).2
+  codeNetE (symEnum S) side α
+
+/-- `codeNet` unfolded: the tree of Fig. 10 as a principal net (page 89). -/
+theorem codeNet_eq (α : S.Sym) :
+    codeNet side α =
+      treePNet (S.arity α) (codeTree side α) (codeTree_hyps side α).1 (codeTree_hyps side α).2 :=
+  rfl
 
 /-- **The translation of Fig. 10** (pages 89–90): every symbol `α` is translated into the principal
 net `[α]`, built from the choice `side` of expanded sides. -/
@@ -371,7 +399,7 @@ noncomputable def codeTranslation : Translation S sig :=
 theorem codeNet_inst (α : S.Sym) :
     (codeNet side α).inst (fun i => var (i : ℕ))
       (fun w => ((wireNum (S.arity α) (codeTree side α)).symm w).1) = codeTree side α :=
-  treePNet_inst _ _ _ _
+  codeNetE_inst (symEnum S) side α
 
 /-- The root of `[α]` is the `dup` cell of `T_{1,1}` (Fig. 10, page 89). -/
 theorem codeTree_eq_mkDup (α : S.Sym) :
@@ -385,7 +413,7 @@ theorem codeTree_ne_var (α : S.Sym) (x : ℕ) : codeTree side α ≠ var x :=
 /-- **`[α]` of Fig. 10 is strict** (definition page 80, Fig. 10 page 89): its principal port is the
 root of `T_{1,1}`, a `dup` cell. -/
 theorem codeNet_strict (α : S.Sym) : (codeNet side α).Strict :=
-  treePNet_strict _ _ _ _ (codeTree_ne_var side α)
+  codeNetE_strict (symEnum S) side α
 
 /-- **The translation of Fig. 10 is strict** (Lafont 1997, definition page 80, Fig. 10 pages
 89–90): no `[α]` is a wire. -/

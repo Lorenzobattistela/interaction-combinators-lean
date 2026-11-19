@@ -145,7 +145,8 @@ theorem codeNet_inst_args (α : S.Sym) (args : Fin (S.arity α) → Term sig ℕ
             (mux (code (codeKey side α) (menu (codeMenus side (codeMenuBase side α))) ::
               (List.ofFn args ++ [var (S.arity α)])))))
         (var (S.arity α)) := by
-  refine (treePNet_inst_args _ _ _ _ args).trans ?_
+  refine (treePNet_inst_args (S.arity α) (codeTree side α) (codeTree_hyps side α).1
+    (codeTree_hyps side α).2 args).trans ?_
   have keep : ∀ t : Term sig ℕ, (∀ x ∈ t.vars, S.arity α ≤ x) →
       (t.bind fun x => if h : x < S.arity α then args ⟨x, h⟩ else var x) = t := fun t ht => by
     conv_rhs => rw [← Term.bind_var_self t]
