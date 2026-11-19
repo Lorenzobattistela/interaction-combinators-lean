@@ -102,4 +102,5 @@ import InteractionCombinators.Lafont.GraphRaw
 import InteractionCombinators.Lafont.GraphContract
 import InteractionCombinators.Lafont.GraphContractUnique
 import InteractionCombinators.Lafont.GraphIso
+import InteractionCombinators.Lafont.GraphEquiv
 import InteractionCombinators.Graph

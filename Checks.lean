@@ -114,3 +114,4 @@ import Checks.GraphRawCheck
 import Checks.GraphContractCheck
 import Checks.GraphContractUniqueCheck
 import Checks.GraphIsoCheck
+import Checks.GraphEquivCheck
