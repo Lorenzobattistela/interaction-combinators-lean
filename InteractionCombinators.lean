@@ -113,3 +113,4 @@ import InteractionCombinators.Graphs.GraphStepE
 import InteractionCombinators.Graphs.GraphInteractUnique
 import InteractionCombinators.Graphs.GraphStepEConverse
 import InteractionCombinators.Core.Graph
+import InteractionCombinators.Results

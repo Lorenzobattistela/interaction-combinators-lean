@@ -17,3 +17,4 @@ InteractionCombinators/Core/System.lean
 InteractionCombinators/Core/Translation.lean
 InteractionCombinators/Core/Combinators.lean
 InteractionCombinators/Universality/Theorem1.lean
+InteractionCombinators/Results.lean
