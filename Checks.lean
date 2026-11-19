@@ -69,6 +69,7 @@ import Checks.SimulationUniformCheck
 import Checks.SimulationUniformReview
 import Checks.StepsEAddCheck
 import Checks.StrongConfluenceECheck
+import Checks.StrongConfluenceEReview
 import Checks.SymmPermCheck
 import Checks.SymmPermReview
 import Checks.TranslationCompAssocCheck
