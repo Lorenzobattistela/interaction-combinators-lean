@@ -23,7 +23,9 @@ numbered in increasing order as internal wires.
 * `treePNet` — a tree with ports `0, …, n - 1` and every other name twice, as a `PNet`;
   `treePNet_inst` (the instance with the ports and wires named back gives the tree),
   `treePNet_strict`, and `treePNet_hyps` (the hypotheses from `Ico 0 n + 2 • X`).
-* `codeTree`, `vars_codeTree` — the tree of `[α]` of Fig. 10 and its names.
+* `codeTreeE`, `vars_codeTreeE` — the tree of `[α]` of Fig. 10 and its names, with the symbols
+  numbered by an argument `e : S.Sym ≃ Fin m` (computable; page 90: no order on the symbols is
+  needed); `codeTree`, `vars_codeTree` — the same with `e := symEnum S`.
 * `codeNet`, `codeTranslation` — `[α]` as a `PNet sig (S.arity α)` and the translation.
 * `codeTranslation_strict` — the translation is strict (definition page 80): the root of `[α]` is
   the root of `T_{1,1}`, a `dup` cell.
@@ -183,65 +185,80 @@ theorem sum_vars_ofFn_var (n : ℕ) :
   have h := Multiset.sum_map_singleton (Finset.univ.val.map fun w : Fin n => (w : ℕ))
   rwa [Multiset.map_map] at h
 
-variable {S : Signature} [Finite S.Sym]
+
+variable {S : Signature}
+
+/-! ## The tree of `[α]` for a given enumeration of the symbols
+
+Fig. 10 numbers the symbols `α_0, …, α_{m-1}`; page 90 notes that no order on the symbols is
+needed. Here the numbering is an argument `e : S.Sym ≃ Fin n`, so that the tree is computable; the
+versions without `E` below take `e := symEnum S`. -/
+
+section Enum
+
+variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
-/-- The first name of the menu `Γ` in `[α]`: after the ports `0, …, n - 1`, the loop `n` and the
-block of the menu `Γ_α`. -/
-noncomputable def codeMenuBase (α : S.Sym) : ℕ :=
-  S.arity α + 1 + ∑ j, codeCellSizes side α j
+/-- The first name of the menu `Γ` in `[α]`, with the symbols numbered by `e`: after the ports
+`0, …, n - 1`, the loop `n` and the block of the menu `Γ_α` (page 89). -/
+def codeMenuBaseE (α : S.Sym) : ℕ :=
+  S.arity α + 1 + ∑ j, codeCellSizesE e side α j
 
-/-- The first cut name of the code `!Γ` in `[α]`: after the block of the menu `Γ`. -/
-noncomputable def codeKey (α : S.Sym) : ℕ :=
-  codeMenuBase side α + ∑ i, codeMenuSizes side i
+/-- The first cut name of the code `!Γ` in `[α]`, with the symbols numbered by `e`: after the block
+of the menu `Γ` (page 89). -/
+def codeKeyE (α : S.Sym) : ℕ :=
+  codeMenuBaseE e side α + ∑ i, codeMenuSizesE e side i
 
-/-- **The tree of `[α]` of Fig. 10** (top left, page 89): the transpositor `T_{1,1}` carrying the
-menu `Γ_α` (names from `n + 1`) and the selector `S^α_m` on the multiplexor `M_{n+2}`, whose leaves
-are, from left to right, the code `!Γ` of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (`Γ` named from `codeMenuBase`,
-the cut names of the code from `codeKey`), the ports `0, …, n - 1`, and the loop `ℓ = n`. Here
-`n = S.arity α`, `m` is the number of symbols, and `side` is any choice of expanded sides (page 90:
-no order on the symbols is needed). -/
-noncomputable def codeTree (α : S.Sym) : Term sig ℕ :=
-  cellSkel (menu (codeCellMenu side α (S.arity α + 1))) (Nat.card S.Sym) (symEnum S α)
-    (code (codeKey side α) (menu (codeMenus side (codeMenuBase side α))) ::
+/-- **The tree of `[α]` of Fig. 10** (top left, page 89), with the symbols numbered by
+`e : S.Sym ≃ Fin m`: the transpositor `T_{1,1}` carrying the menu `Γ_α` (names from `n + 1`) and the
+selector `S^α_m` (`α` numbered `e α`) on the multiplexor `M_{n+2}`, whose leaves are, from left to
+right, the code `!Γ` of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (`Γ` named from `codeMenuBaseE`, the cut names of
+the code from `codeKeyE`), the ports `0, …, n - 1`, and the loop `ℓ = n`. Here `n = S.arity α`. -/
+def codeTreeE (α : S.Sym) : Term sig ℕ :=
+  cellSkel (menu (codeCellMenuE e side α (S.arity α + 1))) n (e α)
+    (code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α))) ::
       List.ofFn fun j : Fin (S.arity α) => var (j : ℕ)) (S.arity α)
 
-/-- **The names of `[α]` of Fig. 10** (page 89): the ports `0, …, n - 1` once, and twice each the
-names of `[n, codeKey)` (the loop, the names of `Γ_α` and those of `Γ`) and the cut names of the
-code `!Γ`. -/
-theorem vars_codeTree (α : S.Sym) :
-    (codeTree side α).vars = Multiset.Ico 0 (S.arity α) +
-      2 • (Multiset.Ico (S.arity α) (codeKey side α) +
-        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports) := by
-  have hB : S.arity α + 1 ≤ codeMenuBase side α := Nat.le_add_right _ _
-  have hK : codeMenuBase side α ≤ codeKey side α := Nat.le_add_right _ _
+/-- **The names of `[α]` of Fig. 10** (page 89), for any numbering `e` of the symbols: the ports
+`0, …, n - 1` once, and twice each the names of `[n, codeKeyE)` (the loop, the names of `Γ_α` and
+those of `Γ`) and the cut names of the code `!Γ`. -/
+theorem vars_codeTreeE (α : S.Sym) :
+    (codeTreeE e side α).vars = Multiset.Ico 0 (S.arity α) +
+      2 • (Multiset.Ico (S.arity α) (codeKeyE e side α) +
+        (decomp (codeKeyE e side α)
+          (menu (codeMenusE e side (codeMenuBaseE e side α)))).ports) := by
+  have hB : S.arity α + 1 ≤ codeMenuBaseE e side α := Nat.le_add_right _ _
+  have hK : codeMenuBaseE e side α ≤ codeKeyE e side α := Nat.le_add_right _ _
   have h1 : Multiset.Ico (S.arity α) (S.arity α + 1) = {S.arity α} :=
     (Multiset.Nodup.ext Multiset.nodup_Ico (Multiset.nodup_singleton _)).2 fun x => by
       simp only [Multiset.mem_Ico, Multiset.mem_singleton]; omega
-  have hI : Multiset.Ico (S.arity α) (codeKey side α) = {S.arity α} +
-      Multiset.Ico (S.arity α + 1) (codeMenuBase side α) +
-      Multiset.Ico (codeMenuBase side α) (codeKey side α) := by
+  have hI : Multiset.Ico (S.arity α) (codeKeyE e side α) = {S.arity α} +
+      Multiset.Ico (S.arity α + 1) (codeMenuBaseE e side α) +
+      Multiset.Ico (codeMenuBaseE e side α) (codeKeyE e side α) := by
     rw [← h1, Multiset.Ico_add_Ico_eq_Ico (by omega) hB, Multiset.Ico_add_Ico_eq_Ico (by omega) hK]
-  have e1 : (menu (codeCellMenu side α (S.arity α + 1))).vars =
-      2 • Multiset.Ico (S.arity α + 1) (codeMenuBase side α) :=
-    vars_menu_codeCellMenu side α _
-  have e2 : (menu (codeMenus side (codeMenuBase side α))).vars =
-      2 • Multiset.Ico (codeMenuBase side α) (codeKey side α) :=
-    vars_menu_codeMenus side _
-  rw [codeTree, vars_cellSkel, e1, List.map_cons, List.sum_cons, sum_vars_ofFn_var, vars_code, e2,
-    hI]
+  have e1 : (menu (codeCellMenuE e side α (S.arity α + 1))).vars =
+      2 • Multiset.Ico (S.arity α + 1) (codeMenuBaseE e side α) :=
+    vars_menu_codeCellMenuE e side α _
+  have e2 : (menu (codeMenusE e side (codeMenuBaseE e side α))).vars =
+      2 • Multiset.Ico (codeMenuBaseE e side α) (codeKeyE e side α) :=
+    vars_menu_codeMenusE e side _
+  rw [codeTreeE, vars_cellSkel, e1, List.map_cons, List.sum_cons, sum_vars_ofFn_var, vars_code,
+    e2, hI]
   simp only [smul_add, two_nsmul]
   abel
 
-/-- The names of `[α]` other than the ports are distinct and above the ports (page 89). -/
-theorem codeTree_wires (α : S.Sym) :
-    (Multiset.Ico (S.arity α) (codeKey side α) +
-        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports).Nodup ∧
-      ∀ x ∈ Multiset.Ico (S.arity α) (codeKey side α) +
-        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports,
+/-- The names of `[α]` other than the ports are distinct and above the ports (page 89), for any
+numbering `e` of the symbols. -/
+theorem codeTreeE_wires (α : S.Sym) :
+    (Multiset.Ico (S.arity α) (codeKeyE e side α) +
+        (decomp (codeKeyE e side α)
+          (menu (codeMenusE e side (codeMenuBaseE e side α)))).ports).Nodup ∧
+      ∀ x ∈ Multiset.Ico (S.arity α) (codeKeyE e side α) +
+        (decomp (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).ports,
         S.arity α ≤ x := by
-  obtain ⟨hnd, hr, -⟩ := decomp_ports (menu (codeMenus side (codeMenuBase side α))) (codeKey side α)
-  have hn : S.arity α ≤ codeKey side α := by unfold codeKey codeMenuBase; omega
+  obtain ⟨hnd, hr, -⟩ :=
+    decomp_ports (menu (codeMenusE e side (codeMenuBaseE e side α))) (codeKeyE e side α)
+  have hn : S.arity α ≤ codeKeyE e side α := by unfold codeKeyE codeMenuBaseE; omega
   refine ⟨Multiset.nodup_add.2 ⟨Multiset.nodup_Ico, hnd, Multiset.disjoint_left.2 fun hx hy => ?_⟩,
     fun x hx => ?_⟩
   · have := (hr _ hy).1
@@ -251,11 +268,90 @@ theorem codeTree_wires (α : S.Sym) :
     · exact (Multiset.mem_Ico.1 hx).1
     · exact hn.trans (hr x hx).1
 
+/-- The tree of `[α]` has the ports `0, …, n - 1` once and every other name twice (page 89), for any
+numbering `e` of the symbols. -/
+theorem codeTreeE_hyps (α : S.Sym) :
+    (∀ i < S.arity α, (codeTreeE e side α).vars.count i = 1) ∧
+      (∀ x ∈ (codeTreeE e side α).vars, S.arity α ≤ x → (codeTreeE e side α).vars.count x = 2) :=
+  treePNet_hyps (vars_codeTreeE e side α) (codeTreeE_wires e side α).1 (codeTreeE_wires e side α).2
+
+/-- The root of `[α]` is the `dup` cell of `T_{1,1}` (Fig. 10, page 89), for any numbering `e`. -/
+theorem codeTreeE_eq_mkDup (α : S.Sym) :
+    ∃ a b, codeTreeE e side α = mkDup a b :=
+  exists_cellSkel_eq_mkDup _ _ _ _ _
+
+/-- The tree of `[α]` is not a wire (page 89), for any numbering `e` of the symbols. -/
+theorem codeTreeE_ne_var (α : S.Sym) (x : ℕ) : codeTreeE e side α ≠ var x := by
+  obtain ⟨a, b, h⟩ := codeTreeE_eq_mkDup e side α
+  rw [h]
+  intro h'
+  cases h'
+
+end Enum
+
+/-! ## The tree of `[α]` for the enumeration `symEnum S` -/
+
+variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- The first name of the menu `Γ` in `[α]`: after the ports `0, …, n - 1`, the loop `n` and the
+block of the menu `Γ_α`. -/
+noncomputable def codeMenuBase (α : S.Sym) : ℕ :=
+  codeMenuBaseE (symEnum S) side α
+
+/-- `codeMenuBase` unfolded. -/
+theorem codeMenuBase_eq (α : S.Sym) :
+    codeMenuBase side α = S.arity α + 1 + ∑ j, codeCellSizes side α j :=
+  rfl
+
+/-- The first cut name of the code `!Γ` in `[α]`: after the block of the menu `Γ`. -/
+noncomputable def codeKey (α : S.Sym) : ℕ :=
+  codeKeyE (symEnum S) side α
+
+/-- `codeKey` unfolded. -/
+theorem codeKey_eq (α : S.Sym) :
+    codeKey side α = codeMenuBase side α + ∑ i, codeMenuSizes side i :=
+  rfl
+
+/-- **The tree of `[α]` of Fig. 10** (top left, page 89): the transpositor `T_{1,1}` carrying the
+menu `Γ_α` (names from `n + 1`) and the selector `S^α_m` on the multiplexor `M_{n+2}`, whose leaves
+are, from left to right, the code `!Γ` of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (`Γ` named from `codeMenuBase`,
+the cut names of the code from `codeKey`), the ports `0, …, n - 1`, and the loop `ℓ = n`. Here
+`n = S.arity α`, `m` is the number of symbols, and `side` is any choice of expanded sides (page 90:
+no order on the symbols is needed). It is `codeTreeE` with the symbols numbered by `symEnum`. -/
+noncomputable def codeTree (α : S.Sym) : Term sig ℕ :=
+  codeTreeE (symEnum S) side α
+
+/-- `codeTree` unfolded: the tree of Fig. 10 (page 89). -/
+theorem codeTree_eq (α : S.Sym) :
+    codeTree side α =
+      cellSkel (menu (codeCellMenu side α (S.arity α + 1))) (Nat.card S.Sym) (symEnum S α)
+        (code (codeKey side α) (menu (codeMenus side (codeMenuBase side α))) ::
+          List.ofFn fun j : Fin (S.arity α) => var (j : ℕ)) (S.arity α) :=
+  rfl
+
+/-- **The names of `[α]` of Fig. 10** (page 89): the ports `0, …, n - 1` once, and twice each the
+names of `[n, codeKey)` (the loop, the names of `Γ_α` and those of `Γ`) and the cut names of the
+code `!Γ`. -/
+theorem vars_codeTree (α : S.Sym) :
+    (codeTree side α).vars = Multiset.Ico 0 (S.arity α) +
+      2 • (Multiset.Ico (S.arity α) (codeKey side α) +
+        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports) :=
+  vars_codeTreeE (symEnum S) side α
+
+/-- The names of `[α]` other than the ports are distinct and above the ports (page 89). -/
+theorem codeTree_wires (α : S.Sym) :
+    (Multiset.Ico (S.arity α) (codeKey side α) +
+        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports).Nodup ∧
+      ∀ x ∈ Multiset.Ico (S.arity α) (codeKey side α) +
+        (decomp (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).ports,
+        S.arity α ≤ x :=
+  codeTreeE_wires (symEnum S) side α
+
 /-- The tree of `[α]` has the ports `0, …, n - 1` once and every other name twice (page 89). -/
 theorem codeTree_hyps (α : S.Sym) :
     (∀ i < S.arity α, (codeTree side α).vars.count i = 1) ∧
       (∀ x ∈ (codeTree side α).vars, S.arity α ≤ x → (codeTree side α).vars.count x = 2) :=
-  treePNet_hyps (vars_codeTree side α) (codeTree_wires side α).1 (codeTree_wires side α).2
+  codeTreeE_hyps (symEnum S) side α
 
 /-! ## The principal net `[α]` and the translation -/
 
@@ -279,14 +375,11 @@ theorem codeNet_inst (α : S.Sym) :
 /-- The root of `[α]` is the `dup` cell of `T_{1,1}` (Fig. 10, page 89). -/
 theorem codeTree_eq_mkDup (α : S.Sym) :
     ∃ a b, codeTree side α = mkDup a b :=
-  exists_cellSkel_eq_mkDup _ _ _ _ _
+  codeTreeE_eq_mkDup (symEnum S) side α
 
 /-- The tree of `[α]` is not a wire (page 89). -/
-theorem codeTree_ne_var (α : S.Sym) (x : ℕ) : codeTree side α ≠ var x := by
-  obtain ⟨a, b, h⟩ := codeTree_eq_mkDup side α
-  rw [h]
-  intro h'
-  cases h'
+theorem codeTree_ne_var (α : S.Sym) (x : ℕ) : codeTree side α ≠ var x :=
+  codeTreeE_ne_var (symEnum S) side α x
 
 /-- **`[α]` of Fig. 10 is strict** (definition page 80, Fig. 10 page 89): its principal port is the
 root of `T_{1,1}`, a `dup` cell. -/

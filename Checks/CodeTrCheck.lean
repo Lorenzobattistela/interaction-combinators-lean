@@ -46,7 +46,7 @@ carrying the eraser `Γ_α` and the selector `S^0_1` on `M_3` of the code `!Γ =
 port `0` and the loop `1`. -/
 theorem codeTree_sigOne (α : sigOne.Sym) :
     codeTree sideNone α = cellSkel mkEra 1 0 [mux [mkEra, mkEra, mkEra, mkEra], var 0] 1 := by
-  rw [codeTree, codeCellMenu_sideNone, codeMenus_sideNone, symEnum_sigOne, card_sigOne,
+  rw [codeTree_eq, codeCellMenu_sideNone, codeMenus_sideNone, symEnum_sigOne, card_sigOne,
     show menu [mkEra] = (mkEra : Term sig ℕ) from rfl, code_of_dupFree _ _ (by trivial)]
   rfl
 

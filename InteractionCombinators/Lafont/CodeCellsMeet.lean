@@ -143,7 +143,7 @@ theorem codeTree_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : 
         ((code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).bind
             (fun x => var (codeRen xs K x)) ::
           List.ofFn fun j => var (xs j)) (K + S.arity α) := by
-  rw [codeTree, bind_cellSkel, menu, bind_mux, ← menu, List.map_cons, List.map_ofFn]
+  rw [codeTree_eq, bind_cellSkel, menu, bind_mux, ← menu, List.map_cons, List.map_ofFn]
   have hn : codeRen xs K (S.arity α) = K + S.arity α := by simp [codeRen]
   rw [hn]
   congr 3

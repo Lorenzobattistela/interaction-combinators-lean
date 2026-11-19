@@ -195,7 +195,7 @@ theorem codeNet_inst_eq (β : S.Sym) (B k₀ K : ℕ)
     have := hCv x hx
     simp [h, show x ≠ S.arity β by omega, show ¬ x < MB by omega]
   refine (treePNet_inst_bind _ (codeTree side β) _ _ args h).trans ?_
-  rw [codeTree, bind_cellSkel_of _ _ _ _ _ _ ℓ (by simp [h])]
+  rw [codeTree_eq, bind_cellSkel_of _ _ _ _ _ _ ℓ (by simp [h])]
   have hΓ : (menu (codeCellMenu side β (S.arity β + 1))).bind
       (fun x => if hx : x < S.arity β then args ⟨x, hx⟩ else var (h x)) =
       (menu (codeCellMenu side β (S.arity β + 1))).bind (fun x => var (h x)) :=

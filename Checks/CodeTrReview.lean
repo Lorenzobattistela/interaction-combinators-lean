@@ -162,7 +162,7 @@ theorem codeNet_inst_args (α : S.Sym) (args : Fin (S.arity α) → Term sig ℕ
     rcases Multiset.mem_add.1 hx with hx | hx
     · rcases Multiset.mem_add.1 hx with hx | hx
       · rw [Multiset.mem_nsmul_of_ne_zero (by omega), Multiset.mem_Ico] at hx
-        have : S.arity α ≤ codeMenuBase side α := by unfold codeMenuBase; omega
+        have : S.arity α ≤ codeMenuBase side α := by rw [codeMenuBase_eq]; omega
         omega
       · exact hw x (Multiset.mem_add.2 (Or.inr hx))
     · exact hw x (Multiset.mem_add.2 (Or.inr hx))
