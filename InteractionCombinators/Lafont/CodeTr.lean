@@ -35,7 +35,7 @@ open Term Translation
 /-! ## A tree as a principal net -/
 
 /-- The internal names of a tree with `n` ports: its names `≥ n`. -/
-noncomputable def wireSet (n : ℕ) (t : Term sig ℕ) : Finset ℕ :=
+def wireSet (n : ℕ) (t : Term sig ℕ) : Finset ℕ :=
   t.vars.toFinset.filter (n ≤ ·)
 
 /-- The leaf of a name `x` of `t`: the port `x` if `x < n`, otherwise the internal wire numbered by

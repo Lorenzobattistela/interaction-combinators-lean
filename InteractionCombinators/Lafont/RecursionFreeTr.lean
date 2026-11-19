@@ -189,7 +189,7 @@ theorem vars_cellSkel_ports (n m i I : ℕ) (G : Term sig ℕ)
 with the ports `ts = 0, …, n - 1` and the loop `ℓ = n`, when the names of the menu are both ends
 of each name of `[n + 1, n + 1 + I)`: the names `< n` become the ports, the names of
 `[n, n + I + 1)` the internal wires. -/
-noncomputable def cellPNet (n I : ℕ) (G : List (Term sig ℕ)) (i : ℕ)
+def cellPNet (n I : ℕ) (G : List (Term sig ℕ)) (i : ℕ)
     (hG : (menu G).vars = 2 • Multiset.Ico (n + 1) (n + 1 + I)) : PNet sig n where
   internal := I + 1
   tree := (cellSkel (menu G) G.length i (List.ofFn fun j : Fin n => var (j : ℕ)) n).bind
@@ -221,7 +221,7 @@ theorem cellPNet_congr {n I I' : ℕ} {G G' : List (Term sig ℕ)} {i : ℕ}
 
 /-- A fixed principal net of arity `n` (an empty menu), put on the symbols that the recursion does
 not see yet. -/
-noncomputable def defaultPNet (n : ℕ) : PNet sig n :=
+def defaultPNet (n : ℕ) : PNet sig n :=
   cellPNet n 0 [] 0 (by simp [menu, mux])
 
 /-! ## The cell `[α]` of Fig. 6 -/
@@ -294,7 +294,7 @@ theorem cellNet_congr {Φ Φ' : Translation S sig} {D : I.RecursionFreeData} {α
 
 /-- The translation seen by the call for `α`: the given principal nets on the symbols smaller
 than `α`, `defaultPNet` on the others. -/
-noncomputable def _root_.INet.System.RecursionFreeData.lowerTr (D : I.RecursionFreeData)
+def _root_.INet.System.RecursionFreeData.lowerTr (D : I.RecursionFreeData)
     (α : S.Sym) (rec : ∀ β, D.rank β < D.rank α → PNet sig (S.arity β)) : Translation S sig :=
   ⟨fun β => if h : D.rank β < D.rank α then rec β h else defaultPNet _⟩
 

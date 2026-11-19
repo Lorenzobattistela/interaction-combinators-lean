@@ -94,3 +94,4 @@ import Checks.ViciousReflectCheck
 import Checks.ViciousReview
 import Checks.WantedCheck
 import Checks.GraphCheck
+import Checks.ComputableMarksCheck
