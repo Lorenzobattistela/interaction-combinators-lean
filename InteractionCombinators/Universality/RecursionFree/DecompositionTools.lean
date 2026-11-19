@@ -4,7 +4,7 @@ import InteractionCombinators.Text.RenameMany
 /-!
 # Tools for the decomposition of a rule (page 85)
 
-Three generic tools used by `Lafont/Decomposition.lean`.
+Three generic tools used by `RecursionFree/Decomposition.lean` and the files around it.
 
 * `Term.renameOpt`, `Net.renameOpt` — rename the names of a tree or a net by a *partial* function
   `ν → Option μ`. The result exists when every name that occurs is renamed
@@ -16,6 +16,18 @@ Three generic tools used by `Lafont/Decomposition.lean`.
   `rankIn_surj`).
 * `Net.equiv_absorb` — equations `p = c p` between a free port `p` and a wire `c p` of the net
   are absorbed by wire substitution: the result is the net with `p` in place of `c p`.
+
+Contents, in the order of the file:
+
+1. Definitions: renaming by a partial function, `Term.renameOpt`, `renameOptEq`,
+   `Net.renameOpt`.
+2. Auxiliary lemma: `Multiset.filterMap_finset_sum`.
+3. Results: what renaming by a partial function gives, `Term.renameOpt_spec`,
+   `renameOptEq_spec`, `Net.renameOpt_spec`, `Net.mem_renameOpt`.
+4. Ranks: the definition `rankIn` and `rankIn_lt`, `rankIn_lt_rank`, `rankIn_injOn`,
+   `rankIn_surj`.
+5. Absorbing equations between a port and a wire: the auxiliary lemmas `Net.bind_var_of_fix`,
+   `Net.wire_var`, and the main result `Net.equiv_absorb`.
 -/
 
 namespace INet
@@ -24,33 +36,84 @@ variable {S : Signature}
 
 open Term
 
-/-! ### Renaming by a partial function -/
-
 section RenameOpt
 
+-- the names before and after the renaming
 variable {ν μ : Type}
 
+-- ============================================================================================
+-- 1. Definitions: renaming by a partial function
+-- ============================================================================================
+
 /-- Rename the leaves of a tree by a partial function; `none` if some leaf is not renamed. -/
-def Term.renameOpt (g : ν → Option μ) : Term S ν → Option (Term S μ)
+def Term.renameOpt
+    -- the partial renaming
+    (g : ν → Option μ) :
+    Term S ν → Option (Term S μ)
   | var x => (g x).map var
   | app α ts =>
     if h : ∀ i, (Term.renameOpt g (ts i)).isSome then
       some (app α fun i => (Term.renameOpt g (ts i)).get (h i))
     else none
 
-theorem _root_.Multiset.filterMap_finset_sum {ι α β : Type} (s : Finset ι) (f : ι → Multiset α)
-    (g : α → Option β) : (∑ i ∈ s, f i).filterMap g = ∑ i ∈ s, (f i).filterMap g := by
+/-- Rename the names of an equation by a partial function. -/
+def renameOptEq
+    -- the partial renaming
+    (g : ν → Option μ) :
+    Sym2 (Term S ν) → Option (Sym2 (Term S μ)) :=
+  Sym2.lift ⟨fun u v => (u.renameOpt g).bind fun u' => (v.renameOpt g).map fun v' => s(u', v'),
+    fun u v => by
+      cases hu : u.renameOpt g <;> cases hv : v.renameOpt g <;> simp [hu, hv, Sym2.eq_swap]⟩
+
+/-- Rename the names of a net by a partial function; equations that cannot be renamed are
+dropped (there is none when every name is renamed, `Net.renameOpt_spec`). -/
+def Net.renameOpt
+    -- the partial renaming
+    (g : ν → Option μ)
+    -- the net
+    (N : Net S ν) :
+    Net S μ :=
+  N.filterMap (renameOptEq g)
+
+-- ============================================================================================
+-- 2. Auxiliary lemma: `filterMap` of a finite sum
+-- ============================================================================================
+
+/-- `filterMap` distributes over a finite sum of multisets. -/
+theorem _root_.Multiset.filterMap_finset_sum
+    -- the index set and the family of multisets
+    {ι α β : Type}
+    (s : Finset ι)
+    (f : ι → Multiset α)
+    -- the partial function
+    (g : α → Option β) :
+    (∑ i ∈ s, f i).filterMap g = ∑ i ∈ s, (f i).filterMap g := by
   classical
   induction s using Finset.induction_on with
   | empty => simp
   | insert a s ha ih => simp [Finset.sum_insert ha, Multiset.filterMap_add, ih]
 
+-- ============================================================================================
+-- 3. Results: what renaming by a partial function gives
+-- ============================================================================================
+
 /-- When every leaf of `t` is renamed by `g`, the renamed tree exists; its leaves are the renamed
 leaves, its cells are those of `t`, and plugging `F` into it is plugging `G` into `t` as soon as
 `F` and `G` agree through `g`. -/
-theorem Term.renameOpt_spec (g : ν → Option μ) :
+theorem Term.renameOpt_spec
+    -- the partial renaming
+    (g : ν → Option μ) :
+    -- for every tree `t` whose leaves are all renamed by `g`,
     ∀ t : Term S ν, (∀ x ∈ t.vars, (g x).isSome) →
-      ∃ t', t.renameOpt g = some t' ∧ t'.vars = t.vars.filterMap g ∧ t'.cells = t.cells ∧
+      -- there is a tree `t'` such that
+      ∃ t',
+        -- `t'` is the renamed tree,
+        t.renameOpt g = some t' ∧
+        -- its leaves are the renamed leaves of `t`,
+        t'.vars = t.vars.filterMap g ∧
+        -- its cells are those of `t`,
+        t'.cells = t.cells ∧
+        -- and plugging `F` into `t'` is plugging `G` into `t` when `F` and `G` agree through `g`
         ∀ {κ : Type} (F : μ → Term S κ) (G : ν → Term S κ),
           (∀ x ∈ t.vars, ∀ y, g x = some y → F y = G x) → t'.bind F = t.bind G
   | var x, h => by
@@ -80,20 +143,24 @@ theorem Term.renameOpt_spec (g : ν → Option μ) :
       funext i
       exact hb i F G fun x hx => hFG x (hmem i x hx)
 
-/-- Rename the names of an equation by a partial function. -/
-def renameOptEq (g : ν → Option μ) : Sym2 (Term S ν) → Option (Sym2 (Term S μ)) :=
-  Sym2.lift ⟨fun u v => (u.renameOpt g).bind fun u' => (v.renameOpt g).map fun v' => s(u', v'),
-    fun u v => by
-      cases hu : u.renameOpt g <;> cases hv : v.renameOpt g <;> simp [hu, hv, Sym2.eq_swap]⟩
-
-/-- Rename the names of a net by a partial function; equations that cannot be renamed are
-dropped (there is none when every name is renamed, `Net.renameOpt_spec`). -/
-def Net.renameOpt (g : ν → Option μ) (N : Net S ν) : Net S μ := N.filterMap (renameOptEq g)
-
-theorem renameOptEq_spec (g : ν → Option μ) (e : Sym2 (Term S ν))
+/-- When every name of an equation `e` is renamed by `g`, the renamed equation exists; its names
+are the renamed names, its cells are those of `e`, and plugging `F` into it is plugging `G` into
+`e` as soon as `F` and `G` agree through `g`. -/
+theorem renameOptEq_spec
+    -- the partial renaming
+    (g : ν → Option μ)
+    -- the equation, all of whose names are renamed
+    (e : Sym2 (Term S ν))
     (h : ∀ x ∈ eqVars e, (g x).isSome) :
-    ∃ e', renameOptEq g e = some e' ∧ eqVars e' = (eqVars e).filterMap g ∧
+    -- there is an equation `e'` such that
+    ∃ e',
+      -- `e'` is the renamed equation,
+      renameOptEq g e = some e' ∧
+      -- its names are the renamed names of `e`,
+      eqVars e' = (eqVars e).filterMap g ∧
+      -- its cells are those of `e`,
       eqCells e' = eqCells e ∧
+      -- and plugging `F` into `e'` is plugging `G` into `e` when `F` and `G` agree through `g`
       ∀ {κ : Type} (F : μ → Term S κ) (G : ν → Term S κ),
         (∀ x ∈ eqVars e, ∀ y, g x = some y → F y = G x) →
           e'.map (Term.bind F) = e.map (Term.bind G) := by
@@ -109,13 +176,22 @@ theorem renameOptEq_spec (g : ν → Option μ) (e : Sym2 (Term S ν))
     rw [hbu F G fun x hx => hFG x (Or.inl hx), hbv F G fun x hx => hFG x (Or.inr hx)]
 
 /-- When every name of `N` is renamed by `g`, the renamed net has the renamed names and the same
-cells, every equation of it comes from one of `N`, and plugging `F` into it is plugging `G` into
-`N` as soon as `F` and `G` agree through `g`. -/
-theorem Net.renameOpt_spec (g : ν → Option μ) (N : Net S ν) (h : ∀ x ∈ N.vars, (g x).isSome) :
-    (Net.renameOpt g N).vars = N.vars.filterMap g ∧ (Net.renameOpt g N).cells = N.cells ∧
-      ∀ {κ : Type} (F : μ → Term S κ) (G : ν → Term S κ),
-        (∀ x ∈ N.vars, ∀ y, g x = some y → F y = G x) →
-          (Net.renameOpt g N).bind F = N.bind G := by
+cells, and plugging `F` into it is plugging `G` into `N` as soon as `F` and `G` agree through
+`g`. -/
+theorem Net.renameOpt_spec
+    -- the partial renaming
+    (g : ν → Option μ)
+    -- the net, all of whose names are renamed
+    (N : Net S ν)
+    (h : ∀ x ∈ N.vars, (g x).isSome) :
+    -- the names of the renamed net are the renamed names of `N`,
+    (Net.renameOpt g N).vars = N.vars.filterMap g ∧
+    -- its cells are those of `N`,
+    (Net.renameOpt g N).cells = N.cells ∧
+    -- and plugging `F` into it is plugging `G` into `N` when `F` and `G` agree through `g`
+    ∀ {κ : Type} (F : μ → Term S κ) (G : ν → Term S κ),
+      (∀ x ∈ N.vars, ∀ y, g x = some y → F y = G x) →
+        (Net.renameOpt g N).bind F = N.bind G := by
   induction N using Multiset.induction_on with
   | empty => simp [Net.renameOpt, Net.bind, Net.cells]
   | cons e N ih =>
@@ -134,28 +210,56 @@ theorem Net.renameOpt_spec (g : ν → Option μ) (N : Net S ν) (h : ∀ x ∈ 
       congr 1
       exact ihb F G fun x hx => hFG x (Or.inr hx)
 
-theorem Net.mem_renameOpt {g : ν → Option μ} {N : Net S ν} {e' : Sym2 (Term S μ)} :
+/-- Every equation of the renamed net is the renaming of an equation of `N`. -/
+theorem Net.mem_renameOpt
+    -- the partial renaming, the net, and an equation of the renamed names
+    {g : ν → Option μ}
+    {N : Net S ν}
+    {e' : Sym2 (Term S μ)} :
+    -- `e'` is in the renamed net if and only if it is the renaming of an equation of `N`
     e' ∈ Net.renameOpt g N ↔ ∃ e ∈ N, renameOptEq g e = some e' :=
   Multiset.mem_filterMap _ _
 
 end RenameOpt
 
-/-! ### Ranks -/
+-- ============================================================================================
+-- 4. Ranks
+-- ============================================================================================
 
 section Rank
 
+-- the elements that are ranked
 variable {V : Type}
 
 /-- The position of `x` in the finite set `M`, ordered by the key `κ`: the number of elements of
 `M` with a smaller key. -/
-def rankIn (M : Finset V) (κ : V → ℕ) (x : V) : ℕ := (M.filter fun y => κ y < κ x).card
+def rankIn
+    -- the finite set and the key that orders it
+    (M : Finset V)
+    (κ : V → ℕ)
+    -- the element
+    (x : V) :
+    ℕ :=
+  (M.filter fun y => κ y < κ x).card
 
+-- the finite set and the key that orders it
 variable {M : Finset V} {κ : V → ℕ}
 
-theorem rankIn_lt {x : V} (hx : x ∈ M) : rankIn M κ x < M.card :=
+/-- The rank of an element of `M` is less than the cardinality of `M`. -/
+theorem rankIn_lt
+    -- an element of `M`
+    {x : V}
+    (hx : x ∈ M) :
+    rankIn M κ x < M.card :=
   Finset.card_lt_card (Finset.filter_ssubset.2 ⟨x, hx, lt_irrefl _⟩)
 
-theorem rankIn_lt_rank {x y : V} (hx : x ∈ M) (h : κ x < κ y) : rankIn M κ x < rankIn M κ y := by
+/-- An element of `M` with a smaller key has a smaller rank. -/
+theorem rankIn_lt_rank
+    -- an element `x` of `M`, and an element `y` with a larger key
+    {x y : V}
+    (hx : x ∈ M)
+    (h : κ x < κ y) :
+    rankIn M κ x < rankIn M κ y := by
   refine Finset.card_lt_card (Finset.ssubset_iff_subset_ne.2 ⟨fun z hz => ?_, fun he => ?_⟩)
   · simp only [Finset.mem_filter] at hz ⊢
     exact ⟨hz.1, hz.2.trans h⟩
@@ -163,14 +267,27 @@ theorem rankIn_lt_rank {x y : V} (hx : x ∈ M) (h : κ x < κ y) : rankIn M κ 
     rw [← he] at this
     exact lt_irrefl _ (Finset.mem_filter.1 this).2
 
-theorem rankIn_injOn (hκ : Function.Injective κ) : Set.InjOn (rankIn M κ) M := by
+/-- For an injective key, two elements of `M` with the same rank are equal. -/
+theorem rankIn_injOn
+    -- the key is injective
+    (hκ : Function.Injective κ) :
+    Set.InjOn (rankIn M κ) M := by
   intro x hx y hy h
   rcases lt_trichotomy (κ x) (κ y) with hl | he | hl
   · exact absurd h (rankIn_lt_rank hx hl).ne
   · exact hκ he
   · exact absurd h (rankIn_lt_rank hy hl).ne'
 
-theorem rankIn_surj [DecidableEq V] (hκ : Function.Injective κ) {l : ℕ} (hl : l < M.card) :
+/-- For an injective key, every number below the cardinality of `M` is the rank of an element
+of `M`. -/
+theorem rankIn_surj
+    [DecidableEq V]
+    -- the key is injective
+    (hκ : Function.Injective κ)
+    -- a number below the cardinality of `M`
+    {l : ℕ}
+    (hl : l < M.card) :
+    -- it is the rank of an element of `M`
     ∃ x ∈ M, rankIn M κ x = l := by
   have hsub : M.image (rankIn M κ) ⊆ Finset.range M.card := fun n hn => by
     obtain ⟨x, hx, rfl⟩ := Finset.mem_image.1 hn
@@ -183,22 +300,36 @@ theorem rankIn_surj [DecidableEq V] (hκ : Function.Injective κ) {l : ℕ} (hl 
 
 end Rank
 
-/-! ### Absorbing equations between a port and a wire -/
+-- ============================================================================================
+-- 5. Absorbing equations between a port and a wire
+-- ============================================================================================
 
 section Absorb
 
+-- the names, with decidable equality
 variable {ν : Type} [DecidableEq ν]
 
 omit [DecidableEq ν] in
 /-- Renaming the names of a net that occur by themselves changes nothing. -/
-theorem Net.bind_var_of_fix {N : Net S ν} {f : ν → ν} (h : ∀ y ∈ N.vars, f y = y) :
+theorem Net.bind_var_of_fix
+    -- the net, and a renaming that fixes every name of it
+    {N : Net S ν}
+    {f : ν → ν}
+    (h : ∀ y ∈ N.vars, f y = y) :
     N.bind (fun y => var (f y)) = N := by
   rw [Net.bind_congr (g := var) fun y hy => by rw [h y hy]]
   exact Net.bind_var_self N
 
 /-- A wire substitution of the name `c` by the name `p`, where `c` occurs once in `N`. -/
-theorem Net.wire_var {N : Net S ν} {c p : ν} (hlin : Net.Linear (s(var c, var p) ::ₘ N))
+theorem Net.wire_var
+    -- the rest of the net, and the names of the equation `c = p`
+    {N : Net S ν}
+    {c p : ν}
+    -- the net with the equation `c = p` is linear
+    (hlin : Net.Linear (s(var c, var p) ::ₘ N))
+    -- `c` occurs in `N`
     (hc : c ∈ N.vars) :
+    -- the equation `c = p` is absorbed: `N` with `p` in place of `c`
     Wire (s(var c, var p) ::ₘ N) (N.bind fun y => if y = c then var p else var y) := by
   obtain ⟨e, he, hce⟩ := Multiset.mem_bind.1 hc
   obtain ⟨Δ, rfl⟩ := Multiset.exists_cons_of_mem he
@@ -228,12 +359,28 @@ theorem Net.wire_var {N : Net S ν} {c p : ν} (hlin : Net.Linear (s(var c, var 
 /-- Equations `p = c p` between a name `p ∈ T` and a name `c p` that occurs in `N` are absorbed
 by wire substitution: the result is `N` renamed by any `f` that sends `c p` to `p` and fixes `p`
 and every other name of `N`. -/
-theorem Net.equiv_absorb (c : ν → ν) (f : ν → ν) :
+theorem Net.equiv_absorb
+    -- `c p` is the wire of `N` joined to the port `p`
+    (c : ν → ν)
+    -- the renaming that undoes the equations
+    (f : ν → ν) :
+    -- for every finite set `T` of ports and every net `N`,
     ∀ (T : Finset ν) (N : Net S ν),
-      Net.Linear (N + T.val.map (fun p => s(var (c p), var p))) → Set.InjOn c T →
-      (∀ p ∈ T, c p ∈ N.vars) → (∀ p ∈ T, ∀ q ∈ T, c p ≠ q) →
-      (∀ p ∈ T, f (c p) = p) → (∀ p ∈ T, f p = p) →
+      -- if `N` with the equations `c p = p` for `p ∈ T` is linear,
+      Net.Linear (N + T.val.map (fun p => s(var (c p), var p))) →
+      -- `c` is injective on `T`,
+      Set.InjOn c T →
+      -- each `c p` occurs in `N`,
+      (∀ p ∈ T, c p ∈ N.vars) →
+      -- no `c p` is a port of `T`,
+      (∀ p ∈ T, ∀ q ∈ T, c p ≠ q) →
+      -- `f` sends `c p` to `p`,
+      (∀ p ∈ T, f (c p) = p) →
+      -- `f` fixes every port of `T`,
+      (∀ p ∈ T, f p = p) →
+      -- and `f` fixes every other name of `N`,
       (∀ y ∈ N.vars, (∀ p ∈ T, y ≠ c p) → f y = y) →
+      -- then the net with the equations is the same graph as `N` renamed by `f`
       Equiv (N + T.val.map (fun p => s(var (c p), var p))) (N.bind fun y => var (f y)) := by
   intro T
   induction T using Finset.induction_on with
