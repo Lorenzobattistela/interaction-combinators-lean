@@ -84,6 +84,7 @@ import InteractionCombinators.Lafont.ViciousReflect
 import InteractionCombinators.Lafont.ReducedClosed
 import InteractionCombinators.Lafont.ReducedDecomp
 import InteractionCombinators.Lafont.ReducedDecompUnique
+import InteractionCombinators.Lafont.RuleReduced
 import InteractionCombinators.Lafont.SimulationStrict
 import InteractionCombinators.Lafont.TranslationComp
 import InteractionCombinators.Lafont.TranslationCompAssoc
