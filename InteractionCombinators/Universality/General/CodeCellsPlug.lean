@@ -12,14 +12,24 @@ copier `C_p` makes the copies of `!Γ` that the cells of `⟨φ⟩` need, and `�
 translation of the side `φ` (`codeGamma_extract`); the same for `ψ`. What is left is the net at the
 end of Fig. 7, `plugTermTarget`, with translated trees.
 
-* `codeKey_bound`, `injOn_codeRen_code`, `ports_sum_form` — the glue between `codeCells_meet_end`
-  and `codeGamma_extract` (found by the review `CodeMeetReview.lean`).
-* `middle_reindex` — the middle equations with `σ` on one side are those with `σ` on the other,
-  for an involutive `σ`.
-* `codeCells_plug` — the two cells plugged by their roots reduce to `plugTermTarget` of trees that
-  are translations of the trees of `φ` and `ψ`.
-* `codeKeyE_bound`, `injOn_codeRen_codeE`, `codeCells_plugE` — the same for any numbering
-  `e : S.Sym ≃ Fin n` of the symbols; the theorems above are these at `e := symEnum S`.
+The results are stated first with the symbols numbered by any `e : S.Sym ≃ Fin n` (names ending in
+`E`), then for `e := symEnum S` under the names without `E`.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: rearranging the equations between the ports.
+   * `ports_sum_form` — the equations left by `codeCells_meet_end` are in the form of
+     `codeGamma_extract`.
+   * `middle_reindex` — the middle equations with `σ` on one side are those with `σ` on the other,
+     for an involutive `σ`.
+2. Auxiliary lemmas for any numbering `e` of the symbols: `codeKeyE_bound`,
+   `injOn_codeRen_codeE` — the code of `[α]` satisfies the hypotheses of `codeGamma_extractE`
+   (the glue between `codeCells_meet_endE` and `codeGamma_extractE`, found by the review
+   `CodeMeetReview.lean`).
+3. Main result for any numbering: `codeCells_plugE` — the two cells plugged by their roots reduce
+   to `plugTermTarget` of trees that are translations of the trees of `φ` and `ψ`.
+4. Main result: `codeKey_bound`, `injOn_codeRen_code` and `codeCells_plug`, the same at
+   `e := symEnum S`.
 -/
 
 namespace INet.Comb
@@ -28,11 +38,24 @@ open Term Translation
 
 variable {S : Signature}
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: rearranging the equations between the ports
+-- ============================================================================================
+
 /-- **The ports left by `codeGamma_meet` are in the form of `codeGamma_extract`** (page 90): the
 equations `ts p = F (.inl p)` and `F (.inr l) = G (σ l)` together are `∑ q, {s(P q, F q)}` with
 the partner `P (.inl p) = ts p` and `P (.inr l) = G (σ l)`. -/
-theorem ports_sum_form {a k : ℕ} (F : Fin a ⊕ Fin k → Term sig ℕ) (ts : Fin a → Term sig ℕ)
-    (G : Fin k → Term sig ℕ) (σ : Equiv.Perm (Fin k)) :
+theorem ports_sum_form
+    -- the number `a` of ports and `k` of middle wires
+    {a k : ℕ}
+    -- the trees on the ports and middle wires of one side
+    (F : Fin a ⊕ Fin k → Term sig ℕ)
+    -- the trees against the ports
+    (ts : Fin a → Term sig ℕ)
+    -- the trees of the other side on the middle wires, and the involution between them
+    (G : Fin k → Term sig ℕ)
+    (σ : Equiv.Perm (Fin k)) :
+    -- the equations on the ports and on the middle wires form one sum over `Fin a ⊕ Fin k`
     (Finset.univ.val.map fun p : Fin a => s(ts p, F (.inl p))) +
         (Finset.univ.val.map fun l : Fin k => s(F (.inr l), G (σ l))) =
       ∑ q, {s(Sum.elim ts (fun l => G (σ l)) q, F q)} := by
@@ -42,7 +65,12 @@ theorem ports_sum_form {a k : ℕ} (F : Fin a ⊕ Fin k → Term sig ℕ) (ts : 
 
 /-- **The middle equations, with `σ` moved to the other side** (Fig. 7, page 86): for an
 involutive `σ`, the equations `f l = g (σ l)` are the equations `g l = f (σ l)`. -/
-theorem middle_reindex {k : ℕ} (σ : Equiv.Perm (Fin k)) (hσ : Function.Involutive σ)
+theorem middle_reindex
+    -- an involution of the `k` middle wires
+    {k : ℕ}
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ)
+    -- the trees of the two sides on the middle wires
     (f g : Fin k → Term sig ℕ) :
     (Finset.univ.val.map fun l : Fin k => s(f l, g (σ l))) =
       Finset.univ.val.map fun l : Fin k => s(g l, f (σ l)) := by
@@ -57,20 +85,33 @@ theorem middle_reindex {k : ℕ} (σ : Equiv.Perm (Fin k)) (hσ : Function.Invol
 
 section Enum
 
+-- the numbering `e` of the `n` symbols, and the expanded sides of the rules
 variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas for any numbering: the code of `[α]` fits `codeGamma_extractE`
+-- ============================================================================================
 
 /-- **The code of `[α]` satisfies the bound of `codeGamma_extractE`, for any numbering `e` of the
 symbols** (page 89): with `B = codeMenuBaseE e side α`, the first cut name `codeKeyE e side α` of
 `!Γ` is `B + ∑ codeMenuSizesE e side`. -/
-theorem codeKeyE_bound (α : S.Sym) :
+theorem codeKeyE_bound
+    -- a symbol
+    (α : S.Sym) :
     codeMenuBaseE e side α + ∑ i, codeMenuSizesE e side i ≤ codeKeyE e side α :=
   le_rfl
 
 /-- **The renaming of the code of `[α]` satisfies the hypothesis of `codeGamma_extractE`, for any
 numbering `e` of the symbols** (page 89): the names of `!Γ` in `[α]` are above the ports, so
 `codeRen xs K`, the renaming used by `codeCells_meetE`, is injective on them. -/
-theorem injOn_codeRen_codeE (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem injOn_codeRen_codeE
+    -- a symbol
+    (α : S.Sym)
+    -- the names on the ports of `[α]`, and the shift of its other names
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
+    -- `codeRen xs K` is injective on the names of the code `!Γ` of `[α]`
     Set.InjOn (codeRen xs K)
       {x | x ∈ (code (codeKeyE e side α)
         (menu (codeMenusE e side (codeMenuBaseE e side α)))).vars} := by
@@ -88,6 +129,10 @@ theorem injOn_codeRen_codeE (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : �
   · have := ((decomp_ports _ _).2.1 x hx).1
     omega
 
+-- ============================================================================================
+-- 3. Main result for any numbering: two cells plugged by their roots
+-- ============================================================================================
+
 /-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots reduce to the end of Fig. 7 with
 translated trees, for any numbering `e` of the symbols** (Lafont 1997, Fig. 10, pages 89–90, the
 analogue of Fig. 7, pages 85–86, "left to the reader"; page 90: no order on the symbols is needed).
@@ -97,21 +142,43 @@ the same middle ports and involution `σ`, the cells `[α]` with ports `xs` and 
 plugged by their principal ports, in a linear net with any context `Δ`, reduce to a net `Equiv` to
 `plugTermTarget σ tφ tψ xs ys` beside `Δ`, where each `tφ p` is a translation of the tree
 `gammaTree φ k₀ p` and each `tψ q` of `gammaTree ψ k₁ q`, by `codeTranslationE e side`. -/
-theorem codeCells_plugE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-    (f : Fin (codeNetE e side α).internal → ℕ) (g : Fin (codeNetE e side β).internal → ℕ)
+theorem codeCells_plugE
+    -- the two symbols, and the names on the ports of their cells
+    (α β : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (ys : Fin (S.arity β) → ℕ)
+    -- the names of the internal wires of the two cells
+    (f : Fin (codeNetE e side α).internal → ℕ)
+    (g : Fin (codeNetE e side β).internal → ℕ)
+    -- the rest of the net
     (Δ : CNet)
-    {k : ℕ} (φ : Rule S (S.arity α) k) (ψ : Rule S (S.arity β) k) (σ : Equiv.Perm (Fin k))
-    (hσ : Function.Involutive σ) (hl : φ.Linear) (he : φ.Expanded) (hl' : ψ.Linear)
-    (he' : ψ.Expanded) (hs : side α β = some ⟨k, φ, σ, hl, he, hσ⟩)
+    -- the expanded side `φ` of `α` against `β` and `ψ` of `β` against `α`, with `k` middle wires
+    -- and the same involution `σ`
+    {k : ℕ}
+    (φ : Rule S (S.arity α) k)
+    (ψ : Rule S (S.arity β) k)
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ)
+    (hl : φ.Linear)
+    (he : φ.Expanded)
+    (hl' : ψ.Linear)
+    (he' : ψ.Expanded)
+    (hs : side α β = some ⟨k, φ, σ, hl, he, hσ⟩)
     (hs' : side β α = some ⟨k, ψ, σ, hl', he', hσ⟩)
+    -- the net we start from is linear: the two cells plugged by their roots, and `Δ`
     (hlin : Net.Linear (s((codeNetE e side α).inst (fun i => var (xs i)) f,
       (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    -- there are numbers `k₀`, `k₁`, a net `M` and trees `tφ`, `tψ` such that
     ∃ (k₀ k₁ : ℕ) (M : CNet) (tφ : Fin (S.arity α) ⊕ Fin k → Term sig ℕ)
       (tψ : Fin (S.arity β) ⊕ Fin k → Term sig ℕ),
+      -- the net reduces, up to wires, to `M`,
       StepsE system (s((codeNetE e side α).inst (fun i => var (xs i)) f,
         (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      -- `M` is the same graph as the end of Fig. 7 with the trees `tφ`, `tψ`, beside `Δ`,
       Equiv M (plugTermTarget σ tφ tψ xs ys + Δ) ∧
+      -- each `tφ p` is a translation of the tree `gammaTree φ k₀ p`,
       (∀ p, (codeTranslationE e side).TermTr (gammaTree φ k₀ p) (tφ p)) ∧
+      -- and each `tψ q` of the tree `gammaTree ψ k₁ q`
       (∀ q, (codeTranslationE e side).TermTr (gammaTree ψ k₁ q) (tψ q)) := by
   obtain ⟨K, K', M1, hS1, hE1⟩ :=
     codeCells_meet_endE e side α β xs ys f g Δ φ ψ σ hσ hl he hl' he' hs hs' hlin
@@ -187,18 +254,31 @@ theorem codeCells_plugE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fi
 
 end Enum
 
+-- ============================================================================================
+-- 4. Main result: two cells plugged by their roots, symbols numbered by `symEnum S`
+-- ============================================================================================
+
+-- finitely many symbols, and the expanded sides of the rules
 variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
 /-- **The code of `[α]` satisfies the bound of `codeGamma_extract`** (page 89): with
 `B = codeMenuBase side α`, the first cut name `codeKey side α` of `!Γ` is `B + ∑ codeMenuSizes`. -/
-theorem codeKey_bound (α : S.Sym) :
+theorem codeKey_bound
+    -- a symbol
+    (α : S.Sym) :
     codeMenuBase side α + ∑ i, codeMenuSizes side i ≤ codeKey side α :=
   codeKeyE_bound (symEnum S) side α
 
 /-- **The renaming of the code of `[α]` satisfies the hypothesis of `codeGamma_extract`**
 (page 89): the names of `!Γ` in `[α]` are above the ports, so `codeRen xs K`, the renaming used by
 `codeCells_meet`, is injective on them. -/
-theorem injOn_codeRen_code (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem injOn_codeRen_code
+    -- a symbol
+    (α : S.Sym)
+    -- the names on the ports of `[α]`, and the shift of its other names
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
+    -- `codeRen xs K` is injective on the names of the code `!Γ` of `[α]`
     Set.InjOn (codeRen xs K)
       {x | x ∈ (code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).vars} :=
   injOn_codeRen_codeE (symEnum S) side α xs K
@@ -210,20 +290,43 @@ the same middle ports and involution `σ`, the cells `[α]` with ports `xs` and 
 plugged by their principal ports, in a linear net with any context `Δ`, reduce to a net `Equiv` to
 `plugTermTarget σ tφ tψ xs ys` beside `Δ`, where each `tφ p` is a translation of the tree
 `gammaTree φ k₀ p` and each `tψ q` of `gammaTree ψ k₁ q`, by `codeTranslation side`. -/
-theorem codeCells_plug (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-    (f : Fin (codeNet side α).internal → ℕ) (g : Fin (codeNet side β).internal → ℕ) (Δ : CNet)
-    {k : ℕ} (φ : Rule S (S.arity α) k) (ψ : Rule S (S.arity β) k) (σ : Equiv.Perm (Fin k))
-    (hσ : Function.Involutive σ) (hl : φ.Linear) (he : φ.Expanded) (hl' : ψ.Linear)
-    (he' : ψ.Expanded) (hs : side α β = some ⟨k, φ, σ, hl, he, hσ⟩)
+theorem codeCells_plug
+    -- the two symbols, and the names on the ports of their cells
+    (α β : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (ys : Fin (S.arity β) → ℕ)
+    -- the names of the internal wires of the two cells
+    (f : Fin (codeNet side α).internal → ℕ)
+    (g : Fin (codeNet side β).internal → ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the expanded side `φ` of `α` against `β` and `ψ` of `β` against `α`, with `k` middle wires
+    -- and the same involution `σ`
+    {k : ℕ}
+    (φ : Rule S (S.arity α) k)
+    (ψ : Rule S (S.arity β) k)
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ)
+    (hl : φ.Linear)
+    (he : φ.Expanded)
+    (hl' : ψ.Linear)
+    (he' : ψ.Expanded)
+    (hs : side α β = some ⟨k, φ, σ, hl, he, hσ⟩)
     (hs' : side β α = some ⟨k, ψ, σ, hl', he', hσ⟩)
+    -- the net we start from is linear: the two cells plugged by their roots, and `Δ`
     (hlin : Net.Linear (s((codeNet side α).inst (fun i => var (xs i)) f,
       (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    -- there are numbers `k₀`, `k₁`, a net `M` and trees `tφ`, `tψ` such that
     ∃ (k₀ k₁ : ℕ) (M : CNet) (tφ : Fin (S.arity α) ⊕ Fin k → Term sig ℕ)
       (tψ : Fin (S.arity β) ⊕ Fin k → Term sig ℕ),
+      -- the net reduces, up to wires, to `M`,
       StepsE system (s((codeNet side α).inst (fun i => var (xs i)) f,
         (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      -- `M` is the same graph as the end of Fig. 7 with the trees `tφ`, `tψ`, beside `Δ`,
       Equiv M (plugTermTarget σ tφ tψ xs ys + Δ) ∧
+      -- each `tφ p` is a translation of the tree `gammaTree φ k₀ p`,
       (∀ p, (codeTranslation side).TermTr (gammaTree φ k₀ p) (tφ p)) ∧
+      -- and each `tψ q` of the tree `gammaTree ψ k₁ q`
       (∀ q, (codeTranslation side).TermTr (gammaTree ψ k₁ q) (tψ q)) :=
   codeCells_plugE (symEnum S) side α β xs ys f g Δ φ ψ σ hσ hl he hl' he' hs hs' hlin
 
