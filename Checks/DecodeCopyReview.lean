@@ -37,7 +37,7 @@ def rev (x : ℕ) : ℕ :=
 
 /-- The copy written out: `M_n` on the cut names `9, 5`, in this order. -/
 theorem copy_rev_eq : (code 3 πn).bind (fun x => var (rev x)) =
-    mux [mux [var 9, var 5], muxStar [mkCon (var 7) (var 2), var 2], muxStar [var 5, var 7],
+    mux [mux [var 9, var 5], muxStar [var 5, var 7], muxStar [mkCon (var 7) (var 2), var 2],
       var 9] := by decide
 
 /-- `code_decoder_copy` (pages 89 and 90) with every hypothesis proved and nothing chosen to suit

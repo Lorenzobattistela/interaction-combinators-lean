@@ -8,7 +8,8 @@ Page 89, Fig. 9: "`!π` is a code for `π`, which can be extracted with the deco
 `!π` against the decoder reduces to `π` on the free port of the decoder.
 
 The first stage (`code_decoder`, `Code.lean`) leaves `M_n` against a `dup` cell whose auxiliary
-ports `a`, `b` are joined to `M_n*` of the left trees and `M_n*` of the right trees. The rest of
+ports `a` (port 0), `b` (port 1) are joined to `M_n*` of the trees `l_i` and `M_n*` of the trees
+`r_i`. The rest of
 Fig. 9 is done here by induction on the list of cells (`decode_cells`), one cell at a time: the
 `con` at the top of `M_n` meets the `dup`, the two `con` cells it leaves meet the tops of the two
 `M_n*`, and what is left is the cell `x₀ = dup(l₀, r₀)` and the same configuration on the remaining
@@ -34,16 +35,17 @@ theorem mux_cons_cons (t t' : Term sig ℕ) (ts : List (Term sig ℕ)) :
     mux (t :: t' :: ts) = mkCon t (mux (t' :: ts)) := rfl
 
 /-- The net left by the first stage of Fig. 9 (page 89), on a list of cells
-`cs = [(x_i, l_i, r_i)]`: `M_n` on the names `x_i` against a `dup` cell with auxiliary ports `a`, `b`; `M_n*` of the right
-trees `r_i` on `b`; `M_n*` of the left trees `l_i` on `a`; and the rest `Δ`. -/
+`cs = [(x_i, l_i, r_i)]`: `M_n` on the names `x_i` against a `dup` cell with auxiliary ports `a`,
+`b`; `M_n*` of the trees `l_i` (auxiliary port 0 of the cells) on `a`; `M_n*` of the trees `r_i`
+(auxiliary port 1) on `b`; and the rest `Δ`. -/
 def decodeNet (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a b : ℕ) (Δ : CNet) : CNet :=
   s(mux (cs.map fun c => var c.1), mkDup (var a) (var b)) ::ₘ
-    s(muxStar (cs.map fun c => c.2.2), var b) ::ₘ
-    s(muxStar (cs.map fun c => c.2.1), var a) ::ₘ Δ
+    s(muxStar (cs.map fun c => c.2.1), var a) ::ₘ
+    s(muxStar (cs.map fun c => c.2.2), var b) ::ₘ Δ
 
 /-- The rest of Fig. 9 (page 89), by induction on the cells: `M_n` on the names `x_i`, against a
-`dup` cell whose left auxiliary port `a` is joined to `M_n*` of the left trees `l_i` and whose right
-auxiliary port `b` to `M_n*` of the right trees `r_i`, reduces to the `n` cells
+`dup` cell whose auxiliary port 0, `a`, is joined to `M_n*` of the trees `l_i` and whose auxiliary
+port 1, `b`, to `M_n*` of the trees `r_i`, reduces to the `n` cells
 `x_i = dup(l_i, r_i)`. The net must be linear and its names below `j`, the first new name. -/
 theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a b j : ℕ) (Δ : CNet),
     Net.Linear (decodeNet cs a b Δ) → Net.Below j (decodeNet cs a b Δ) →
@@ -52,9 +54,9 @@ theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a 
   | [], a, b, j, Δ, hlin, hb => by
     -- `M_0 = ε` erases the `dup`; the two erasers meet the two `M_0* = ε`
     simp only [decodeNet, List.map_nil, mux, muxStar] at hlin hb ⊢
-    have h1 := step_era_dup (var a) (var b) (s(mkEra, var b) ::ₘ s(mkEra, var a) ::ₘ Δ)
+    have h1 := step_era_dup (var a) (var b) (s(mkEra, var a) ::ₘ s(mkEra, var b) ::ₘ Δ)
     have L1 := h1.linear system_wellFormed.linear hlin
-    have e1 : (s(mkEra, var a) ::ₘ s(mkEra, var b) ::ₘ s(mkEra, var b) ::ₘ s(mkEra, var a) ::ₘ Δ
+    have e1 : (s(mkEra, var a) ::ₘ s(mkEra, var b) ::ₘ s(mkEra, var a) ::ₘ s(mkEra, var b) ::ₘ Δ
         : CNet) = s(var a, mkEra) ::ₘ s(mkEra, var a) ::ₘ
           (s(mkEra, var b) ::ₘ s(mkEra, var b) ::ₘ Δ) := by
       rw [Sym2.eq_swap (a := mkEra) (b := var a)]; ms
@@ -72,7 +74,7 @@ theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a 
     -- `M_1` and `M_1*` are wires: two wire substitutions give the cell
     obtain ⟨x, l, r⟩ := c
     simp only [decodeNet, List.map_cons, List.map_nil, mux, muxStar] at hlin hb ⊢
-    have e : (s(var x, mkDup (var a) (var b)) ::ₘ s(r, var b) ::ₘ s(l, var a) ::ₘ Δ : CNet) =
+    have e : (s(var x, mkDup (var a) (var b)) ::ₘ s(l, var a) ::ₘ s(r, var b) ::ₘ Δ : CNet) =
         s(var a, l) ::ₘ s(var b, r) ::ₘ s(var x, mkDup (var a) (var b)) ::ₘ Δ := by
       rw [Sym2.eq_swap (a := r), Sym2.eq_swap (a := l)]; ms
     have E := equiv_cut_bin mkDup vars_mkDup subst_mkDup a b l r (var x) Δ (hlin.cast e)
@@ -84,22 +86,22 @@ theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a 
     set R := muxStar ((c' :: cs).map fun c => c.2.2) with hR
     set L := muxStar ((c' :: cs).map fun c => c.2.1) with hL
     have e0 : decodeNet ((x, l, r) :: c' :: cs) a b Δ =
-        s(mkCon (var x) T, mkDup (var a) (var b)) ::ₘ s(mkCon R r, var b) ::ₘ
-          s(mkCon L l, var a) ::ₘ Δ := by
+        s(mkCon (var x) T, mkDup (var a) (var b)) ::ₘ s(mkCon L l, var a) ::ₘ
+          s(mkCon R r, var b) ::ₘ Δ := by
       simp only [decodeNet, List.map_cons, mux_cons_cons, muxStar_cons_cons, hT, hR, hL]
     rw [e0] at hlin hb ⊢
     have hb' := hb
     simp only [Net.below_cons, below_mkCon, below_mkDup, Term.below_var] at hb'
-    obtain ⟨⟨hx, hTb⟩, ⟨ha, hbb⟩, ⟨hRb, hr⟩, -, ⟨hLb, hl⟩, -, hΔ⟩ := hb'
+    obtain ⟨⟨hx, hTb⟩, ⟨ha, hbb⟩, ⟨hLb, hl⟩, -, ⟨hRb, hr⟩, -, hΔ⟩ := hb'
     -- `con` at the top of `M_n` against the `dup`, new wires `j, j + 1, j + 2, j + 3`
     have h1 := step_con_dup (var x) T (var a) (var b)
-      (s(mkCon R r, var b) ::ₘ s(mkCon L l, var a) ::ₘ Δ) j (j + 1) (j + 2) (j + 3) (by simp)
+      (s(mkCon L l, var a) ::ₘ s(mkCon R r, var b) ::ₘ Δ) j (j + 1) (j + 2) (j + 3) (by simp)
       (fun v hv => hb.notMem (by simp at hv; omega))
     have L1 := h1.linear system_wellFormed.linear hlin
-    -- the copy on `a` meets `M_n*` of the left trees
+    -- the copy on `a` (port 0) meets `M_n*` of the trees `l_i`
     have e1 : (s(var x, mkDup (var j) (var (j + 1))) ::ₘ s(T, mkDup (var (j + 2)) (var (j + 3))) ::ₘ
         s(var a, mkCon (var j) (var (j + 2))) ::ₘ s(var b, mkCon (var (j + 1)) (var (j + 3))) ::ₘ
-        s(mkCon R r, var b) ::ₘ s(mkCon L l, var a) ::ₘ Δ : CNet) =
+        s(mkCon L l, var a) ::ₘ s(mkCon R r, var b) ::ₘ Δ : CNet) =
         s(var a, mkCon (var j) (var (j + 2))) ::ₘ s(mkCon L l, var a) ::ₘ
           (s(var x, mkDup (var j) (var (j + 1))) ::ₘ s(T, mkDup (var (j + 2)) (var (j + 3))) ::ₘ
             s(var b, mkCon (var (j + 1)) (var (j + 3))) ::ₘ s(mkCon R r, var b) ::ₘ Δ) := by ms
@@ -107,7 +109,7 @@ theorem decode_cells : ∀ (cs : List (ℕ × Term sig ℕ × Term sig ℕ)) (a 
     have h2 : StepE system _ _ := ⟨_, (Equiv.of_eq e1).trans E2,
       step_con_con L l (var j) (var (j + 2)) _⟩
     have L2 := h2.linear system_wellFormed.linear L1
-    -- the copy on `b` meets `M_n*` of the right trees
+    -- the copy on `b` (port 1) meets `M_n*` of the trees `r_i`
     have e2 : (s(L, var (j + 2)) ::ₘ s(l, var j) ::ₘ
           (s(var x, mkDup (var j) (var (j + 1))) ::ₘ s(T, mkDup (var (j + 2)) (var (j + 3))) ::ₘ
             s(var b, mkCon (var (j + 1)) (var (j + 3))) ::ₘ s(mkCon R r, var b) ::ₘ Δ) : CNet) =

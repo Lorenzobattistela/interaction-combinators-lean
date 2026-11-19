@@ -10,16 +10,24 @@ replaces the cells by multiplexors: an `M_4` at the root, whose four auxiliary p
 left to right as drawn in Fig. 8,
 
 1. an `M_n` whose auxiliary ports are the principal ports `x_i` of the cut cells;
-2. an `M_n*` whose auxiliary ports are the right auxiliary trees `r_i`;
-3. an `M_n*` whose auxiliary ports are the left auxiliary trees `l_i`;
+2. an `M_n*` whose auxiliary ports are the trees `l_i` on auxiliary port 0 of the cells;
+3. an `M_n*` whose auxiliary ports are the trees `r_i` on auxiliary port 1 of the cells;
 4. the root tree `τ` of `π'`.
 
-(In Fig. 8 the second wire of `M_4` runs to the right `M_n*` and the third to the left one.) The
-decoder `D` is an `M_4*` whose first auxiliary port carries a `dup` cell, whose second and third are
-joined to the right and left auxiliary ports of that cell, and whose fourth is the free port. In
-Fig. 9, `M_4` meets `M_4*`, so `M_n` meets the `dup` cell, the right `M_n*` its right auxiliary
-port, the left `M_n*` its left one, and `τ` comes out on the free port: `code_decoder` checks this
-first stage of Fig. 9.
+How this is read from the figure. The ports of a cell are numbered clockwise (page 71), so a cell
+drawn pointing up has its first auxiliary port (Lean port 0, Lafont's port 1) on the right, as in
+the numbered picture of page 82; `M_4` points down, so its ports are listed from left to right, and
+an `M_n*` pointing up lists its ports from left to right too (`muxStar`). In the decomposition above
+Fig. 8 the `dup` cells point up, and the wires cross so that the left group of ports of `π'`
+receives the drawn left ports of the cells (Lean port 1, `r_i`) and the right group their drawn
+right ports (Lean port 0, `l_i`). In Fig. 8 the left `M_n*` sits on the left group and the right one
+on the right group; the second wire of `M_4` runs to the right `M_n*` (the trees `l_i`) and the
+third to the left one (the trees `r_i`). The decoder `D` is an `M_4*` whose first auxiliary port
+carries a `dup` cell pointing up; the inner loop joins its drawn right port (port 0) to the second
+port of `M_4*`, the outer loop its drawn left port (port 1) to the third; the fourth is the free
+port. In Fig. 9, `M_4` meets `M_4*`, so `M_n` meets the `dup` cell, the `M_n*` of the `l_i` its
+port 0, the `M_n*` of the `r_i` its port 1, and `τ` comes out on the free port: `code_decoder`
+checks this first stage of Fig. 9.
 
 * `code` — `!π`, from `decomp k π`.
 * `decoder` — `D`, with free port `w` and internal wires `k`, `k + 1`.
@@ -51,26 +59,27 @@ theorem dupFree_muxStar : ∀ us : List (Term sig ℕ), (∀ u ∈ us, DupFree u
 /-! ## The code -/
 
 /-- The code built from a decomposition (Fig. 8, page 88): `M_4` of `M_n` on the cut names,
-`M_n*` on the right auxiliary trees, `M_n*` on the left auxiliary trees, and the root tree `τ`. -/
+`M_n*` on the trees on auxiliary port 0 of the cells, `M_n*` on the trees on auxiliary port 1, and
+the root tree `τ`. -/
 def Decomp.code (D : Decomp) : Term sig ℕ :=
-  mux [mux (D.cells.map fun c => var c.1), muxStar (D.cells.map fun c => c.2.2),
-    muxStar (D.cells.map fun c => c.2.1), D.τ]
+  mux [mux (D.cells.map fun c => var c.1), muxStar (D.cells.map fun c => c.2.1),
+    muxStar (D.cells.map fun c => c.2.2), D.τ]
 
 /-- The code `!π` of a package `π` (Lafont, page 88, Fig. 8), with the new names of the
 decomposition numbered from `k`. Its root is the principal port of an `M_4` whose four auxiliary
 ports carry, in this order: an `M_n` on the principal ports `x_i` of the `n` `dup` cells of `π`; an
-`M_n*` on their right auxiliary trees `r_i`; an `M_n*` on their left auxiliary trees `l_i`; and the
-root tree `τ` of `π'`. The `i`-th auxiliary port of each multiplexor belongs to the `i`-th cell of
+`M_n*` on the trees `l_i` on their auxiliary port 0; an `M_n*` on the trees `r_i` on their auxiliary
+port 1; and the root tree `τ` of `π'`. The `i`-th auxiliary port of each multiplexor belongs to the `i`-th cell of
 `(decomp k π).cells`. -/
 def code (k : ℕ) (π : Term sig ℕ) : Term sig ℕ := (decomp k π).code
 
 /-- The decoder `D` (Lafont, page 88, Fig. 8), a principal net of arity 1: an `M_4*` whose four
-auxiliary ports carry, in this order, a `dup` cell with left auxiliary port `k` and right auxiliary
-port `k + 1`, the wire `k + 1`, the wire `k`, and the free port `w`. So the loop joins the right
-auxiliary port of the `dup` cell to the second port of `M_4*` and its left auxiliary port to the
-third, as in Fig. 8 and as Fig. 9 needs. -/
+auxiliary ports carry, in this order, a `dup` cell with auxiliary port 0 on `k` and auxiliary port 1
+on `k + 1`, the wire `k`, the wire `k + 1`, and the free port `w`. The `dup` cell points up in
+Fig. 8, so its port 0 is drawn on the right: the inner loop joins it to the second port of `M_4*`,
+the outer loop joins port 1 to the third. -/
 def decoder (w k : ℕ) : Term sig ℕ :=
-  muxStar [mkDup (var k) (var (k + 1)), var (k + 1), var k, var w]
+  muxStar [mkDup (var k) (var (k + 1)), var k, var (k + 1), var w]
 
 /-- The names of the code are the cut names (on `M_n`) and the names of `π'`. -/
 theorem Decomp.vars_code (D : Decomp) : D.code.vars = D.ports + D.τ.vars + D.auxVars := by
@@ -81,8 +90,8 @@ theorem Decomp.vars_code (D : Decomp) : D.code.vars = D.ports + D.τ.vars + D.au
     | cons c cs ih =>
       simp only [List.map_cons, List.sum_cons, ih, Function.comp, vars_var]
       rfl
-  have h2 : ((D.cells.map fun c => c.2.2).map Term.vars).sum +
-      ((D.cells.map fun c => c.2.1).map Term.vars).sum = D.auxVars := by
+  have h2 : ((D.cells.map fun c => c.2.1).map Term.vars).sum +
+      ((D.cells.map fun c => c.2.2).map Term.vars).sum = D.auxVars := by
     simp only [Decomp.auxVars, List.map_map]
     induction D.cells with
     | nil => rfl
@@ -105,10 +114,10 @@ theorem code_dupFree (k : ℕ) (π : Term sig ℕ) : DupFree (code k π) := by
       trivial
   · exact dupFree_muxStar _ fun t ht => by
       obtain ⟨c, hc', rfl⟩ := List.mem_map.1 ht
-      exact (hc c hc').2
+      exact (hc c hc').1
   · exact dupFree_muxStar _ fun t ht => by
       obtain ⟨c, hc', rfl⟩ := List.mem_map.1 ht
-      exact (hc c hc').1
+      exact (hc c hc').2
   · exact hτ
 
 /-- The names of `!π` are the names of `π` and the `n` cut names, each cut name twice: once on `M_n`
@@ -179,19 +188,19 @@ theorem decoder_free (w k : ℕ) (hw : w ≠ k) (hw' : w ≠ k + 1) :
     all_goals simp [hyw]
 
 /-- The first stage of Fig. 9 (page 89): the code against the decoder, `M_4` against `M_4*`,
-reduces to four wires. `M_n` meets the `dup` cell of the decoder, the `M_n*` of the right trees
-`r_i` meets its right auxiliary port `k + 1`, the `M_n*` of the left trees `l_i` its left auxiliary
-port `k`, and the root tree `τ` of `π'` comes out on the free port `w`. -/
+reduces to four wires. `M_n` meets the `dup` cell of the decoder, the `M_n*` of the trees `l_i`
+meets its auxiliary port 0, on `k`, the `M_n*` of the trees `r_i` its auxiliary port 1, on `k + 1`,
+and the root tree `τ` of `π'` comes out on the free port `w`. -/
 theorem code_decoder (k' : ℕ) (π : Term sig ℕ) (w k : ℕ) (Δ : CNet) :
     Red (s(code k' π, decoder w k) ::ₘ Δ)
       (s(mux ((decomp k' π).cells.map fun c => var c.1), mkDup (var k) (var (k + 1))) ::ₘ
-        s(muxStar ((decomp k' π).cells.map fun c => c.2.2), var (k + 1)) ::ₘ
         s(muxStar ((decomp k' π).cells.map fun c => c.2.1), var k) ::ₘ
+        s(muxStar ((decomp k' π).cells.map fun c => c.2.2), var (k + 1)) ::ₘ
         s((decomp k' π).τ, var w) ::ₘ Δ) := by
   have h := mux_muxStar [mux ((decomp k' π).cells.map fun c => var c.1),
-    muxStar ((decomp k' π).cells.map fun c => c.2.2),
-    muxStar ((decomp k' π).cells.map fun c => c.2.1), (decomp k' π).τ]
-    [mkDup (var k) (var (k + 1)), var (k + 1), var k, var w] Δ rfl
+    muxStar ((decomp k' π).cells.map fun c => c.2.1),
+    muxStar ((decomp k' π).cells.map fun c => c.2.2), (decomp k' π).τ]
+    [mkDup (var k) (var (k + 1)), var k, var (k + 1), var w] Δ rfl
   simp only [List.zipWith_cons_cons, List.zipWith_nil_left, ← Multiset.cons_coe,
     Multiset.coe_nil, Multiset.cons_add, zero_add] at h
   exact h
@@ -214,20 +223,21 @@ theorem code_of_dupFree (k : ℕ) (π : Term sig ℕ) (hd : DupFree π) :
 example : code 2 (mkDup (mkCon (var 0) (var 1)) (mkCon (var 0) (var 1)) : Term sig ℕ) =
     mux [var 2, mkCon (var 0) (var 1), mkCon (var 0) (var 1), var 2] := rfl
 
-/-- The same package, with distinct auxiliary trees `dup(con(0, 1), con(1, 0))`: the right tree
-`con(1, 0)` sits on the second port of `M_4`, the left tree `con(0, 1)` on the third. -/
+/-- The same package, with distinct auxiliary trees `dup(con(0, 1), con(1, 0))`: the tree
+`con(0, 1)` on port 0 sits on the second port of `M_4`, the tree `con(1, 0)` on port 1 on the
+third. -/
 example : code 2 (mkDup (mkCon (var 0) (var 1)) (mkCon (var 1) (var 0)) : Term sig ℕ) =
-    mux [var 2, mkCon (var 1) (var 0), mkCon (var 0) (var 1), var 2] := rfl
+    mux [var 2, mkCon (var 0) (var 1), mkCon (var 1) (var 0), var 2] := rfl
 
 /-- Two nested `dup` cells, `dup(dup(0, 1), con(0, 1))`, new names from `3`: cells cut at `3` and
-`6` (see `PackageDecomp.lean`), so `M_2` on `3, 6`, `M_2*` on the right trees `con(0, 1), 1`, `M_2*`
-on the left trees `6, 0`, and `τ = 3`. -/
+`6` (see `PackageDecomp.lean`), so `M_2` on `3, 6`, `M_2*` on the trees on port 0, `6, 0`, `M_2*`
+on the trees on port 1, `con(0, 1), 1`, and `τ = 3`. -/
 example : code 3 (mkDup (mkDup (var 0) (var 1)) (mkCon (var 0) (var 1)) : Term sig ℕ) =
-    mux [mux [var 3, var 6], muxStar [mkCon (var 0) (var 1), var 1], muxStar [var 6, var 0],
+    mux [mux [var 3, var 6], muxStar [var 6, var 0], muxStar [mkCon (var 0) (var 1), var 1],
       var 3] := rfl
 
 /-- The decoder with free port `0` and loop `1`, `2`, written out. -/
 example : (decoder 0 1 : Term sig ℕ) =
-    mkCon (mkCon (mkCon (var 0) (var 1)) (var 2)) (mkDup (var 1) (var 2)) := rfl
+    mkCon (mkCon (mkCon (var 0) (var 2)) (var 1)) (mkDup (var 1) (var 2)) := rfl
 
 end INet.Comb

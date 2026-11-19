@@ -30,7 +30,7 @@ carrying `101`, the tree `99` on the extra port and `100` on the principal port:
   `M_3` is nested to the right (Fig. 4). -/
 theorem codeCell_literal :
     (codeCell 2 1 (var 100) (var 99) [var 101] 200 201 202 203 204 : CNet) =
-      s(var 99, mkDup (muxStar [mkDup (var 204) (var 205), var 205, var 204, var 202])
+      s(var 99, mkDup (muxStar [mkDup (var 204) (var 205), var 204, var 205, var 202])
           (var 201)) ::ₘ
         s(var 202, muxStar [mkEra, var 203]) ::ₘ
         s(var 100, transpositor 1 [var 203,

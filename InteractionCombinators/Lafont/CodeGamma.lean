@@ -46,7 +46,7 @@ variable {S : Signature} {a k : ℕ}
 whose left auxiliary port carries the decoder `D` (loop `k₀`, `k₀ + 1`) with the selector `S^i_m`
 (free port `y`) on the free port of `D`, and whose right auxiliary port is the wire `u`. -/
 def codeExtra (m i y u k₀ : ℕ) : Term sig ℕ :=
-  copier [muxStar [mkDup (var k₀) (var (k₀ + 1)), var (k₀ + 1), var k₀, selector m i y], var u]
+  copier [muxStar [mkDup (var k₀) (var (k₀ + 1)), var k₀, var (k₀ + 1), selector m i y], var u]
 
 /-- `codeExtra` is the copier `C_2` of `⟨α_i⟩` (page 89) with the selector `S^i_m` plugged into the
 free port `w` of the decoder, when `w` is not a name of the loop of the decoder. -/

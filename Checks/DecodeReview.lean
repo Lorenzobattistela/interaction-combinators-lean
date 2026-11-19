@@ -50,7 +50,7 @@ def πn : Term sig ℕ := mkDup (mkDup (var 0) (var 1)) (mkCon (var 0) (var 1))
 
 /-- Its code with new names from `3` has the names `0, 1, 3, 6` (cut at `3` and `6`). -/
 theorem code_πn : code 3 πn =
-    mux [mux [var 3, var 6], muxStar [mkCon (var 0) (var 1), var 1], muxStar [var 6, var 0],
+    mux [mux [var 3, var 6], muxStar [var 6, var 0], muxStar [mkCon (var 0) (var 1), var 1],
       var 3] := rfl
 
 /-- The renaming of the copy: `0 ↦ 40`, `1 ↦ 41`, `3 ↦ 50`, `6 ↦ 47`, the identity elsewhere. -/
@@ -70,7 +70,7 @@ def back (x : ℕ) : ℕ :=
 
 /-- The copy written out: `M_n` on the cut names `50, 47`, in this order. -/
 theorem copy_eq : copy =
-    mux [mux [var 50, var 47], muxStar [mkCon (var 40) (var 41), var 41], muxStar [var 47, var 40],
+    mux [mux [var 50, var 47], muxStar [var 47, var 40], muxStar [mkCon (var 40) (var 41), var 41],
       var 50] := by decide
 
 /-- The net of Fig. 10 around the decoder: the copy against the decoder, free port `2`, loop at

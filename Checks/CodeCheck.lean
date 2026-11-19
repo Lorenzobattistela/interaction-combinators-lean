@@ -13,10 +13,10 @@ Checks of the code `!π` and the decoder `D`, all proved in Lean.
 * **`decoder_free` is sharp.** If the free port `w` is `k` or `k + 1`, it occurs three times
   (`decoder_count_self`, `decoder_count_succ`).
 * **Fig. 9 on a package with two different `dup` cells.** `π₂ = con(dup(0, con(1, ε)), dup(1, 0))`:
-  the first cell has `l = 0`, `r = con(1, ε)`, the second `l = 1`, `r = 0`, so a swap of left and
-  right trees would show. `code_decoder_π₂` is the first stage of Fig. 9 on it: `M_2` faces the
-  `dup` cell of the decoder, the `M_2*` on its right port `k + 1 = 13` carries the right trees
-  `con(1, ε), 0`, the one on its left port `k = 12` the left trees `0, 1`. `decode_π₂` carries out
+  the first cell has `l = 0`, `r = con(1, ε)`, the second `l = 1`, `r = 0`, so a swap of the trees
+  on port 0 and on port 1 would show. `code_decoder_π₂` is the first stage of Fig. 9 on it: `M_2`
+  faces the `dup` cell of the decoder, the `M_2*` on its port 0, `k = 12`, carries the trees `0, 1`
+  on port 0, the one on its port 1, `k + 1 = 13`, the trees `con(1, ε), 0` on port 1. `decode_π₂` carries out
   the whole of Fig. 9 by hand: the `con`–`dup` commutation, the two annihilations of the copies of
   `M_2` with the `M_2*`, and the wires; what is left is `Equiv` to `π₂` on the free port.
 -/
@@ -78,19 +78,19 @@ the first has `l = 0`, `r = con(1, ε)`, the second `l = 1`, `r = 0`; `τ = con(
 theorem decomp_π₂ : decomp 2 π₂ =
     ⟨mkCon (var 4) (var 9), [(4, var 0, mkCon (var 1) mkEra), (9, var 1, var 0)], 12⟩ := rfl
 
-/-- The code of `π₂` (Fig. 8): `M_4` of `M_2(4, 9)`, `M_2*` of the right trees `con(1, ε), 0`,
-`M_2*` of the left trees `0, 1`, and `τ`. -/
-theorem code_π₂ : code 2 π₂ = mux [mux [var 4, var 9], muxStar [mkCon (var 1) mkEra, var 0],
-    muxStar [var 0, var 1], mkCon (var 4) (var 9)] := rfl
+/-- The code of `π₂` (Fig. 8): `M_4` of `M_2(4, 9)`, `M_2*` of the trees `0, 1` on port 0,
+`M_2*` of the trees `con(1, ε), 0` on port 1, and `τ`. -/
+theorem code_π₂ : code 2 π₂ = mux [mux [var 4, var 9], muxStar [var 0, var 1],
+    muxStar [mkCon (var 1) mkEra, var 0], mkCon (var 4) (var 9)] := rfl
 
 /-- The first stage of Fig. 9 (page 89) on `π₂`, decoder with free port `20` and loop `12`, `13`.
-`M_2(4, 9) = con(4, 9)` faces the `dup` cell; `M_2*` of the right trees,
-`con(0, con(1, ε))`, faces the right port `13` of that cell; `M_2*` of the left trees,
-`con(1, 0)`, faces its left port `12`; `τ` comes out on `20`. -/
+`M_2(4, 9) = con(4, 9)` faces the `dup` cell; `M_2*` of the trees on port 0, `con(1, 0)`, faces
+port 0 of that cell, `12`; `M_2*` of the trees on port 1, `con(0, con(1, ε))`, faces its port 1,
+`13`; `τ` comes out on `20`. -/
 theorem code_decoder_π₂ : Red {s(code 2 π₂, decoder 20 12)}
     (s(mkCon (var 4) (var 9), mkDup (var 12) (var 13)) ::ₘ
-      s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ
-      s(mkCon (var 1) (var 0), var 12) ::ₘ {s(mkCon (var 4) (var 9), var 20)}) :=
+      s(mkCon (var 1) (var 0), var 12) ::ₘ
+      s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ {s(mkCon (var 4) (var 9), var 20)}) :=
   code_decoder 2 π₂ 20 12 0
 
 /-- Fig. 9 (page 89) carried out on `π₂`: the code against the decoder reduces to a net that is
@@ -104,15 +104,15 @@ theorem decode_π₂ : ∃ M, StepsE system {s(code 2 π₂, decoder 20 12)} M �
   have h1 := code_decoder_π₂
   -- stage 2: `M_2` (here one `con`) against the `dup` cell of the decoder
   have h2 := step_con_dup (var 4) (var 9) (var 12) (var 13)
-    (s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ
-        s(mkCon (var 1) (var 0), var 12) ::ₘ {s(mkCon (var 4) (var 9), var 20)})
+    (s(mkCon (var 1) (var 0), var 12) ::ₘ
+        s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ {s(mkCon (var 4) (var 9), var 20)})
     14 15 16 17 (by decide) (by decide)
   -- stage 3: the copy of `M_2` on the left port `12` against `M_2*` of the left trees
   have h3 : StepE system
       (s(var 4, mkDup (var 14) (var 15)) ::ₘ s(var 9, mkDup (var 16) (var 17)) ::ₘ
         s(var 12, mkCon (var 14) (var 16)) ::ₘ s(var 13, mkCon (var 15) (var 17)) ::ₘ
-        s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ
-        s(mkCon (var 1) (var 0), var 12) ::ₘ {s(mkCon (var 4) (var 9), var 20)})
+        s(mkCon (var 1) (var 0), var 12) ::ₘ
+        s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ {s(mkCon (var 4) (var 9), var 20)})
       (s(var 1, var 16) ::ₘ s(var 0, var 14) ::ₘ
         s(var 4, mkDup (var 14) (var 15)) ::ₘ s(var 9, mkDup (var 16) (var 17)) ::ₘ
         s(var 13, mkCon (var 15) (var 17)) ::ₘ s(mkCon (var 0) (mkCon (var 1) mkEra), var 13) ::ₘ
