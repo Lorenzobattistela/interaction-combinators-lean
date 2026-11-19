@@ -103,3 +103,4 @@ import Checks.ComputableMarksCheck
 import Checks.WireNumCheck
 import Checks.WireNumReview
 import Checks.GraphRawCheck
+import Checks.GraphContractCheck

@@ -97,4 +97,5 @@ import InteractionCombinators.Lafont.NormalFormCut
 import InteractionCombinators.Lafont.StrongConfluenceE
 import InteractionCombinators.Lafont.StrongConfluenceNoReduced
 import InteractionCombinators.Lafont.GraphRaw
+import InteractionCombinators.Lafont.GraphContract
 import InteractionCombinators.Graph
