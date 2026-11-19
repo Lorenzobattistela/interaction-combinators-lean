@@ -6,24 +6,39 @@ import InteractionCombinators.Universality.Codes.DecodeCopy
 In Fig. 10 (page 89, the translation `⟨α_k⟩`) the code `!Γ` reaches the decoder `D` only after
 two copiers. `C_{p_{i,j}}` in `Γ_{i,j}` makes a copy, and `C_2` in `⟨α_k⟩` copies that copy again.
 
-* `copy_of_copy`: a copy of a copy is still of the form `(code k π).bind (var ∘ f)` with `f`
-  injective on the names of the code.
-* `copier_decoder_copy`: chains `C_2` (`copier_package`) with `code_decoder_copy`, with every
-  hypothesis taken from the first copier.
-
 These two lemmas were first proved in the review of issue #105 (`DecodeCopyReview.lean`).
+
+Contents, in the order of the file:
+
+1. Auxiliary lemma: `copy_of_copy`, a copy of a copy is still of the form
+   `(code k π).bind (var ∘ f)` with `f` injective on the names of the code.
+2. Main result: `copier_decoder_copy`, which chains `C_2` (`copier_package`) with
+   `code_decoder_copy`, with every hypothesis taken from the first copier.
 -/
 
 namespace INet.Comb
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemma: a copy of a copy
+-- ============================================================================================
+
 /-- A copy of a copy is a copy (page 89, Fig. 10: `!Γ` passes through `C_{p_{i,j}}`, then `C_2`).
 Renaming `t` by `f`, injective on the names of `t`, and then by `g`, injective on the names of the
 renamed tree, is renaming `t` by `g ∘ f`, which is injective on the names of `t`. -/
-theorem copy_of_copy (t : Term sig ℕ) (f g : ℕ → ℕ) (hf : Set.InjOn f {x | x ∈ t.vars})
+theorem copy_of_copy
+    -- the tree
+    (t : Term sig ℕ)
+    -- the two renamings, `f` applied first
+    (f g : ℕ → ℕ)
+    -- `f` is injective on the names of the tree
+    (hf : Set.InjOn f {x | x ∈ t.vars})
+    -- `g` is injective on the names of the renamed tree
     (hg : Set.InjOn g {x | x ∈ (t.bind fun x => var (f x)).vars}) :
+    -- renaming by `f`, then by `g`, is renaming by `g ∘ f`,
     ((t.bind fun x => var (f x)).bind fun x => var (g x)) = t.bind (fun x => var (g (f x))) ∧
+      -- and `g ∘ f` is injective on the names of the tree
       Set.InjOn (fun x => g (f x)) {x | x ∈ t.vars} := by
   refine ⟨?_, fun x hx y hy h => hf hx hy (hg ?_ ?_ h)⟩
   · rw [Term.bind_bind]
@@ -33,6 +48,10 @@ theorem copy_of_copy (t : Term sig ℕ) (f g : ℕ → ℕ) (hf : Set.InjOn f {x
   · show f y ∈ (t.bind fun x => var (f x)).vars
     rw [INet.Comb.vars_bind_var]; exact Multiset.mem_map_of_mem f hy
 
+-- ============================================================================================
+-- 2. Main result: a copy of the code through `C_2` and the decoder
+-- ============================================================================================
+
 /-- **The translation `⟨α_k⟩` of Fig. 10 (page 89) against a copy of `!Γ`, then the extraction of
 page 90.** A copy `(code k π).bind (var ∘ f)`, as `copier_code` leaves it (`f` injective on the
 names of the code), meets the copier `C_2` whose first auxiliary port carries the decoder `D`
@@ -40,15 +59,36 @@ names of the code), meets the copier `C_2` whose first auxiliary port carries th
 reduces, in any context `Δ`, to a net that is `Equiv` to the package `π` renamed by some injective
 `g` on `w`, next to a new copy of the code on `u`. The only hypotheses are those of
 `copier_code`, together with `f` and linearity. -/
-theorem copier_decoder_copy (π : Term sig ℕ) (hπ : π.IsPackage) (k : ℕ) (hb : π.Below k)
-    (f : ℕ → ℕ) (hf : Set.InjOn f {x | x ∈ (code k π).vars}) (w k₀ : ℕ) (u : Term sig ℕ)
+theorem copier_decoder_copy
+    -- the package: every name occurs twice
+    (π : Term sig ℕ)
+    (hπ : π.IsPackage)
+    -- the first new name of the code: every name of the package is below `k`
+    (k : ℕ)
+    (hb : π.Below k)
+    -- the renaming of the copy of the code, injective on the names of the code
+    (f : ℕ → ℕ)
+    (hf : Set.InjOn f {x | x ∈ (code k π).vars})
+    -- the free port `w` of the decoder and the first name `k₀` of its loop
+    (w k₀ : ℕ)
+    -- the tree on the second auxiliary port of `C_2`
+    (u : Term sig ℕ)
+    -- the rest of the net
     (Δ : CNet)
+    -- the net we start from is linear: the copy of the code on the root of `C_2`, and `Δ`
     (hlin : Net.Linear
       (s(copier [decoder w k₀, u], (code k π).bind (fun x => var (f x))) ::ₘ Δ)) :
-    ∃ (g g' : ℕ → ℕ) (M : CNet), Set.InjOn g {x | x ∈ (code k π).vars} ∧
+    -- there are two renamings `g`, `g'` and a net `M` such that
+    ∃ (g g' : ℕ → ℕ) (M : CNet),
+      -- `g` is injective on the names of the code,
+      Set.InjOn g {x | x ∈ (code k π).vars} ∧
+      -- `g'` is injective on the names of the code,
       Set.InjOn g' {x | x ∈ (code k π).vars} ∧
+      -- the net reduces, up to wires, to `M`,
       StepsE system
         (s(copier [decoder w k₀, u], (code k π).bind (fun x => var (f x))) ::ₘ Δ) M ∧
+      -- and `M` is the same graph as: the package renamed by `g` on `w`, the code renamed by
+      -- `g'` on `u`, and `Δ`
       Equiv M (s(var w, π.bind (fun x => var (g x))) ::ₘ
         s(u, (code k π).bind (fun x => var (g' x))) ::ₘ Δ) := by
   set C := (code k π).bind (fun x => var (f x)) with hC
