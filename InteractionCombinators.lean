@@ -72,6 +72,9 @@ import InteractionCombinators.Lafont.CodeData
 import InteractionCombinators.Lafont.CodeDataCheck
 import InteractionCombinators.Lafont.CodeTrReview
 import InteractionCombinators.Lafont.CodeDataReview
+import InteractionCombinators.Lafont.CodeShift
+import InteractionCombinators.Lafont.CodeTermExtract
+import InteractionCombinators.Lafont.CodeTermExtractCheck
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
