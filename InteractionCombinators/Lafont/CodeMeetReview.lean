@@ -1,6 +1,7 @@
 import InteractionCombinators.Lafont.CodeGammaMeet
 import InteractionCombinators.Lafont.CodeGammaExtractCheck
 import InteractionCombinators.Lafont.CodeCellsMeetCheck
+import InteractionCombinators.Lafont.CodeCellsPlug
 
 /-!
 # Review of the meeting lemmas of Fig. 10 (pages 89–90)
@@ -132,42 +133,7 @@ theorem meet_gamma_of_some (α β : S.Sym) (s : ExpSide S (S.arity α)) (hs : si
   rw [hs]
   exact codeCells_meet_gamma _ _ s.φ s.σ s.involutive B ρ c xs ℓ Δ
 
-/-- **The code of `[α]` satisfies the bound of `codeGamma_extract`** (page 89): with
-`B = codeMenuBase side α`, the first cut name `codeKey side α` of `!Γ` is `B + ∑ codeMenuSizes`. -/
-theorem codeKey_bound (α : S.Sym) :
-    codeMenuBase side α + ∑ i, codeMenuSizes side i ≤ codeKey side α :=
-  le_rfl
-
-/-- **The renaming of the code of `[α]` satisfies the hypothesis of `codeGamma_extract`**
-(page 89): the names of `!Γ` in `[α]` are above the ports, so `codeRen xs K`, the renaming used by
-`codeCells_meet`, is injective on them. -/
-theorem injOn_codeRen_code (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
-    Set.InjOn (codeRen xs K)
-      {x | x ∈ (code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).vars} := by
-  refine codeRen_injOn xs K _ fun x hx => ?_
-  have hB : S.arity α + 1 ≤ codeMenuBase side α := Nat.le_add_right _ _
-  have hK : codeMenuBase side α ≤ codeKey side α := Nat.le_add_right _ _
-  rw [Set.mem_ofPred_eq, vars_code] at hx
-  rcases Multiset.mem_add.1 hx with hx | hx
-  · rcases Multiset.mem_add.1 hx with hx | hx
-    · rw [vars_menu_codeMenus] at hx
-      have := (Multiset.mem_Ico.1 (Multiset.mem_of_mem_nsmul hx)).1
-      omega
-    · have := ((decomp_ports _ _).2.1 x hx).1
-      omega
-  · have := ((decomp_ports _ _).2.1 x hx).1
-    omega
-
-/-- **The ports left by `codeGamma_meet` are in the form of `codeGamma_extract`** (page 90): the
-equations `ts p = F (.inl p)` and `F (.inr l) = G (σ l)` together are `∑ q, {s(P q, F q)}` with
-the partner `P (.inl p) = ts p` and `P (.inr l) = G (σ l)`. -/
-theorem ports_sum_form {a k : ℕ} (F : Fin a ⊕ Fin k → Term sig ℕ) (ts : Fin a → Term sig ℕ)
-    (G : Fin k → Term sig ℕ) (σ : Equiv.Perm (Fin k)) :
-    (Finset.univ.val.map fun p : Fin a => s(ts p, F (.inl p))) +
-        (Finset.univ.val.map fun l : Fin k => s(F (.inr l), G (σ l))) =
-      ∑ q, {s(Sum.elim ts (fun l => G (σ l)) q, F q)} := by
-  rw [Fintype.sum_sum_type, sum_singleton_univ, sum_singleton_univ]
-  congr 1
-  exact Multiset.map_congr rfl fun l _ => Sym2.eq_swap
+-- `codeKey_bound`, `injOn_codeRen_code` and `ports_sum_form`, found by this review, are now in
+-- the library file `CodeCellsPlug.lean`.
 
 end INet.Comb.CodeMeetReview
