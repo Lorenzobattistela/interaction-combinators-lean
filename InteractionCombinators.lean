@@ -128,4 +128,6 @@ import InteractionCombinators.Lafont.CutChain
 import InteractionCombinators.Lafont.CutCheck
 import InteractionCombinators.Lafont.Vicious
 import InteractionCombinators.Lafont.ViciousCheck
+import InteractionCombinators.Lafont.ViciousReflect
+import InteractionCombinators.Lafont.ViciousReflectCheck
 import InteractionCombinators.Lafont.ViciousReview
