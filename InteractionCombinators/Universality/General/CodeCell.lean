@@ -17,19 +17,28 @@ into the root of a selector `S^k_m`; the free port of that selector is the first
 The right auxiliary port of `C_2` is the first leaf of `M_{n_k+2}`. The rest is as in `[α_k]`.
 
 The figure joins two auxiliary ports twice (the free port of the left `S^k_m` to the first port of
-`T_{1,1}`, and the right auxiliary port of `C_2` to the first leaf of `M_{n_k+2}`), so `⟨α_k⟩` is not
-one tree rooted at `T_{1,1}` with the extra port among its leaves: it is a net of three equations
+`T_{1,1}`, and the right auxiliary port of `C_2` to the first leaf of `M_{n_k+2}`), so `⟨α_k⟩` is
+not one tree rooted at `T_{1,1}` with the extra port among its leaves: it is a net of three equations
 (`codeCell`), with the internal wires `y` and `u` for these two connections, and `w` for the wire
 from `D` to `S^k_m`.
 
-* `codeCell` — `⟨α_k⟩`, with trees `P` on its principal port and `x` on its extra port.
-* `subst_cellSkel` — plugging a tree into a wire of `[αᵢ]`.
-* `codeCell_code` — page 90: `!Γ` (a copy of it) on the extra port of `⟨α_k⟩` reduces to `[α_k]`.
+Contents, in the order of the file:
+
+1. Definition: `codeCell`, the cell `⟨α_k⟩`, with trees `P` on its principal port and `x` on its
+   extra port.
+2. Auxiliary lemmas: `subst_cellSkel` (plugging a tree into a wire of `[αᵢ]`), `vars_cellSkel`
+   (the names of `[αᵢ]`), `vars_le_sum_of_mem`.
+3. Main result: `codeCell_code`, page 90: a copy of `!Γ` on the extra port of `⟨α_k⟩` reduces to
+   `[α_k]`.
 -/
 
 namespace INet.Comb
 
 open Term
+
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
 
 /-- **The cell `⟨α_k⟩` of Fig. 10** (bottom left, page 89), with the tree `P` on its principal port
 (the root of `T_{1,1}`), the tree `x` on its extra port (the root of `C_2`), and the trees `ts` on
@@ -39,18 +48,39 @@ its `n_k` auxiliary ports. It is the net of three equations
   `w`, loop `k₀, k₀ + 1`) and whose right auxiliary port is the wire `u`;
 * `w = S^k_m(y)`: the free port of `D` against the root of the selector `S^k_m`, whose free port is
   the wire `y`;
-* `P = T_{1,1}(y, S^k_m(M_{n_k+2}(u, ts, ℓ)), ℓ)`: the cell `[α_k]` with the wire `y` in place of the
-  menu and the wire `u` in place of the code, `cellSkel (var y) m k (var u :: ts) ℓ`.
+* `P = T_{1,1}(y, S^k_m(M_{n_k+2}(u, ts, ℓ)), ℓ)`: the cell `[α_k]` with the wire `y` in place of
+  the menu and the wire `u` in place of the code, `cellSkel (var y) m k (var u :: ts) ℓ`.
 
 The internal wires are `u`, `w`, `y`, the loop `ℓ`, and the loop `k₀, k₀ + 1` of the decoder. -/
-def codeCell (m k : ℕ) (P x : Term sig ℕ) (ts : List (Term sig ℕ)) (ℓ u w y k₀ : ℕ) : CNet :=
+def codeCell
+    -- the number `m` of symbols and the index `k` of the symbol `α_k`
+    (m k : ℕ)
+    -- the trees on the principal port and on the extra port
+    (P x : Term sig ℕ)
+    -- the trees on the `n_k` auxiliary ports
+    (ts : List (Term sig ℕ))
+    -- the internal wires: the loop `ℓ`, the wires `u`, `w`, `y`, and the loop `k₀, k₀ + 1` of `D`
+    (ℓ u w y k₀ : ℕ) :
+    CNet :=
   s(x, copier [decoder w k₀, var u]) ::ₘ s(var w, selector m k y) ::ₘ
     s(P, cellSkel (var y) m k (var u :: ts) ℓ) ::ₘ 0
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas: names and substitution in the cell `[αᵢ]`
+-- ============================================================================================
+
 /-- Plugging the tree `t` into a wire `x` of the cell `[αᵢ]` of Fig. 6 (page 86) other than its
 loop plugs it into the menu and the trees of the auxiliary ports. -/
-theorem subst_cellSkel (Γ : Term sig ℕ) (m i : ℕ) (ts : List (Term sig ℕ)) (ℓ x : ℕ)
-    (t : Term sig ℕ) (hx : x ≠ ℓ) :
+theorem subst_cellSkel
+    -- the cell `[αᵢ]`: menu `Γ`, `m` symbols, index `i`, auxiliary trees `ts`, loop `ℓ`
+    (Γ : Term sig ℕ)
+    (m i : ℕ)
+    (ts : List (Term sig ℕ))
+    (ℓ : ℕ)
+    -- the wire `x`, other than the loop, and the tree `t` plugged into it
+    (x : ℕ)
+    (t : Term sig ℕ)
+    (hx : x ≠ ℓ) :
     (cellSkel Γ m i ts ℓ).subst x t =
       cellSkel (Γ.subst x t) m i (ts.map (·.subst x t)) ℓ := by
   have hℓ : (var ℓ : Term sig ℕ).subst x t = var ℓ := subst_of_notMem (by simp [hx])
@@ -59,20 +89,32 @@ theorem subst_cellSkel (Γ : Term sig ℕ) (m i : ℕ) (ts : List (Term sig ℕ)
 
 /-- The names of the cell `[αᵢ]` of Fig. 6 (page 86): those of the menu, of the trees on the
 auxiliary ports, and the loop `ℓ` twice. -/
-theorem vars_cellSkel (Γ : Term sig ℕ) (m i : ℕ) (ts : List (Term sig ℕ)) (ℓ : ℕ) :
+theorem vars_cellSkel
+    -- the cell `[αᵢ]`: menu `Γ`, `m` symbols, index `i`, auxiliary trees `ts`, loop `ℓ`
+    (Γ : Term sig ℕ)
+    (m i : ℕ)
+    (ts : List (Term sig ℕ))
+    (ℓ : ℕ) :
     (cellSkel Γ m i ts ℓ).vars = Γ.vars + (ts.map Term.vars).sum + {ℓ} + {ℓ} := by
   simp only [cellSkel, vars_transpositor, vars_cellSel, vars_mux, List.map_cons, List.map_nil,
     List.sum_cons, List.sum_nil, add_zero, List.map_append, List.sum_append, vars_var]
   abel
 
 /-- The names of a tree of a list are among the names of the list. -/
-theorem vars_le_sum_of_mem {ρ : Term sig ℕ} :
+theorem vars_le_sum_of_mem
+    -- the tree
+    {ρ : Term sig ℕ} :
+    -- if `ρ` belongs to the list `ts`, its names are among those of `ts`
     ∀ {ts : List (Term sig ℕ)}, ρ ∈ ts → ρ.vars ≤ (ts.map Term.vars).sum
   | t :: ts, h => by
     rw [List.map_cons, List.sum_cons]
     rcases List.mem_cons.1 h with rfl | h
     · exact Multiset.le_add_right _ _
     · exact (vars_le_sum_of_mem h).trans (Multiset.le_add_left _ _)
+
+-- ============================================================================================
+-- 3. Main result: the extraction of page 90
+-- ============================================================================================
 
 /-- **The extraction of page 90.** Let `Γ = Γ₁ & ⋯ & Γ_m` be a menu of packages that is itself a
 package, with names below `K`, and `k < m`. A copy of the code `!Γ` (renamed by `f`, injective on
@@ -85,16 +127,41 @@ by some `g` and `g'` injective on the names of the code.
 `!Γ` renamed by `g'` comes out of the right port of `C_2`. Then `S^k_m` extracts `Γ_k` from the
 decoded menu (`menu_selector`), and the two wires `y` and `u` are plugged into `T_{1,1}` and
 `M_{n_k+2}`. -/
-theorem codeCell_code (Γs : List (Term sig ℕ)) (hp : ∀ π ∈ Γs, π.IsPackage)
-    (hΓ : (menu Γs).IsPackage) (K : ℕ) (hb : (menu Γs).Below K) (k : ℕ) (hk : k < Γs.length)
-    (f : ℕ → ℕ) (hf : Set.InjOn f {x | x ∈ (code K (menu Γs)).vars})
-    (P : Term sig ℕ) (ts : List (Term sig ℕ)) (ℓ u w y k₀ : ℕ) (Δ : CNet)
+theorem codeCell_code
+    -- the menu `Γ = Γ₁ & ⋯ & Γ_m`: its entries are packages, and so is the menu
+    (Γs : List (Term sig ℕ))
+    (hp : ∀ π ∈ Γs, π.IsPackage)
+    (hΓ : (menu Γs).IsPackage)
+    -- a bound `K` on the names of the menu
+    (K : ℕ)
+    (hb : (menu Γs).Below K)
+    -- the index `k` of the symbol
+    (k : ℕ)
+    (hk : k < Γs.length)
+    -- the renaming of the copy of `!Γ`, injective on the names of the code
+    (f : ℕ → ℕ)
+    (hf : Set.InjOn f {x | x ∈ (code K (menu Γs)).vars})
+    -- the tree on the principal port and the trees on the auxiliary ports of `⟨α_k⟩`
+    (P : Term sig ℕ)
+    (ts : List (Term sig ℕ))
+    -- the internal wires of `⟨α_k⟩`
+    (ℓ u w y k₀ : ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net we start from is linear: `⟨α_k⟩` with the copy of `!Γ` on its extra port, and `Δ`
     (hlin : Net.Linear (codeCell Γs.length k P ((code K (menu Γs)).bind fun x => var (f x)) ts
       ℓ u w y k₀ + Δ)) :
-    ∃ (g g' : ℕ → ℕ) (M : CNet), Set.InjOn g {x | x ∈ (code K (menu Γs)).vars} ∧
+    -- there are two renamings `g`, `g'` and a net `M` such that
+    ∃ (g g' : ℕ → ℕ) (M : CNet),
+      -- `g` is injective on the names of the code,
+      Set.InjOn g {x | x ∈ (code K (menu Γs)).vars} ∧
+      -- `g'` is injective on the names of the code,
       Set.InjOn g' {x | x ∈ (code K (menu Γs)).vars} ∧
+      -- the net reduces, up to wires, to `M`,
       StepsE system (codeCell Γs.length k P ((code K (menu Γs)).bind fun x => var (f x)) ts
         ℓ u w y k₀ + Δ) M ∧
+      -- and `M` is the same graph as `[α_k]` with menu `Γ_k` renamed by `g` and code `!Γ`
+      -- renamed by `g'` on its first leaf, `P` on its principal port; and `Δ`
       Equiv M (s(P, cellSkel (Γs[k].bind fun x => var (g x)) Γs.length k
         (((code K (menu Γs)).bind fun x => var (g' x)) :: ts) ℓ) ::ₘ Δ) := by
   set C := code K (menu Γs) with hC
