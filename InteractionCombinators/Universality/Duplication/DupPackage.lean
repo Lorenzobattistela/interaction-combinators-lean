@@ -13,20 +13,30 @@ on each leaf. In a package every leaf is one end of a wire, so these `dup` cells
 the wires of the package; Lemma 3 (ii) (`dup_wiring`) makes each pair annihilate, which leaves two
 wires between names. Plugging these wires (`equiv_wires_var`) gives the two copies.
 
-* `equiv_wire_var`, `equiv_wires_var` — an equation between two names is a wire, and can be
-  removed by renaming.
-* `nested_spec` — the copies built by `nested`, leaf by leaf.
-* `dup_package` — the corollary.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas, equations between names: `subst_var_eq_bind`, `equiv_wire_var`,
+   `equiv_wires_var`. An equation between two names is a wire, and can be removed by renaming.
+2. Auxiliary lemma, the copies of a tree: `nested_spec`, the copies built by `nested`, leaf by
+   leaf.
+3. Auxiliary lemma, reduction after an equivalence: `stepsE_of_equiv`.
+4. Main result: `dup_package`, the corollary of Lemma 3 (page 87).
+5. An example showing that the hypotheses of `dup_package` can hold.
 -/
 
 namespace INet.Comb
 
 open Term
 
-/-! ## Equations between names -/
+-- ============================================================================================
+-- 1. Auxiliary lemmas: equations between names
+-- ============================================================================================
 
 /-- Plugging a name into one name is a renaming of that name. -/
-theorem subst_var_eq_bind (c : Term sig ℕ) (a b : ℕ) :
+theorem subst_var_eq_bind
+    -- the tree, and the name `a` plugged into the name `b`
+    (c : Term sig ℕ)
+    (a b : ℕ) :
     c.subst b (var a) = c.bind fun y => var (if y = b then a else y) := by
   unfold Term.subst
   congr 1
@@ -36,8 +46,15 @@ theorem subst_var_eq_bind (c : Term sig ℕ) (a b : ℕ) :
 /-- An equation `a = b` between two names is a wire (page 70: a net is a graph, and a wire may
 be cut by a name): if `b` occurs in the rest of the net, the equation can be removed by renaming
 `b` to `a` there. -/
-theorem equiv_wire_var (a b : ℕ) (M : CNet) (hlin : Net.Linear (s(var a, var b) ::ₘ M))
+theorem equiv_wire_var
+    -- the two names of the equation
+    (a b : ℕ)
+    -- the rest of the net, linear together with the equation
+    (M : CNet)
+    (hlin : Net.Linear (s(var a, var b) ::ₘ M))
+    -- `b` occurs in the rest of the net
     (hb : b ∈ M.vars) :
+    -- the equation is removed by renaming `b` to `a` in the rest of the net
     Equiv (s(var a, var b) ::ₘ M) (M.bind fun y => var (if y = b then a else y)) := by
   obtain ⟨e, he, hbe⟩ := Multiset.mem_bind.1 hb
   obtain ⟨M', rfl⟩ := Multiset.exists_cons_of_mem he
@@ -67,9 +84,18 @@ theorem equiv_wire_var (a b : ℕ) (M : CNet) (hlin : Net.Linear (s(var a, var b
 /-- Several equations between names are removed at once. Each name `y` of `Q` is joined to
 `ρ y` by an equation, and occurs once more in `M`; the targets `ρ y` are not in `Q`. Removing
 the equations renames each `y` of `Q` to `ρ y` in `M`. -/
-theorem equiv_wires_var (Q : Multiset ℕ) (ρ : ℕ → ℕ) (M : CNet)
+theorem equiv_wires_var
+    -- the names `y` joined by an equation to `ρ y`
+    (Q : Multiset ℕ)
+    (ρ : ℕ → ℕ)
+    -- the rest of the net, linear together with the equations
+    (M : CNet)
     (hlin : Net.Linear (Q.map (fun y => s(var (ρ y), var y)) + M))
-    (hq : ∀ y ∈ Q, y ∈ M.vars) (hρ : ∀ y ∈ Q, ρ y ∉ Q) :
+    -- each name of `Q` occurs in the rest of the net
+    (hq : ∀ y ∈ Q, y ∈ M.vars)
+    -- the targets `ρ y` are not in `Q`
+    (hρ : ∀ y ∈ Q, ρ y ∉ Q) :
+    -- the equations are removed by renaming each `y` of `Q` to `ρ y` in the rest of the net
     Equiv (Q.map (fun y => s(var (ρ y), var y)) + M)
       (M.bind fun y => var (if y ∈ Q then ρ y else y)) := by
   induction Q using Multiset.induction_on generalizing M with
@@ -124,20 +150,35 @@ theorem equiv_wires_var (Q : Multiset ℕ) (ρ : ℕ → ℕ) (M : CNet)
       simp [hf₀, this]
     · simp [hf₀, hz, Multiset.mem_cons]
 
-/-! ## The copies of a tree, leaf by leaf -/
+-- ============================================================================================
+-- 2. Auxiliary lemma: the copies of a tree, leaf by leaf
+-- ============================================================================================
 
 /-- The copies built by `nested` (Lafont's picture for Lemma 3 (i), page 87), leaf by leaf. The
 first copy `l` is `τ` with each leaf occurrence given its own new name `y`, and `σ y` is the
 original leaf; the second copy `r` is `l` with each name `y` changed to `y + 1`; and `E` puts one
 `dup` on each original leaf, `σ y = dup(y, y + 1)`. The new names lie in `[k, (nested k τ).k)`
 and are pairwise distinct. -/
-theorem nested_spec (τ : Term sig ℕ) (hτ : DupFree τ) (k : ℕ) :
-    ∃ σ : ℕ → ℕ, τ = (nested k τ).l.bind (fun y => var (σ y)) ∧
+theorem nested_spec
+    -- the tree, without `dup` cell
+    (τ : Term sig ℕ)
+    (hτ : DupFree τ)
+    -- the first new name
+    (k : ℕ) :
+    -- there is a map `σ` from the new names to the original leaves such that
+    ∃ σ : ℕ → ℕ,
+      -- the tree is the first copy with each new name `y` changed back to `σ y`,
+      τ = (nested k τ).l.bind (fun y => var (σ y)) ∧
+      -- the second copy is the first with each name `y` changed to `y + 1`,
       (nested k τ).r = (nested k τ).l.bind (fun y => var (y + 1)) ∧
+      -- the equations put `dup(y, y + 1)` on the original leaf `σ y`,
       (nested k τ).E = (nested k τ).l.vars.map
         (fun y => s(var (σ y), mkDup (var y) (var (y + 1)))) ∧
+      -- the next free name is at least `k`,
       k ≤ (nested k τ).k ∧
+      -- the new names `y` and `y + 1` lie in `[k, (nested k τ).k)`,
       (∀ y ∈ (nested k τ).l.vars, k ≤ y ∧ y + 2 ≤ (nested k τ).k) ∧
+      -- and they are pairwise distinct
       ((nested k τ).l.vars + (nested k τ).l.vars.map (· + 1)).Nodup := by
   induction τ using Comb.induction generalizing k with
   | var x =>
@@ -196,15 +237,29 @@ theorem nested_spec (τ : Term sig ℕ) (hτ : DupFree τ) (k : ℕ) :
           have := (hb5 y hy).2; omega
       omega
 
-/-! ## The corollary -/
+-- ============================================================================================
+-- 3. Auxiliary lemma: reduction after an equivalence
+-- ============================================================================================
 
 /-- An equivalence followed by a reduction up to wires is a reduction up to wires, to a net
 equivalent to the end. -/
-theorem stepsE_of_equiv {N K M : CNet} (hE : Equiv N K) (h : StepsE system K M) :
-    ∃ M', StepsE system N M' ∧ Equiv M' M := by
+theorem stepsE_of_equiv
+    -- three nets
+    {N K M : CNet}
+    -- `N` is the same graph as `K`, which reduces up to wires to `M`
+    (hE : Equiv N K)
+    (h : StepsE system K M) :
+    -- `N` reduces up to wires to a net `M'` that is the same graph as `M`
+    ∃ M',
+      StepsE system N M' ∧
+      Equiv M' M := by
   rcases Relation.ReflTransGen.cases_head h with rfl | ⟨K', ⟨K'', hK, hS⟩, hrest⟩
   · exact ⟨N, Relation.ReflTransGen.refl, hE⟩
   · exact ⟨M, Relation.ReflTransGen.head ⟨K'', hE.trans hK, hS⟩ hrest, Equiv.refl M⟩
+
+-- ============================================================================================
+-- 4. Main result: duplicating a package
+-- ============================================================================================
 
 /-- The corollary of Lemma 3, page 87: a package `π` without `dup`, plugged into the principal
 port of a `dup` with auxiliary trees `u` and `v`, reduces to two copies of `π`, plugged into `u`
@@ -213,13 +268,29 @@ the same graph as `π`.
 
 Lemma 3 (i) leaves a `dup` on each leaf of the two copies; the two leaves of each wire `x` of `π`
 give two `dup` cells joined by `x`, and Lemma 3 (ii) makes them annihilate. -/
-theorem dup_package (π : Term sig ℕ) (hπ : π.IsPackage) (hd : DupFree π)
-    (u v : Term sig ℕ) (Δ : CNet) (hlin : Net.Linear (s(mkDup u v, π) ::ₘ Δ)) :
-    ∃ (f g : ℕ → ℕ) (N : CNet), Set.InjOn f {x | x ∈ π.vars} ∧
+theorem dup_package
+    -- the package: every name occurs twice, and there is no `dup` cell
+    (π : Term sig ℕ)
+    (hπ : π.IsPackage)
+    (hd : DupFree π)
+    -- the trees plugged into the two auxiliary ports of the `dup`
+    (u v : Term sig ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net we start from is linear: the package on the principal port of the `dup`, and `Δ`
+    (hlin : Net.Linear (s(mkDup u v, π) ::ₘ Δ)) :
+    -- there are two renamings `f`, `g` and a net `N` such that
+    ∃ (f g : ℕ → ℕ) (N : CNet),
+      -- `f` is injective on the names of the package,
+      Set.InjOn f {x | x ∈ π.vars} ∧
+      -- so is `g`,
       Set.InjOn g {x | x ∈ π.vars} ∧
+      -- the net reduces, up to wires, to `N`,
       StepsE system (s(mkDup u v, π) ::ₘ Δ) N ∧
-      Equiv N (s(u, π.bind (fun x => var (f x))) ::ₘ
-        s(v, π.bind (fun x => var (g x))) ::ₘ Δ) := by
+      -- and `N` is the same graph as: the copy renamed by `f` on `u`, by `g` on `v`; and `Δ`
+      Equiv N
+        (s(u, π.bind (fun x => var (f x))) ::ₘ
+          s(v, π.bind (fun x => var (g x))) ::ₘ Δ) := by
   classical
   -- Lemma 3 (i), with new names from a bound `n` on the names of the net
   obtain ⟨n, hn⟩ : ∃ n, Net.Below n (s(mkDup u v, π) ::ₘ Δ) :=
@@ -423,12 +494,18 @@ theorem dup_package (π : Term sig ℕ) (hπ : π.IsPackage) (hd : DupFree π)
     hred.stepsE.trans hS, ?_⟩
   exact hEN.trans ((Equiv.of_eq eY).trans (EW.trans (Equiv.of_eq eZ)))
 
+-- ============================================================================================
+-- 5. The hypotheses can hold
+-- ============================================================================================
+
 /-- The hypotheses of `dup_package` hold: a `con` whose auxiliary ports are joined by the wire
 `0`, plugged into a `dup` with free auxiliary ports `1` and `2`, reduces to two copies of the
 package, one on `1` and one on `2`, each with its own wire. -/
-example : ∃ (f g : ℕ → ℕ) (N : CNet),
-    StepsE system ({s(mkDup (var 1) (var 2), mkCon (var 0) (var 0))} : CNet) N ∧
-      Equiv N {s(var 1, mkCon (var (f 0)) (var (f 0))), s(var 2, mkCon (var (g 0)) (var (g 0)))} := by
+example :
+    ∃ (f g : ℕ → ℕ) (N : CNet),
+      StepsE system ({s(mkDup (var 1) (var 2), mkCon (var 0) (var 0))} : CNet) N ∧
+      Equiv N
+        {s(var 1, mkCon (var (f 0)) (var (f 0))), s(var 2, mkCon (var (g 0)) (var (g 0)))} := by
   obtain ⟨f, g, N, -, -, hS, hE⟩ := dup_package (mkCon (var 0) (var 0)) (isPackage_mkCon_var 0)
     (dupFree_mkCon.2 ⟨trivial, trivial⟩) (var 1) (var 2) 0 (by
       intro y
