@@ -71,6 +71,7 @@ import Checks.ReducedClosedCheck
 import Checks.RecursionFreeCompatibleReview
 import Checks.RecursionFreeFig7Check
 import Checks.RecursionFreeTrReview
+import Checks.RecursionFreeTerminatesCheck
 import Checks.SimulationCheck
 import Checks.SimulationCorollaryReview
 import Checks.SimulationCountCheck
