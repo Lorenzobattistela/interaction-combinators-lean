@@ -10,6 +10,7 @@ import Checks.CodeCellsPlugReview
 import Checks.CodeCheck
 import Checks.CodeCompatibleReview
 import Checks.CodeCompatibleSidesCheck
+import Checks.CodeCompatibleSidesReview
 import Checks.CodeDataCheck
 import Checks.CodeDataReview
 import Checks.CodeDataSidesCheck
