@@ -39,7 +39,7 @@ open Term Rule Translation DecompositionReview ExpandedIso ExpandTrReview GammaC
 
 /-- Every tree of the side `con`–`dup` has one cell, so five new names. -/
 theorem codeSizes_conDup : codeSizes ruleConDup = fun _ => 5 := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_conDup
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_conDup_eq
   funext q
   simp only [codeSizes]
   match q with
@@ -75,6 +75,17 @@ theorem codeGamma_conDup :
   have e3 : (finSumFinEquiv.symm (Fin.succ (2 : Fin 3)) : Fin 2 ⊕ Fin 2) = .inr 1 := rfl
   rw [e0, e1, e2, e3, h0, h1, h2, h3]
   rfl
+
+/-- The same tree of Fig. 10 (page 89), found by evaluation alone: `codeGamma` is computable
+since `codeSizes` uses `Rule.portTreeC`. -/
+example :
+    codeGamma 3 idx ruleConDup (Equiv.swap 0 1) hs 10 =
+      muxStar [copier [codeExtra 3 1 16 15 17, codeExtra 3 1 21 20 22,
+          codeExtra 3 0 26 25 27, codeExtra 3 0 31 30 32],
+        cellSkel (var 16) 3 1 [var 15, var 10, var 11] 14,
+        cellSkel (var 21) 3 1 [var 20, var 12, var 13] 19,
+        mkCon (cellSkel (var 26) 3 0 [var 25, var 10, var 12] 24)
+          (cellSkel (var 31) 3 0 [var 30, var 11, var 13] 29)] := by decide
 
 /-- **No two `⟨α_k⟩` share a name** (page 89): the tree of `codeGamma_conDup`, checked directly,
 is a package. -/

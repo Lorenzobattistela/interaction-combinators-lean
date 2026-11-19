@@ -197,38 +197,38 @@ theorem vars_codeTerm_add (b : ℕ) (t : Term S ℕ) :
 
 /-- The number of new names of the tree of `⟨φ⟩` at each port, the ports numbered
 `0, …, a + k - 1` by `finSumFinEquiv` (page 89). -/
-noncomputable def codeSizes (φ : Rule S a k) : Fin (a + k) → ℕ :=
-  fun q => codeSize (φ.portTree (finSumFinEquiv.symm q))
+def codeSizes (φ : Rule S a k) : Fin (a + k) → ℕ :=
+  fun q => codeSize (φ.portTreeC (finSumFinEquiv.symm q))
 
 /-- The number of names of `Γ_{i,j}` of Fig. 10 (page 89): the internal wires of `φ`, then the new
 names of `⟨φ⟩`. -/
-noncomputable def codeGammaSize (φ : Rule S a k) : ℕ := φ.internal + ∑ q, codeSizes φ q
+def codeGammaSize (φ : Rule S a k) : ℕ := φ.internal + ∑ q, codeSizes φ q
 
 /-- The first new name of the tree of `⟨φ⟩` at the port `p`. -/
-noncomputable def codeBase (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) : ℕ :=
+def codeBase (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) : ℕ :=
   k₀ + φ.internal + off (codeSizes φ) (finSumFinEquiv p)
 
 /-- The tree of `⟨φ⟩` at the port `p` (Fig. 10, page 89): the internal wire `w` of `φ` is named
 `k₀ + w`, and the new names of the port `p` take its block above `k₀ + φ.internal`. -/
-noncomputable def codePort (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) : Term sig ℕ :=
+def codePort (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) : Term sig ℕ :=
   codeTerm m idx (codeBase φ k₀ p) (gammaTree φ k₀ p)
 
 /-- The trees on the extra ports of the cells of `⟨φ⟩` at the port `p` (page 89). -/
-noncomputable def codePortExtras (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) :
+def codePortExtras (φ : Rule S a k) (k₀ : ℕ) (p : Fin a ⊕ Fin k) :
     List (Term sig ℕ) :=
   codeExtras m idx (codeBase φ k₀ p) (gammaTree φ k₀ p)
 
 /-- The trees on the extra ports of all the cells of `⟨φ⟩` (page 89), port after port in the order
 `finSumFinEquiv` (the ports of `α_i`, then the middle ports), each port in the order of
 `codeExtras`: the trees plugged into the auxiliary ports of `C_{p_{i,j}}`. -/
-noncomputable def codeGammaExtras (φ : Rule S a k) (k₀ : ℕ) : List (Term sig ℕ) :=
+def codeGammaExtras (φ : Rule S a k) (k₀ : ℕ) : List (Term sig ℕ) :=
   (List.ofFn fun q => codePortExtras m idx φ k₀ (finSumFinEquiv.symm q)).flatten
 
 /-- **The package `Γ_{i,j}` of Fig. 10** (bottom right, page 89): the dual multiplexor `M*_{a+2}`
 whose leaves are, from left to right, the copier `C_p` on the extra ports of the `p` cells of
 `⟨φ⟩`, the trees of `⟨φ⟩` at the `a` ports of the first cell, and the transpositor `T_σ` applied to
 the trees of `⟨φ⟩` at the `k` middle ports. -/
-noncomputable def codeGamma (φ : Rule S a k) (σ : Equiv.Perm (Fin k))
+def codeGamma (φ : Rule S a k) (σ : Equiv.Perm (Fin k))
     (hσ : Function.Involutive σ) (k₀ : ℕ) : Term sig ℕ :=
   muxStar (copier (codeGammaExtras m idx φ k₀) ::
     (List.ofFn (fun i => codePort m idx φ k₀ (.inl i)) ++
@@ -263,8 +263,7 @@ theorem vars_codeGamma {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Linear)
       ((codePortExtras m idx φ k₀ p).map Term.vars).sum = (gammaTree φ k₀ p).vars +
       2 • Multiset.Ico (B + off s (finSumFinEquiv p))
         (B + off s (finSumFinEquiv p) + s (finSumFinEquiv p)) := fun p => by
-    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, Rule.portTreeC_eq_portTree he hl,
-      codeSize_bind_var]
+    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, codeSize_bind_var]
     simp [s, codeSizes, codeBase, B]
   have hsum : (codeGamma m idx φ σ hσ k₀).vars = ∑ p, ((codePort m idx φ k₀ p).vars +
       ((codePortExtras m idx φ k₀ p).map Term.vars).sum) := by
@@ -303,12 +302,12 @@ theorem codeGamma_isPackage {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Linear
 
 /-- `Γ_{i,j}` of Fig. 10 for an optional side, numbered from `k₀`; an eraser when there is no rule
 between `α_i` and `α_j` (page 89, as `gammaOpt` for Fig. 6). -/
-noncomputable def codeGammaOpt : Option (ExpSide S a) → ℕ → Term sig ℕ
+def codeGammaOpt : Option (ExpSide S a) → ℕ → Term sig ℕ
   | some s, k₀ => codeGamma m idx s.φ s.σ s.involutive k₀
   | none, _ => mkEra
 
 /-- The number of names of `codeGammaOpt`. -/
-noncomputable def codeGammaOptSize : Option (ExpSide S a) → ℕ
+def codeGammaOptSize : Option (ExpSide S a) → ℕ
   | some s => codeGammaSize s.φ
   | none => 0
 
