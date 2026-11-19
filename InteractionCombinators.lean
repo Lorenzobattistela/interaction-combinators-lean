@@ -28,6 +28,7 @@ import InteractionCombinators.Lafont.DupWiring
 import InteractionCombinators.Lafont.Menu
 import InteractionCombinators.Lafont.MenuCheck
 import InteractionCombinators.Lafont.Transpositor
+import InteractionCombinators.Lafont.RecursionFree
 import InteractionCombinators.Lafont.TranspositorCheck
 import InteractionCombinators.Lafont.TranspositorPerm
 import InteractionCombinators.Lafont.TranspositorPermCheck
