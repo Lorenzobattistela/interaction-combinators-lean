@@ -88,4 +88,5 @@ import InteractionCombinators.Lafont.SimulationInvertible
 import InteractionCombinators.Lafont.SimulationUniform
 import InteractionCombinators.Lafont.PairStepE
 import InteractionCombinators.Lafont.PairStepEReduced
+import InteractionCombinators.Lafont.StrongConfluenceE
 import InteractionCombinators.Graph
