@@ -83,6 +83,7 @@ import InteractionCombinators.Lafont.TranslationCompBasic
 import InteractionCombinators.Lafont.TranslationCompCompatible
 import InteractionCombinators.Lafont.TranslationCompTr
 import InteractionCombinators.Lafont.TranslationInvertible
+import InteractionCombinators.Lafont.TranslationRenPerm
 import InteractionCombinators.Lafont.SimulationInvertible
 import InteractionCombinators.Lafont.SimulationUniform
 import InteractionCombinators.Lafont.PairStepE
