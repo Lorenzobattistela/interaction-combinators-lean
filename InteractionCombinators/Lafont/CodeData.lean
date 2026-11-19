@@ -4,7 +4,7 @@ import InteractionCombinators.Lafont.DecompositionAbsorb
 /-!
 # Decomposition data without an order, and the side `φ_{α,β}` it chooses (pages 85–86, 90)
 
-Lafont 1997, Section 2.4, journal pages 85–86 (PDF pages 17–18), and Section 3, journal page 90
+Lafont 1997, Section 2.4, journal pages 85–86 (PDF pages 17–18), and Section 2.7, journal page 90
 (PDF page 22). Every rule `α_i`–`α_j` decomposes (page 85) into `φ_{i,j}` on the ports of `α_i`,
 `ψ_{i,j}` on the ports of `α_j`, and a permutation `σ_{i,j}` of the middle wires, and page 86
 normalises the decomposition: "one can assume that in all cases, `φ_{j,i} = ψ_{i,j}`,

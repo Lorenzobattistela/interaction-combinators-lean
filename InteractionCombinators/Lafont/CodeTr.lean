@@ -5,7 +5,7 @@ import InteractionCombinators.RenameMany
 /-!
 # The principal net `[α]` of Fig. 10 and its strictness (pages 89–90)
 
-Lafont 1997, Section 2.6, journal pages 89–90 (PDF page 21), Fig. 10, top left: "a principal net
+Lafont 1997, Section 2.7, journal pages 88–89 (PDF 20–21), Fig. 10, top left: "a principal net
 `[α_i]` can be defined for each symbol `α_i` as in Fig. 10". It is the cell of Fig. 6 (page 86),
 the transpositor `T_{1,1}` carrying the menu `Γ_i` and the selector `S^i_m` on the multiplexor
 `M_{n_i+2}`, whose first leaf is the package `!Γ`, the code of `Γ = Γ_1 & ⋯ & Γ_m` (the "genetic

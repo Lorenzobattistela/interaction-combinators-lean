@@ -4,7 +4,7 @@ import InteractionCombinators.Lafont.RecursionFreeFig7
 /-!
 # The cell `⟨α_k⟩` of Fig. 10 and the extraction of page 90
 
-Lafont 1997, Section 2.5, Fig. 10 (journal page 89, PDF page 21) and the text of page 90.
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and the text of page 90.
 
 **`[αᵢ]` needs no new definition.** The cell `[αᵢ]` of Fig. 10 (top left) is the cell of Fig. 6
 with one more leaf on its multiplexor: `T_{1,1}` carries the menu `Γᵢ`, the selector `Sⁱ_m` on the

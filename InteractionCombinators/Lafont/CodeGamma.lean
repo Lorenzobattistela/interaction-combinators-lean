@@ -4,7 +4,7 @@ import InteractionCombinators.Lafont.Gamma
 /-!
 # `⟨φ_{i,j}⟩` and the package `Γ_{i,j}` of Fig. 10 (page 89)
 
-Lafont 1997, Section 2.6, Fig. 10 (journal page 89, PDF page 21) and the text of page 90.
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and the text of page 90.
 
 `⟨φ_{i,j}⟩` is `φ_{i,j}` with every cell `α_k` replaced by `⟨α_k⟩` (`codeCell`). The package
 `Γ_{i,j}` (Fig. 10, bottom right) is the dual multiplexor `M*_{n_i+2}` whose root is its free port;

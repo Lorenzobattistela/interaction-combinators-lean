@@ -5,7 +5,7 @@ import InteractionCombinators.Lafont.PlugTermTr
 /-!
 # Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots reduce to the end of Fig. 7
 
-Lafont 1997, Section 2.6, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue
 of Fig. 7 (pages 85–86) is "left to the reader". After the two cells have met and their
 multiplexors have annihilated with the packages `Γ_{α,β}`, `Γ_{β,α}` (`codeCells_meet_end`), each
 copier `C_p` makes the copies of `!Γ` that the cells of `⟨φ⟩` need, and `⟨φ⟩` becomes a

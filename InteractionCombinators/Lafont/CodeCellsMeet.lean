@@ -4,7 +4,7 @@ import InteractionCombinators.Lafont.RecursionFreeFig7
 /-!
 # Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots (pages 89–90)
 
-Lafont 1997, Section 2.6, Fig. 10 (journal page 89, PDF page 21) and page 90: "The reader is
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and page 90: "The reader is
 invited to complete the proof of Theorem 1 by working out the analogue of Fig. 7". This file does
 the first rows of that analogue (Fig. 7, page 86, rows 1–2). The principal nets `[α]` and `[β]` of
 Fig. 10, plugged by their roots, are two cells of Fig. 6 whose multiplexors carry the code `!Γ` as

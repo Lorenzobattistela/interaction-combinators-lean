@@ -5,7 +5,7 @@ import InteractionCombinators.Lafont.Fig7End
 /-!
 # The packages `Γ_{α,β}`, `Γ_{β,α}` of Fig. 10 against their multiplexors (pages 89–90)
 
-Lafont 1997, Section 2.6, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue
 of Fig. 7 (page 86) is left to the reader. This file does the last rows of that analogue, as
 `mux_gamma_mux_gamma` (`Fig7End.lean`) does them for Fig. 7. After the two cells `[α]`, `[β]` have
 met (`codeCells_meet`), the multiplexor `M_{a+2}` of `[α]` faces the package `Γ_{α,β}` and the

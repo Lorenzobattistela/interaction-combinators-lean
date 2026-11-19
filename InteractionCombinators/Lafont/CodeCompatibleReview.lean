@@ -25,11 +25,11 @@ open INet INet.Comb
 
 /-! ## The statements are the targets -/
 
-/-- `universal_strict'` has the type of the target `universal_strict` (Theorem 1, page 90), at
+/-- `universal_strict'` has the type of the target `universal_strict` (Theorem 1, page 82), at
 the system of the combinators. -/
 example : StrictlyUniversal INet.Comb.system := INet.Comb.universal_strict'
 
-/-- `universal'` has the type of the target `universal` (Theorem 1, page 90). -/
+/-- `universal'` has the type of the target `universal` (Theorem 1, page 82). -/
 example : Universal INet.Comb.system := INet.Comb.universal'
 
 /-- The quantification is over every signature with a finite set of symbols and every well-formed

@@ -274,7 +274,7 @@ end Translation
 
 namespace Comb
 
-/-- **Theorem 1 with step counts** (Lafont 1997, page 81 and Theorem 1, page 90). For a
+/-- **Theorem 1 with step counts** (Lafont 1997, page 81 and Theorem 1, page 82). For a
 well-formed interaction system on a finite signature and decomposition data `D`, the translation
 of Fig. 10 into the interaction combinators simulates every interaction in `k` interactions with
 `0 < L ≤ k ≤ M`, for some `L`, `M`. By Proposition 4 (`Translation.CompatibleWithin.steps`),
