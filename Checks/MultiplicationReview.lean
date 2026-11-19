@@ -25,19 +25,17 @@ Issue #352. Lafont 1997, Section 1.5, pages 76-77 (PDF pages 8-9). Each of the e
   the `s` (`x`), its left port on the free port `y`; its right port goes to the auxiliary port of
   a `▽ s` whose principal port is the free port `r`.
 * `0+` (page 76), `ruleAddZero`: agrees, `y ~ r`.
-* `s×` (page 77), `ruleMulSucc`: **the auxiliary ports of the duplicator are exchanged.** In the
-  figure the new `×` has its principal port on `x`, its left port on the top-left port of the
+* `s×` (page 77), `ruleMulSucc`: agrees since issue #354 (`ruleMulSucc_eq_paper`). The review
+  of issue #352 found the auxiliary ports of the duplicator exchanged; the rule was corrected. In
+  the figure the new `×` has its principal port on `x`, its left port on the top-left port of the
   upside-down `δ`, its right port on the principal port of a `+`; the `+` has its left port on the
   top-right port of the `δ` and its right port on the free port `r`; the principal port of the `δ`
   is the free port `y`. By the convention of page 71 the top-left port of the `▽ δ` is its port 1
   (left-to-right numbering of the `△`), so the figure says
-  `y ~ δ(w₁, w₀)`, `x ~ mul(w₀, add(w₁, r))` (`ruleMulSuccPaper` below), where the file has
-  `y ~ δ(w₀, w₁)`. The two are not the same rule up to a renaming of the internal wires
-  (`ruleMulSuccPaper_ne`), against the claim of the module docstring of `Demo/Multiplication.lean`
-  and of its progress file. The mismatch does not affect any result of the file: a duplicator
-  makes two equal copies of a numeral (`dup_num`), so `mul_num`, `times_reduces` and
-  `two_times_two` hold for either reading. The paper reading is also a valid rule
-  (`ruleMulSuccPaper_linear`, `ruleMulSuccPaper_reduced`).
+  `y ~ δ(w₁, w₀)`, `x ~ mul(w₀, add(w₁, r))` (`ruleMulSuccPaper` below), which is now
+  `ruleMulSucc`. The file had `y ~ δ(w₀, w₁)` (`ruleMulSuccSwapped` below), which is not the same
+  rule up to a renaming of the internal wires (`ruleMulSuccSwapped_ne`). The mismatch did not
+  affect any result of the file: a duplicator makes two equal copies of a numeral (`dup_num`).
 * `0×` (page 77), `ruleMulZero`: agrees, `y ~ ε` (left), `r ~ 0` (right).
 * `sδ` (page 77), `ruleDupSucc`: agrees. All cells are `△` or the one-port `▽ s`; the new `δ` has
   its left port on the left `s`, whose principal port is the left free port `a`.
@@ -76,6 +74,15 @@ the `δ`, which is its second auxiliary port. -/
 def ruleMulSuccPaper : Rule sig 2 1 :=
   ⟨2, s(l 0, mkDup (w 1) (w 0)) ::ₘ s(r 0, mkMul (w 0) (mkAdd (w 1) (l 1))) ::ₘ 0⟩
 
+/-- **`ruleMulSucc` is the rule `s×` as drawn** (page 77): the rule of `Demo/Multiplication.lean`
+is literally `ruleMulSuccPaper`. -/
+theorem ruleMulSucc_eq_paper : ruleMulSucc = ruleMulSuccPaper := rfl
+
+/-- The reading of `s×` with the two auxiliary ports of the upside-down `δ` exchanged:
+`y ~ δ(w₀, w₁)`, `x ~ mul(w₀, add(w₁, r))`. This was `ruleMulSucc` before issue #354. -/
+def ruleMulSuccSwapped : Rule sig 2 1 :=
+  ⟨2, s(l 0, mkDup (w 0) (w 1)) ::ₘ s(r 0, mkMul (w 0) (mkAdd (w 1) (l 1))) ::ₘ 0⟩
+
 /-- The internal wires of a rule of type `Rule sig 2 1` renamed by a permutation. -/
 def renameInternal (π : _root_.Equiv.Perm (Fin 2))
     (N : Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2)) : Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) :=
@@ -87,29 +94,29 @@ local instance : DecidableEq (Term sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2)) :=
   INet.Comb.DecompositionCheck.termDecEq
 
 /-- **The two readings of `s×` are different rules** (page 77). No renaming of the two internal
-wires of `ruleMulSuccPaper` gives the net of `ruleMulSucc`: in `ruleMulSucc` the second argument of
-the new `mul` is the first auxiliary port of the duplicator, in the paper reading it is the second.
-This refutes the claim that the reading of the upside-down `δ` only changes the names of the
-internal wires. -/
-theorem ruleMulSuccPaper_ne (π : _root_.Equiv.Perm (Fin 2)) :
+wires of `ruleMulSuccPaper` gives the net of `ruleMulSuccSwapped`: in `ruleMulSuccSwapped` the
+second argument of the new `mul` is the first auxiliary port of the duplicator, in the paper
+reading it is the second. So the reading of the upside-down `δ` changes the rule, not only the
+names of the internal wires. -/
+theorem ruleMulSuccSwapped_ne (π : _root_.Equiv.Perm (Fin 2)) :
     renameInternal π ruleMulSuccPaper.net ≠
-      (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSucc.net) := by
+      (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSuccSwapped.net) := by
   revert π
   decide
 
-/-- `ruleMulSuccPaper_ne` is not vacuous: `renameInternal` does rename. Exchanging the two
-internal wires of the paper reading puts the duplicator in the order of `ruleMulSucc`, but moves
-the `mul` and the `add` to the other copy. -/
+/-- `ruleMulSuccSwapped_ne` is not vacuous: `renameInternal` does rename. Exchanging the two
+internal wires of the paper reading puts the duplicator in the order of `ruleMulSuccSwapped`, but
+moves the `mul` and the `add` to the other copy. -/
 theorem renameInternal_swap_ruleMulSuccPaper :
     renameInternal (_root_.Equiv.swap 0 1) ruleMulSuccPaper.net =
       s(l 0, mkDup (w 0) (w 1)) ::ₘ s(r 0, mkMul (w 1) (mkAdd (w 0) (l 1))) ::ₘ 0 := by
   decide
 
-/-- The identity renaming leaves `ruleMulSucc` unchanged, so the comparison of
-`ruleMulSuccPaper_ne` is made at the right type. -/
-theorem renameInternal_one_ruleMulSucc :
-    renameInternal 1 (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSucc.net) =
-      (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSucc.net) := by
+/-- The identity renaming leaves `ruleMulSuccSwapped` unchanged, so the comparison of
+`ruleMulSuccSwapped_ne` is made at the right type. -/
+theorem renameInternal_one_ruleMulSuccSwapped :
+    renameInternal 1 (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSuccSwapped.net) =
+      (show Net sig (Fin 2 ⊕ Fin 1 ⊕ Fin 2) from ruleMulSuccSwapped.net) := by
   decide
 
 /-- The paper reading of `s×` is linear. -/
@@ -200,7 +207,7 @@ meets `s`, and its first interaction is `s×`: the second factor `0` goes to a d
 factors were exchanged the `mul` cell would meet `0` and the first interaction would be `0×`. -/
 theorem times_three_zero_step :
     Step system (times 3 0)
-      (s(mkZero, mkDup (.var 1) (.var 2)) ::ₘ
+      (s(mkZero, mkDup (.var 2) (.var 1)) ::ₘ
         s(num 2, mkMul (.var 1) (mkAdd (.var 2) (.var 0))) ::ₘ 0) :=
   step_mul_succ (num 0) (.var 0) (num 2) 0 1 (by simp) (by simp)
 

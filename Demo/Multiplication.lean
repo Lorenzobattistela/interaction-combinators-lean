@@ -17,20 +17,21 @@ the pictures on pages 76 and 77:
 * `add(y, r) ~ 0`      reduces to   `y ~ r`
 * `add(y, r) ~ s(x)`   reduces to   `r ~ s(w)`, `x ~ add(y, w)`
 * `mul(y, r) ~ 0`      reduces to   `y ~ ε`, `r ~ 0`
-* `mul(y, r) ~ s(x)`   reduces to   `y ~ δ(w₀, w₁)`, `x ~ mul(w₀, add(w₁, r))`
+* `mul(y, r) ~ s(x)`   reduces to   `y ~ δ(w₁, w₀)`, `x ~ mul(w₀, add(w₁, r))`
 * `dup(a, b) ~ 0`      reduces to   `a ~ 0`, `b ~ 0`
 * `dup(a, b) ~ s(x)`   reduces to   `a ~ s(w₀)`, `b ~ s(w₁)`, `x ~ δ(w₀, w₁)`
 * `era ~ 0`            reduces to   the empty net
 * `era ~ s(x)`         reduces to   `x ~ ε`
 
-In `ruleMulSucc` the new `×` cell has its first auxiliary port on the first auxiliary port of the
-`δ`, and its second auxiliary port on the principal port of the `+`, whose first auxiliary port is
-the second auxiliary port of the `δ` and whose second auxiliary port is the result `r`. In the
-figure of rule `s×` (page 77) the `δ` is drawn upside down; read as a rotation by 180° (page 71),
-the `×` is on its second auxiliary port and the `+` on its first. The two readings are different
-rules, not a renaming of the internal wires (`Checks/MultiplicationReview.lean`,
-`ruleMulSuccPaper_ne`). The results below hold for both, because a duplicator makes two equal
-copies of a numeral.
+The auxiliary ports of an upright cell are numbered here from left to right. A cell drawn upside
+down is the upright cell turned by 180° (page 71), so its port 0 is its top-right port and its
+port 1 its top-left port. In the rule `s×` (page 77) the new `×` cell has its first auxiliary
+port on the top-left port of the upside-down `δ`, which is its port 1, and its second auxiliary
+port on the principal port of the `+`. The first auxiliary port of the `+` is on the top-right
+port of the `δ`, its port 0, and its second auxiliary port is the result `r`. Hence
+`y ~ δ(w₁, w₀)`: the two ports of the `δ` are not in the order of `mul(w₀, add(w₁, r))`. The
+other order is a different rule, not a renaming of the internal wires
+(`Checks/MultiplicationReview.lean`, `ruleMulSuccSwapped_ne`).
 
 This file shows:
 
@@ -163,11 +164,11 @@ def ruleAddSucc : Rule sig 2 1 := ⟨1, s(l 1, mkSucc (w 0)) ::ₘ s(r 0, mkAdd 
 def ruleMulZero : Rule sig 2 0 := ⟨0, s(l 0, mkEra) ::ₘ s(l 1, mkZero) ::ₘ 0⟩
 
 /-- `mul(y, r) ~ s(x)` (rule `s×`, page 77): the second argument goes to a duplicator
-`δ(w₀, w₁)`; the first copy `w₀` is the second argument of `mul` on `x`, whose result is the first
-argument of `add(w₁, r)`. The figure, read with the convention of page 71, has the two auxiliary
-ports of the `δ` in the other order (see the module docstring). -/
+`δ(w₁, w₀)`; its second copy `w₀`, on the top-left port of the upside-down `δ`, is the second
+argument of `mul` on `x`, whose result is the principal port of `add(w₁, r)`, and its first copy
+`w₁`, on the top-right port, is the second argument of that `add`. -/
 def ruleMulSucc : Rule sig 2 1 :=
-  ⟨2, s(l 0, mkDup (w 0) (w 1)) ::ₘ s(r 0, mkMul (w 0) (mkAdd (w 1) (l 1))) ::ₘ 0⟩
+  ⟨2, s(l 0, mkDup (w 1) (w 0)) ::ₘ s(r 0, mkMul (w 0) (mkAdd (w 1) (l 1))) ::ₘ 0⟩
 
 /-- `dup(a, b) ~ 0` (rule `0δ`, page 77): both copies are `0`. -/
 def ruleDupZero : Rule sig 2 0 := ⟨0, s(l 0, mkZero) ::ₘ s(l 1, mkZero) ::ₘ 0⟩
@@ -399,19 +400,19 @@ theorem step_mul_zero :
   rw [e] at h
   simpa using h
 
-/-- `mul(y, r) ~ s(x)` rewrites to `y ~ δ(w₀, w₁)`, `x ~ mul(w₀, add(w₁, r))` (rule `s×`,
+/-- `mul(y, r) ~ s(x)` rewrites to `y ~ δ(w₁, w₀)`, `x ~ mul(w₀, add(w₁, r))` (rule `s×`,
 page 77), for two names `w₀ = k`, `w₁ = k + 1` not used in the net. -/
 theorem step_mul_succ (k : ℕ) (hk : k ∉ Net.vars (s(mkMul y res, mkSucc x) ::ₘ Δ))
     (hk1 : k + 1 ∉ Net.vars (s(mkMul y res, mkSucc x) ::ₘ Δ)) :
     Step system (s(mkMul y res, mkSucc x) ::ₘ Δ)
-      (s(y, mkDup (.var k) (.var (k + 1))) ::ₘ
+      (s(y, mkDup (.var (k + 1)) (.var k)) ::ₘ
         s(x, mkMul (.var k) (mkAdd (.var (k + 1)) res)) ::ₘ Δ) := by
   have h : Step system (s(mkMul y res, mkSucc x) ::ₘ Δ)
       (ruleMulSucc.inst ![y, res] ![x] (![k, k + 1] : Fin 2 → ℕ) + Δ) :=
     Step.mk (I := system) Sym.mul Sym.succ ruleMulSucc rfl ![y, res] ![x] Δ
       (![k, k + 1] : Fin 2 → ℕ) (inj_two k) (fresh_two hk hk1)
   have e : ruleMulSucc.inst ![y, res] ![x] (![k, k + 1] : Fin 2 → ℕ) =
-      s(y, mkDup (.var k) (.var (k + 1))) ::ₘ
+      s(y, mkDup (.var (k + 1)) (.var k)) ::ₘ
         s(x, mkMul (.var k) (mkAdd (.var (k + 1)) res)) ::ₘ 0 := by
     simp [Rule.inst, Net.bind, ruleMulSucc, l, r, w]
   rw [e] at h
@@ -650,12 +651,12 @@ theorem mul_num (n m : ℕ) : ∀ (r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ
     simp only [Net.below_cons, below_mkMul] at hk'
     obtain ⟨⟨-, hr⟩, -, hΔ⟩ := hk'
     have h1 : Reduces (s(mkMul (num m) r, num (n + 1)) ::ₘ Δ)
-        (s(mkDup (.var k) (.var (k + 1)), num m) ::ₘ
+        (s(mkDup (.var (k + 1)) (.var k), num m) ::ₘ
           s(num n, mkMul (.var k) (mkAdd (.var (k + 1)) r)) ::ₘ Δ) :=
       Reduces.of_step_eq
         (step_mul_succ (num m) r (num n) Δ k (hk.notMem le_rfl) (hk.notMem (by omega)))
         (by rw [Sym2.eq_swap (a := num m)])
-    have hk1 : Net.Below (k + 2) (s(mkDup (.var k) (.var (k + 1)), num m) ::ₘ
+    have hk1 : Net.Below (k + 2) (s(mkDup (.var (k + 1)) (.var k), num m) ::ₘ
         s(num n, mkMul (.var k) (mkAdd (.var (k + 1)) r)) ::ₘ Δ) := by
       simp [hr.mono (show k ≤ k + 2 by omega), hΔ.mono (show k ≤ k + 2 by omega)]
     have h2 := h1.trans (dup_num m _ _ _ (k + 2) (h1.linear hlin) hk1)
