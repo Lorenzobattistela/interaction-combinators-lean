@@ -62,7 +62,7 @@ theorem codeGamma_conDup :
         cellSkel (var 21) 3 1 [var 20, var 12, var 13] 19,
         mkCon (cellSkel (var 26) 3 0 [var 25, var 10, var 12] 24)
           (cellSkel (var 31) 3 0 [var 30, var 11, var 13] 29)] := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_conDup
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_conDup_eq
   have hl : portList (Equiv.swap (0 : Fin 2) 1) = [0, 1] := by decide
   have hp : pairFst (Equiv.swap (0 : Fin 2) 1) = [0] := by decide
   have hi : ruleConDup.internal = 4 := rfl

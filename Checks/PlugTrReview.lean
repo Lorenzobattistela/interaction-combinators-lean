@@ -174,11 +174,11 @@ theorem dup_no_translation :
 /-- The trees of `[ruleK0]` from `k₀`: both ports are the leaf `k₀`. -/
 theorem gammaPort_K0 (k₀ : ℕ) (p : Fin 2) :
     gammaPort (Translation.id sig) ruleK0 k₀ (.inl p) = var k₀ := by
-  have h : ∀ p : Fin 2, ruleK0.portTree (.inl p) = (pw 0 : Term sig (Fin 2 ⊕ Fin 0 ⊕ Fin 1)) := by
+  have h : ∀ p : Fin 2, ruleK0.portTreeC (.inl p) = (pw 0 : Term sig (Fin 2 ⊕ Fin 0 ⊕ Fin 1)) := by
     intro p
     fin_cases p
-    · exact portTree_eq ruleK0_expanded ruleK0_linear (by decide)
-    · exact portTree_eq ruleK0_expanded ruleK0_linear (by decide)
+    · exact portTreeC_eq ruleK0_expanded ruleK0_linear (by decide)
+    · exact portTreeC_eq ruleK0_expanded ruleK0_linear (by decide)
   simp only [gammaPort, trTerm_id, gammaTree, h]
   rfl
 

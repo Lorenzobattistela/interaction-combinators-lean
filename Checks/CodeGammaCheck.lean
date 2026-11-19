@@ -47,7 +47,7 @@ eraser being the copier `C_0`. -/
 theorem codeGamma_φ₀ :
     codeGamma 3 idx φ₀ (Equiv.swap 0 1) hs 10 =
       mkCon (mkCon (mkCon (mkCon (var 10) (var 11)) (var 11)) (var 10)) mkEra := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_φ₀
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_φ₀
   have hl : portList (Equiv.swap (0 : Fin 2) 1) = [0, 1] := by decide
   have hp : pairFst (Equiv.swap (0 : Fin 2) 1) = [0] := by decide
   have e : ∀ p, codePortExtras 3 idx φ₀ 10 p = [] := by

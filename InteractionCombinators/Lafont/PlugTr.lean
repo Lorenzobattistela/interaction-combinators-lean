@@ -93,7 +93,7 @@ theorem bind_expanded {a k : ℕ} {φ : Rule S a k} (he : φ.Expanded) (hl : φ.
   rw [Multiset.map_map]
   refine Multiset.map_congr rfl fun p _ => ?_
   simp only [Function.comp_apply, Sym2.map_mk]
-  unfold gammaTree
+  rw [gammaTree_eq_portTree he hl]
   congr 1
   · exact hM p
   refine Term.bind_congr fun x hx => ?_

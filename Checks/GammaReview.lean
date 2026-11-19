@@ -67,7 +67,7 @@ that `gammaName` gives to ports is never used. -/
 theorem mem_vars_gammaTree {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Linear) (k₀ : ℕ)
     (p : Fin a ⊕ Fin k) {x : ℕ} (hx : x ∈ (gammaTree φ k₀ p).vars) :
     k₀ ≤ x ∧ x < k₀ + φ.internal := by
-  rw [gammaTree, Term.vars_bind, Multiset.mem_bind] at hx
+  rw [gammaTree_eq_portTree he hl, Term.vars_bind, Multiset.mem_bind] at hx
   obtain ⟨y, hy, hx⟩ := hx
   obtain ⟨w, rfl⟩ := (he.net_eq_portTree hl).2 p y hy
   simp only [vars_var, Multiset.mem_singleton, gammaName, Sum.elim_inr] at hx
@@ -188,6 +188,15 @@ theorem portTree_col :
     portTree_eq ruleCol_expanded ruleCol_linear (by decide),
     portTree_eq ruleCol_expanded ruleCol_linear (by decide)⟩
 
+/-- The same for the computable twin `Rule.portTreeC`, which `gammaTree` uses (Fig. 6, page 86). -/
+theorem portTreeC_col :
+    ruleCol.portTreeC (.inl 0) = (mkCon (mkCon (pw 0) (pw 1)) (pw 2) : V 5) ∧
+      ruleCol.portTreeC (.inl 1) = (mkCon (pw 3) (pw 4) : V 5) ∧
+      ruleCol.portTreeC (.inr 0) = (mkCon (pw 0) (pw 3) : V 5) ∧
+      ruleCol.portTreeC (.inr 1) = (mkCon (mkCon (pw 1) (pw 4)) (pw 2) : V 5) := by
+  rw [portTreeC_eq_portTree ruleCol_expanded ruleCol_linear]
+  exact portTree_col
+
 /-- The tree computed by hand: from `k₀ = 3`, the internal wires of the side are `3, …, 7`, the
 blocks of the translations are `8, 9` (`a₀`), `10` (`a₁`), `11` (`b₀`), `12, 13` (`b₁`). -/
 def colTree : Term sig ℕ :=
@@ -200,7 +209,7 @@ def colTree : Term sig ℕ :=
 
 /-- **`Γ` on `ruleCol` under `Φrev`, from `3`** (Fig. 6, page 86). -/
 theorem gamma_col : gamma Φrev ruleCol (Equiv.swap 0 1) hs 3 = colTree := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_col
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_col
   have hl : portList (Equiv.swap (0 : Fin 2) 1) = [0, 1] := by decide
   have hp : pairFst (Equiv.swap (0 : Fin 2) 1) = [0] := by decide
   have hsz : gammaSizes Φrev ruleCol 3 = ![2, 1, 1, 2] := by

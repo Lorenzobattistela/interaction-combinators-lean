@@ -33,7 +33,8 @@ theorem vars_codeGamma_parts {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Linea
       ((codePortExtras m idx φ k₀ p).map Term.vars).sum = (gammaTree φ k₀ p).vars +
       2 • Multiset.Ico (B + off s (finSumFinEquiv p))
         (B + off s (finSumFinEquiv p) + s (finSumFinEquiv p)) := fun p => by
-    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, codeSize_bind_var]
+    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, Rule.portTreeC_eq_portTree he hl,
+      codeSize_bind_var]
     simp [s, codeSizes, codeBase, B]
   rw [codeGammaExtras, sum_vars_flatten_ofFn,
     Equiv.sum_comp finSumFinEquiv.symm (fun p => ((codePortExtras m idx φ k₀ p).map

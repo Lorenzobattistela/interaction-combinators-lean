@@ -76,10 +76,10 @@ theorem mem_cells_gammaTree {φ : Rule S a k} {k₀ : ℕ} {p : Fin a ⊕ Fin k}
     (hγ : γ ∈ (gammaTree φ k₀ p).cells) : γ ∈ φ.net.cells := by
   rw [gammaTree, cells_bind] at hγ
   simp only [cells_var, Multiset.bind_zero, add_zero] at hγ
-  unfold Rule.portTree at hγ
-  split_ifs at hγ with h
-  · exact Multiset.mem_bind.2 ⟨_, h.choose_spec, by rw [eqCells_mk]; simp [hγ]⟩
-  · simp at hγ
+  rcases φ.portTreeC_eq_or_mem p with h | h
+  · rw [h] at hγ
+    simp at hγ
+  · exact Multiset.mem_bind.2 ⟨_, h, by rw [eqCells_mk]; simp [hγ]⟩
 
 /-- The number of names of `Γ_{i,j}` does not depend on the first name `k₀`. -/
 theorem gammaSize_eq (Φ : Translation S sig) (φ : Rule S a k) (k₀ : ℕ) :

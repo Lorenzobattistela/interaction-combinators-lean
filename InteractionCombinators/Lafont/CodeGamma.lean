@@ -247,7 +247,8 @@ theorem length_codeGammaExtras {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Lin
     (codeGammaExtras m idx φ k₀).length = Multiset.card φ.net.cells := by
   rw [codeGammaExtras, List.length_flatten, List.map_ofFn, List.sum_ofFn,
     cells_eq_sum_portTree he hl, Multiset.card_sum]
-  simp only [Function.comp_def, codePortExtras, length_codeExtras, gammaTree, cells_bind]
+  simp only [Function.comp_def, codePortExtras, length_codeExtras, gammaTree,
+    Rule.portTreeC_eq_portTree he hl, cells_bind]
   simp only [cells_var, Multiset.bind_zero, add_zero]
   exact Equiv.sum_comp finSumFinEquiv.symm (fun p => Multiset.card (φ.portTree p).cells)
 
@@ -262,7 +263,8 @@ theorem vars_codeGamma {φ : Rule S a k} (he : φ.Expanded) (hl : φ.Linear)
       ((codePortExtras m idx φ k₀ p).map Term.vars).sum = (gammaTree φ k₀ p).vars +
       2 • Multiset.Ico (B + off s (finSumFinEquiv p))
         (B + off s (finSumFinEquiv p) + s (finSumFinEquiv p)) := fun p => by
-    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, codeSize_bind_var]
+    rw [codePort, codePortExtras, vars_codeTerm_add, gammaTree, Rule.portTreeC_eq_portTree he hl,
+      codeSize_bind_var]
     simp [s, codeSizes, codeBase, B]
   have hsum : (codeGamma m idx φ σ hσ k₀).vars = ∑ p, ((codePort m idx φ k₀ p).vars +
       ((codePortExtras m idx φ k₀ p).map Term.vars).sum) := by

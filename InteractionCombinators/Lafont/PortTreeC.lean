@@ -1,10 +1,10 @@
-import InteractionCombinators.Lafont.Gamma
+import InteractionCombinators.Lafont.PortTree
 
 /-!
 # A computable tree at a port (Fig. 6, page 86)
 
 Lafont 1997, Section 2.4, Fig. 6, journal page 86 (PDF page 18): a side `φ` of a decomposition in
-expanded form is one tree at each port. `Rule.portTree` (`Gamma.lean`) picks that tree with a
+expanded form is one tree at each port. `Rule.portTree` (`PortTree.lean`) picks that tree with a
 classical choice, which makes every construction built on it noncomputable. This file gives a
 computable twin.
 
@@ -109,6 +109,15 @@ def onlyOr (d : α) (M : Multiset α) : α :=
 
 @[simp] theorem onlyOr_zero (d : α) : onlyOr d 0 = d := rfl
 
+/-- `onlyOr d M` is `d` or an element of `M`. -/
+theorem onlyOr_eq_or_mem (d : α) (M : Multiset α) : onlyOr d M = d ∨ onlyOr d M ∈ M := by
+  induction M using Quotient.inductionOn with
+  | h l =>
+    rcases l with _ | ⟨x, _ | ⟨y, r⟩⟩
+    · exact Or.inl rfl
+    · exact Or.inr (Multiset.mem_singleton_self x)
+    · exact Or.inl rfl
+
 end PortTreeC
 
 open PortTreeC
@@ -156,6 +165,16 @@ theorem Rule.portTreeC_of_not_exists {φ : Rule S a k} {p : Fin a ⊕ Fin k}
       exact h ⟨u, eq_of_otherOf heu ▸ he⟩
   unfold portTreeC
   rw [h0, onlyOr_zero]
+
+/-- `portTreeC φ p` is the leaf `p` or the tree of an equation `p = t` of `φ`, with no hypothesis
+on `φ` (Fig. 6, page 86). -/
+theorem Rule.portTreeC_eq_or_mem (φ : Rule S a k) (p : Fin a ⊕ Fin k) :
+    φ.portTreeC p = Term.var (port p) ∨ s(Term.var (port p), φ.portTreeC p) ∈ φ.net := by
+  rcases onlyOr_eq_or_mem (Term.var (port p)) (φ.net.filterMap (otherOf (port p))) with h | h
+  · exact Or.inl h
+  · obtain ⟨e, he, heu⟩ := (Multiset.mem_filterMap _ _).1 h
+    rw [eq_of_otherOf heu] at he
+    exact Or.inr he
 
 /-- With no equation rooted at `p`, `portTree φ p` is the leaf `p` (Fig. 6, page 86). -/
 theorem Rule.portTree_of_not_exists {φ : Rule S a k} {p : Fin a ⊕ Fin k}

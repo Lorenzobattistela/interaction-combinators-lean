@@ -40,13 +40,20 @@ theorem portTree_φ₀ :
     portTree_eq φ₀_expanded φ₀_linear (by decide),
     portTree_eq φ₀_expanded φ₀_linear (by decide)⟩
 
+/-- The same for the computable twin `Rule.portTreeC`, which `gammaTree` uses (Fig. 6, page 86). -/
+theorem portTreeC_φ₀ :
+    φ₀.portTreeC (.inl 0) = (pw 0 : V 2) ∧ φ₀.portTreeC (.inl 1) = (pw 1 : V 2) ∧
+      φ₀.portTreeC (.inr 0) = (pw 0 : V 2) ∧ φ₀.portTreeC (.inr 1) = (pw 1 : V 2) := by
+  rw [portTreeC_eq_portTree φ₀_expanded φ₀_linear]
+  exact portTree_φ₀
+
 /-- **The package drawn by hand** (Fig. 6, page 86), for `σ = swap 0 1` and names from `10`:
 `M*_3` with leaves `w₀`, `w₁` (the ports `l₀`, `l₁`) and `T_σ(w₀, w₁) = con(w₀, w₁)` (the middle
 ports `m₀`, `m₁`), that is `con(con(con(10, 11), 11), 10)`. -/
 theorem gamma_dupDup :
     gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs 10 =
       mkCon (mkCon (mkCon (var 10) (var 11)) (var 11)) (var 10) := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_φ₀
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_φ₀
   have hl : portList (Equiv.swap (0 : Fin 2) 1) = [0, 1] := by decide
   have hp : pairFst (Equiv.swap (0 : Fin 2) 1) = [0] := by decide
   simp only [gamma, gammaPort, trTerm_id, transpositorPerm, hl, hp, List.ofFn_succ,
@@ -70,7 +77,6 @@ example : (gamma (Translation.id sig) φ₀ (Equiv.swap 0 1) hs 10).vars =
     2 • Multiset.Ico 10 12 := by
   rw [vars_gamma _ φ₀_expanded φ₀_linear]
   congr 2
-  simp [gammaSize, gammaSizes, size_id, φ₀]
 
 /-! ## The side `con`–`dup`, translation `Φrev` -/
 
@@ -84,6 +90,15 @@ theorem portTree_conDup :
     portTree_eq ruleConDup_expanded ruleConDup_linear (by decide),
     portTree_eq ruleConDup_expanded ruleConDup_linear (by decide)⟩
 
+/-- The same for the computable twin `Rule.portTreeC`, which `gammaTree` uses (Fig. 6, page 86). -/
+theorem portTreeC_conDup_eq :
+    ruleConDup.portTreeC (.inl 0) = (mkDup (pw 0) (pw 1) : V 4) ∧
+      ruleConDup.portTreeC (.inl 1) = (mkDup (pw 2) (pw 3) : V 4) ∧
+      ruleConDup.portTreeC (.inr 0) = (mkCon (pw 0) (pw 2) : V 4) ∧
+      ruleConDup.portTreeC (.inr 1) = (mkCon (pw 1) (pw 3) : V 4) := by
+  rw [portTreeC_eq_portTree ruleConDup_expanded ruleConDup_linear]
+  exact portTree_conDup
+
 /-- Deliverable 2 on a side whose translation is not the identity: `Φrev` sends `con` to
 `con(con(p₁, w), con(w, p₀))`. -/
 theorem gamma_conDup_isPackage (k₀ : ℕ) :
@@ -93,7 +108,7 @@ theorem gamma_conDup_isPackage (k₀ : ℕ) :
 /-- The size: the four internal wires of `con`–`dup`, and one wire for each of the two `con`
 cells translated by `Φrev`. -/
 theorem gammaSize_conDup (k₀ : ℕ) : gammaSize Φrev ruleConDup k₀ = 6 := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_conDup
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_conDup_eq
   simp only [gammaSize, gammaSizes]
   rw [Equiv.sum_comp finSumFinEquiv.symm (fun p => Φrev.size (gammaTree ruleConDup k₀ p)),
     Fintype.sum_sum_type, Fin.sum_univ_two, Fin.sum_univ_two]
@@ -110,7 +125,7 @@ theorem gamma_conDup :
         (mkCon (mkCon (mkCon (var 2) (var 4)) (mkCon (var 4) (var 0)))
           (mkCon (mkCon (var 3) (var 5)) (mkCon (var 5) (var 1))))
         (mkDup (var 2) (var 3))) (mkDup (var 0) (var 1)) := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_conDup
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_conDup_eq
   have hl : portList (Equiv.swap (0 : Fin 2) 1) = [0, 1] := by decide
   have hp : pairFst (Equiv.swap (0 : Fin 2) 1) = [0] := by decide
   have hsz : gammaSizes Φrev ruleConDup 0 = ![0, 0, 1, 1] := by
@@ -132,5 +147,23 @@ theorem gamma_conDup :
 example : (gamma Φrev ruleConDup (Equiv.swap 0 1) hs 0).vars =
     2 • Multiset.Ico 0 6 := by
   rw [vars_gamma _ ruleConDup_expanded ruleConDup_linear, gammaSize_conDup]
+
+/-! ## `gammaTree` computes -/
+
+/-- **`gammaTree` computes** (Fig. 6, page 86): the tree of `con`–`dup` at the port `a₀`, from
+`10`, is `dup(10, 11)`, by evaluation alone, without `portTree_conDup`. -/
+example : gammaTree ruleConDup 10 (.inl 0) = mkDup (var 10) (var 11) := by decide
+
+/-- The same at the middle port `b₁`: `con(11, 13)`. -/
+example : gammaTree ruleConDup 10 (.inr 1) = mkCon (var 11) (var 13) := by decide
+
+/-- The package of `con`–`dup` under `Φrev` from `0` is also found by evaluation alone, without
+the lemmas `portTree_conDup` and `gammaSize_conDup` used by `gamma_conDup`. -/
+example :
+    gamma Φrev ruleConDup (Equiv.swap 0 1) hs 0 =
+      mkCon (mkCon
+        (mkCon (mkCon (mkCon (var 2) (var 4)) (mkCon (var 4) (var 0)))
+          (mkCon (mkCon (var 3) (var 5)) (mkCon (var 5) (var 1))))
+        (mkDup (var 2) (var 3))) (mkDup (var 0) (var 1)) := by decide
 
 end INet.Comb.GammaCheck

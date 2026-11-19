@@ -25,13 +25,13 @@ theorem codePort_φ₀ (k₀ : ℕ) :
     codePort 3 idx φ₀ k₀ (.inl 0) = var (k₀ + 0) ∧ codePort 3 idx φ₀ k₀ (.inl 1) = var (k₀ + 1) ∧
       codePort 3 idx φ₀ k₀ (.inr 0) = var (k₀ + 0) ∧
       codePort 3 idx φ₀ k₀ (.inr 1) = var (k₀ + 1) := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_φ₀
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_φ₀
   simp only [codePort, gammaTree, h0, h1, h2, h3]
   exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- `φ₀` has no cells: no trees on extra ports, so the copier is `C_0`, an eraser. -/
 theorem codeGammaExtras_φ₀ (k₀ : ℕ) : codeGammaExtras 3 idx φ₀ k₀ = [] := by
-  obtain ⟨h0, h1, h2, h3⟩ := portTree_φ₀
+  obtain ⟨h0, h1, h2, h3⟩ := portTreeC_φ₀
   have e : ∀ p, codePortExtras 3 idx φ₀ k₀ p = [] := by
     rintro (i | j)
     · revert i

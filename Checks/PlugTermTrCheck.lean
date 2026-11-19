@@ -61,7 +61,7 @@ theorem tψ_eq :
 /-- The trees `tφ` are not those of `netTr_plug_gamma`: at the middle port `0`, `gammaPort`
 names the new wire `14`, not `50`. -/
 theorem tφ_ne_gammaPort : tφ (.inr 0) ≠ gammaPort Φrev ruleConDup 10 (.inr 0) := by
-  obtain ⟨h0, h1, h2, h3⟩ := GammaCheck.portTree_conDup
+  obtain ⟨h0, h1, h2, h3⟩ := GammaCheck.portTreeC_conDup_eq
   have hsz : gammaSizes Φrev ruleConDup 10 = ![0, 0, 1, 1] := by
     funext q
     have e0 : (finSumFinEquiv.symm (⟨0, by omega⟩ : Fin (2 + 2)) : Fin 2 ⊕ Fin 2) = .inl 0 := rfl

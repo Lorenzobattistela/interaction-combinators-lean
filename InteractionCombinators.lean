@@ -64,6 +64,7 @@ import InteractionCombinators.Lafont.SymmPerm
 import InteractionCombinators.Lafont.StrongConfluence
 import InteractionCombinators.Lafont.Gamma
 import InteractionCombinators.Lafont.Fig7End
+import InteractionCombinators.Lafont.PortTree
 import InteractionCombinators.Lafont.PortTreeC
 import InteractionCombinators.Lafont.PlugTr
 import InteractionCombinators.Lafont.PlugTermTr
