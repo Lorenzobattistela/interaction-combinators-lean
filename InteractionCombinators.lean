@@ -9,6 +9,7 @@ import InteractionCombinators.RenameMany
 import InteractionCombinators.RenameStep
 import InteractionCombinators.EquivAdd
 import InteractionCombinators.NetTrEquiv
+import InteractionCombinators.TranslationExists
 import InteractionCombinators.StepsEAdd
 import InteractionCombinators.Confluence
 import InteractionCombinators.Lafont.Confluence2
@@ -44,3 +45,4 @@ import InteractionCombinators.Lafont.DecompositionHalf
 import InteractionCombinators.Lafont.Decomposition
 import InteractionCombinators.Lafont.DecompositionCheck
 import InteractionCombinators.Lafont.DecompositionReview
+import InteractionCombinators.TranslationExistsCheck
