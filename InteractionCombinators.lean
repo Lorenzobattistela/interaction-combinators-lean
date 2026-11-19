@@ -67,3 +67,4 @@ import InteractionCombinators.Lafont.DecompositionSymm
 import InteractionCombinators.Lafont.DecompositionSymmCheck
 import InteractionCombinators.Lafont.Gamma
 import InteractionCombinators.Lafont.GammaCheck
+import InteractionCombinators.Lafont.GammaReview
