@@ -25,6 +25,7 @@ import Checks.CodeMeetReview
 import Checks.CodeMenusECheck
 import Checks.CodeTreeECheck
 import Checks.CodeMenusEReview
+import Checks.CodeNetEReview
 import Checks.CodeTreeEReview
 import Checks.CodeSizesCReview
 import Checks.CodeTermExtractCheck
