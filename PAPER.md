@@ -187,6 +187,7 @@ Turing machines, cellular automata, unary arithmetic, Fig. 1: not formalized (se
 | Equality of principal nets; invertible translation | `PNet.Iso` :116, `Translation.Invertible` :269, `invertible_id` :318 | `InteractionCombinators/Lafont/TranslationComp.lean` | `Checks/TranslationCompCheck.lean` | docstring |
 | Composite of invertibles is invertible | `Invertible.comp` :237 | `InteractionCombinators/Lafont/TranslationCompAssoc.lean` | `Checks/TranslationCompAssocCheck.lean` | docstring |
 | Invertible ⇒ a renaming of symbols and a permutation of ports (p. 81, top) | `Invertible.net_eq` :155, `Invertible.symEquiv` :220, `Invertible.exists_symEquiv` :235 | `InteractionCombinators/Lafont/TranslationInvertible.lean` | `Checks/TranslationInvertibleCheck.lean`, `Checks/TranslationInvertibleReview.lean` | read. The converse is only in the review file (`renPermTr_invertible`). |
+| Conversely, a renaming of symbols with a permutation of ports is invertible; the characterization (p. 81) | `permCell` :44, `renPermTr` :75, `renPermTr_invertible` :112, `invertible_iff_renPermTr` :154 | `InteractionCombinators/Lafont/TranslationRenPerm.lean` | `Checks/TranslationInvertibleReview.lean` | docstring; moved to the library in the second phase |
 | Translation of interaction systems (the diagram of p. 81) | `Translation.Compatible` :94, `Translation.id_compatible` :122 | `InteractionCombinators/Translation.lean` | `Checks/CodeCompatibleReview.lean` | read. Quantifies over every linear naming: more than the paper asks. |
 | The same with any relation in place of `→*` | `Translation.CompatibleBy` :382, `compatible_iff_compatibleBy` :397, `CompatibleByDistinct` :404 | `InteractionCombinators/Lafont/Simulation.lean` | `Checks/SimulationCheck.lean` | read (`CompatibleBy`) |
 | Composite of two translations of systems | `Translation.Compatible.comp` :94 | `InteractionCombinators/Lafont/TranslationCompCompatible.lean` | `Checks/TranslationCompCompatibleCheck.lean` | read. Rules of the middle and target systems linear. |
@@ -345,7 +346,6 @@ involutive").
 | Proposition 2 (unique decomposition of a reduced net into trees and a wiring) | 79 | not found; its conclusion is built into `Rule.Reduced`, `PNet`, `Term.IsPackage` |
 | Lemma 1 (principal paths of a principal net) | 80 | not found; avoided because a `PNet` is a tree |
 | "A reduced net with no free port is empty" | 80 | not found |
-| The converse "every renaming plus permutation is invertible" | 81 | only in `Checks/TranslationInvertibleReview.lean` (`renPermTr_invertible`) |
 | Fig. 3, a nonterminating net | 82 | not found |
 | "If such a `T_σ` exists, σ is necessarily involutive" | 84 | not found |
 | Lemma 2 and Lemma 3 "more generally for principal nets / reduced nets" | 85, 87 | not found |
