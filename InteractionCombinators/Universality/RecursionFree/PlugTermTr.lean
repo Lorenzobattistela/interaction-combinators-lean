@@ -10,13 +10,16 @@ fixed way. In Fig. 10 the trees reached after the copies of `!Γ` are extracted 
 of the same trees with new wires named by the reduction (`codeGamma_extract`). Here the trees are
 any translations.
 
-* `plugTermTarget σ tφ tψ xs ys` — the net at the end of Fig. 7 for any trees `tφ`, `tψ`.
-* `plugTarget_eq_plugTermTarget` — `plugTarget` is the case `tφ = gammaPort Φ φ k₀`,
-  `tψ = gammaPort Φ ψ k₁`.
-* `netTr_plug_termTr` — **`plugTermTarget` is, up to wires, a translation of an instance of
-  `Rule.plug φ ψ σ`**, as soon as `tφ p` translates `gammaTree φ k₀ p` and `tψ q` translates
-  `gammaTree ψ k₁ q`.
-* `netTr_plug_gamma'` — `netTr_plug_gamma` again, from `netTr_plug_termTr`.
+Contents, in the order of the file:
+
+1. Definition: `plugTermTarget σ tφ tψ xs ys`, the net at the end of Fig. 7 for any trees `tφ`,
+   `tψ`.
+2. Auxiliary lemma: `plugTarget_eq_plugTermTarget`, `plugTarget` is the case
+   `tφ = gammaPort Φ φ k₀`, `tψ = gammaPort Φ ψ k₁`.
+3. Main results: `netTr_plug_termTr`, **`plugTermTarget` is, up to wires, a translation of an
+   instance of `Rule.plug φ ψ σ`**, as soon as `tφ p` translates `gammaTree φ k₀ p` and `tψ q`
+   translates `gammaTree ψ k₁ q`; and `netTr_plug_gamma'`, `netTr_plug_gamma` again, from
+   `netTr_plug_termTr`.
 -/
 
 namespace INet.Comb
@@ -25,21 +28,56 @@ open Term Translation ExpandedIso
 
 variable {S : Signature}
 
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
+
 /-- **The net at the end of Fig. 7, for any trees** (Lafont 1997, page 86; page 90 for Fig. 10):
 the name `xs p` against the tree `tφ (.inl p)`, the name `ys q` against `tψ (.inl q)`, and the
 tree `tφ (.inr l)` at the middle port `l` against the tree `tψ (.inr (σ l))`. -/
-noncomputable def plugTermTarget {a b k : ℕ} (σ : Equiv.Perm (Fin k))
-    (tφ : Fin a ⊕ Fin k → Term sig ℕ) (tψ : Fin b ⊕ Fin k → Term sig ℕ)
-    (xs : Fin a → ℕ) (ys : Fin b → ℕ) : CNet :=
+noncomputable def plugTermTarget
+    -- the numbers of ports of the two sides and of middle wires
+    {a b k : ℕ}
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k))
+    -- the trees of the two sides, on their free ports (`.inl`) and middle ports (`.inr`)
+    (tφ : Fin a ⊕ Fin k → Term sig ℕ)
+    (tψ : Fin b ⊕ Fin k → Term sig ℕ)
+    -- the names of the free ports of the two sides
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ) :
+    CNet :=
+  -- the free ports of the first side,
   (Finset.univ.val.map fun p : Fin a => s(var (xs p), tφ (.inl p))) +
+    -- the free ports of the second side,
     (Finset.univ.val.map fun q : Fin b => s(var (ys q), tψ (.inl q))) +
+    -- and the middle port `l` of the first side against the port `σ l` of the second
     (Finset.univ.val.map fun l : Fin k => s(tφ (.inr l), tψ (.inr (σ l))))
 
+-- ============================================================================================
+-- 2. Auxiliary lemma: the net of `PlugTr.lean` is a case
+-- ============================================================================================
+
 /-- `plugTarget` (page 86) is `plugTermTarget` with the trees `gammaPort` of `[φ]` and `[ψ]`. -/
-theorem plugTarget_eq_plugTermTarget (Φ : Translation S sig) {a b k : ℕ} (φ : Rule S a k)
-    (ψ : Rule S b k) (σ : Equiv.Perm (Fin k)) (k₀ k₁ : ℕ) (xs : Fin a → ℕ) (ys : Fin b → ℕ) :
+theorem plugTarget_eq_plugTermTarget
+    -- the translation
+    (Φ : Translation S sig)
+    -- the two sides, with `k` middle wires, and the permutation of the middle wires
+    {a b k : ℕ}
+    (φ : Rule S a k)
+    (ψ : Rule S b k)
+    (σ : Equiv.Perm (Fin k))
+    -- the offsets of the internal wires of the two sides
+    (k₀ k₁ : ℕ)
+    -- the names of the free ports
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ) :
     plugTarget Φ φ ψ σ k₀ k₁ xs ys =
       plugTermTarget σ (gammaPort Φ φ k₀) (gammaPort Φ ψ k₁) xs ys := rfl
+
+-- ============================================================================================
+-- 3. Main results: a translation of the plugged rule
+-- ============================================================================================
 
 /-- **The net at the end of Fig. 7, with any translated trees, is a translation of the plugged
 rule** (Lafont 1997, page 86; the plugged rule, page 85; Fig. 10, page 90). For linear sides `φ`,
@@ -50,16 +88,36 @@ the ports of `φ` and `ys` on those of `ψ`.
 
 The internal wire `w` of `φ` is named `k₀ + w`, that of `ψ` is named `k₁ + w`, as in `gammaTree`;
 the middle wire `l` gets a fresh name `B + l`, removed at the end (`equiv_contract_map`). -/
-theorem netTr_plug_termTr (Φ : Translation S sig) {a b k : ℕ} {φ : Rule S a k}
-    {ψ : Rule S b k} (hφe : φ.Expanded) (hφl : φ.Linear) (hψe : ψ.Expanded)
-    (hψl : ψ.Linear) (σ : Equiv.Perm (Fin k)) (k₀ k₁ : ℕ)
-    (tφ : Fin a ⊕ Fin k → Term sig ℕ) (tψ : Fin b ⊕ Fin k → Term sig ℕ)
+theorem netTr_plug_termTr
+    -- the translation
+    (Φ : Translation S sig)
+    -- the two sides, with `k` middle wires, both linear and in expanded form
+    {a b k : ℕ}
+    {φ : Rule S a k}
+    {ψ : Rule S b k}
+    (hφe : φ.Expanded)
+    (hφl : φ.Linear)
+    (hψe : ψ.Expanded)
+    (hψl : ψ.Linear)
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k))
+    -- the offsets of the internal wires of the two sides
+    (k₀ k₁ : ℕ)
+    -- the trees, translations of the trees of the two sides
+    (tφ : Fin a ⊕ Fin k → Term sig ℕ)
+    (tψ : Fin b ⊕ Fin k → Term sig ℕ)
     (hφ : ∀ p, Φ.TermTr (gammaTree φ k₀ p) (tφ p))
     (hψ : ∀ q, Φ.TermTr (gammaTree ψ k₁ q) (tψ q))
-    (xs : Fin a → ℕ) (ys : Fin b → ℕ)
+    -- the names of the free ports
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    -- the net at the end of Fig. 7 is linear
     (hlin : Net.Linear (plugTermTarget σ tφ tψ xs ys)) :
+    -- there are names `h` of the internal wires of the plugged rule and a net `N'` such that
     ∃ (h : Fin (Rule.plug φ ψ σ).internal → ℕ) (N' : CNet),
+      -- `N'` is a translation of the instance of the plugged rule with these names,
       Φ.NetTr ((Rule.plug φ ψ σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N' ∧
+      -- and `N'` is the same graph as the net at the end of Fig. 7
       Equiv N' (plugTermTarget σ tφ tψ xs ys) := by
   set B := (plugTermTarget σ tφ tψ xs ys).vars.sup + 1 with hB
   let h : Fin (k + φ.internal + ψ.internal) → ℕ := fun i =>
@@ -152,13 +210,31 @@ theorem netTr_plug_termTr (Φ : Translation S sig) {a b k : ℕ} {φ : Rule S a 
 of `[φ]` and `[ψ]` are translations of the trees of `φ` and `ψ` (`termTr_trTerm`), so the net
 `plugTarget` at the end of Fig. 7 is, up to wires, a translation of an instance of the plugged
 rule. -/
-theorem netTr_plug_gamma' (Φ : Translation S sig) {a b k : ℕ} {φ : Rule S a k}
-    {ψ : Rule S b k} (hφe : φ.Expanded) (hφl : φ.Linear) (hψe : ψ.Expanded)
-    (hψl : ψ.Linear) (σ : Equiv.Perm (Fin k)) (k₀ k₁ : ℕ)
-    (xs : Fin a → ℕ) (ys : Fin b → ℕ)
+theorem netTr_plug_gamma'
+    -- the translation
+    (Φ : Translation S sig)
+    -- the two sides, with `k` middle wires, both linear and in expanded form
+    {a b k : ℕ}
+    {φ : Rule S a k}
+    {ψ : Rule S b k}
+    (hφe : φ.Expanded)
+    (hφl : φ.Linear)
+    (hψe : ψ.Expanded)
+    (hψl : ψ.Linear)
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k))
+    -- the offsets of the internal wires of the two sides
+    (k₀ k₁ : ℕ)
+    -- the names of the free ports
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    -- the net `plugTarget` at the end of Fig. 7 is linear
     (hlin : Net.Linear (plugTarget Φ φ ψ σ k₀ k₁ xs ys)) :
+    -- there are names `h` of the internal wires of the plugged rule and a net `N'` such that
     ∃ (h : Fin (Rule.plug φ ψ σ).internal → ℕ) (N' : CNet),
+      -- `N'` is a translation of the instance of the plugged rule with these names,
       Φ.NetTr ((Rule.plug φ ψ σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N' ∧
+      -- and `N'` is the same graph as `plugTarget`
       Equiv N' (plugTarget Φ φ ψ σ k₀ k₁ xs ys) := by
   rw [plugTarget_eq_plugTermTarget] at hlin ⊢
   exact netTr_plug_termTr Φ hφe hφl hψe hψl σ k₀ k₁ (gammaPort Φ φ k₀) (gammaPort Φ ψ k₁)
