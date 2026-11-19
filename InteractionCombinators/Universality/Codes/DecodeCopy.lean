@@ -10,36 +10,61 @@ a copy of it left by the copier `C_n` (`copier_code`): `(code k π).bind fun x =
 `decomp` numbers the cut names in a fixed order, and `f` need not keep it. It is still the same
 graph as a code, and the decoder still extracts the package.
 
-* `decomp_bind_var` — the decomposition is equivariant: decomposing `t` renamed by `g` from `K`
-  is decomposing `t` from `k` and renaming everything by `g`, when `g` sends `k + i` to `K + i`.
-  The cut names come only from the counter.
-* `decomp_bind_var_below`, `decomp_shift` — the two cases: renaming the names of `π` keeps the cut
-  names; moving the start from `k` to `K ≥ k` shifts the cut names by `K - k`.
-* `code_bind_var` — the consequence on the code.
-* `Net.equiv_bind_var_of_linear` — a renaming whose result is linear and which keeps the free
-  ports is a renaming of internal wires (`Net.equiv_bind_var`).
-* `code_decoder_copy` — Fig. 9 on a renamed copy of the code, as Fig. 10 needs.
+Contents, in the order of the file:
+
+1. Definition: `Decomp.rename`, a decomposition with every name renamed.
+2. Auxiliary lemmas, the equivariance of the decomposition: `decomp_bind_var` (decomposing `t`
+   renamed by `g` from `K` is decomposing `t` from `k` and renaming everything by `g`, when `g`
+   sends `k + i` to `K + i`; the cut names come only from the counter), and its two cases
+   `decomp_bind_var_below` (renaming the names of `π` keeps the cut names) and `decomp_shift`
+   (moving the start from `k` to `K ≥ k` shifts the cut names by `K - k`); `bind_var_mux`,
+   `bind_var_muxStar`; and the consequence on the code, `code_bind_var`.
+3. Auxiliary lemmas, renaming the internal wires from the renamed net:
+   `count_add_count_le_count_map`, `count_le_count_map`, and `Net.equiv_bind_var_of_linear` (a
+   renaming whose result is linear and which keeps the free ports is a renaming of internal
+   wires, `Net.equiv_bind_var`).
+4. Main result: `code_decoder_copy`, Fig. 9 on a renamed copy of the code, as Fig. 10 needs.
 -/
 
 namespace INet.Comb
 
 open Term Decomp
 
-/-! ## Equivariance of the decomposition -/
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
 
 /-- A decomposition with every name renamed by `g`, and next unused name `k'`. -/
-def Decomp.rename (g : ℕ → ℕ) (k' : ℕ) (D : Decomp) : Decomp :=
+def Decomp.rename
+    -- the renaming, and the new next unused name
+    (g : ℕ → ℕ)
+    (k' : ℕ)
+    -- the decomposition
+    (D : Decomp) :
+    Decomp :=
   ⟨D.τ.bind (fun x => var (g x)),
-    D.cells.map (fun c => (g c.1, c.2.1.bind (fun x => var (g x)), c.2.2.bind (fun x => var (g x)))),
+    D.cells.map
+      (fun c => (g c.1, c.2.1.bind (fun x => var (g x)), c.2.2.bind (fun x => var (g x)))),
     k'⟩
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: equivariance of the decomposition
+-- ============================================================================================
 
 /-- The decomposition of page 88 is equivariant: the cut names come only from the counter. If `g`
 sends `k + i` to `K + i` for every `i`, then decomposing `t` renamed by `g` with new names from `K`
 is decomposing `t` with new names from `k` and renaming `τ`, the cut names and the auxiliary trees
 by `g`; the next unused name moves by the same amount. No hypothesis on the names of `t`. -/
-theorem decomp_bind_var (t : Term sig ℕ) (g : ℕ → ℕ) (k K : ℕ) (hg : ∀ i, g (k + i) = K + i) :
-    decomp K (t.bind fun x => var (g x)) =
-      (decomp k t).rename g (K + ((decomp k t).k - k)) := by
+theorem decomp_bind_var
+    -- the tree
+    (t : Term sig ℕ)
+    -- the renaming, which sends the block of new names from `k` to the block from `K`
+    (g : ℕ → ℕ)
+    (k K : ℕ)
+    (hg : ∀ i, g (k + i) = K + i) :
+    -- decomposing the renamed tree from `K` is renaming the decomposition from `k`
+    decomp K (t.bind fun x => var (g x))
+      = (decomp k t).rename g (K + ((decomp k t).k - k)) := by
   induction t using Comb.induction generalizing k K with
   | var x => simp [decomp_var, Decomp.rename]
   | era => simp [decomp_mkEra, Decomp.rename]
@@ -73,9 +98,16 @@ theorem decomp_bind_var (t : Term sig ℕ) (g : ℕ → ℕ) (k K : ℕ) (hg : �
 /-- Renaming the names of a tree (page 88): if the names of `t` are below `k`, decomposing `t`
 renamed by `g` from `k` renames `τ` and the auxiliary trees of the cells by `g` on the names of `t`,
 and keeps the cut names and the next unused name. -/
-theorem decomp_bind_var_below (t : Term sig ℕ) (g : ℕ → ℕ) (k : ℕ) (hb : t.Below k) :
-    decomp k (t.bind fun x => var (g x)) =
-      (decomp k t).rename (fun x => if x < k then g x else x) (decomp k t).k := by
+theorem decomp_bind_var_below
+    -- the tree and the renaming
+    (t : Term sig ℕ)
+    (g : ℕ → ℕ)
+    -- the names of the tree are below `k`
+    (k : ℕ)
+    (hb : t.Below k) :
+    -- decomposing the renamed tree renames the decomposition by `g` below `k` only
+    decomp k (t.bind fun x => var (g x))
+      = (decomp k t).rename (fun x => if x < k then g x else x) (decomp k t).k := by
   have e : (t.bind fun x => var (g x)) = t.bind fun x => var (if x < k then g x else x) :=
     Term.bind_congr fun x hx => by simp [hb x hx]
   rw [e, decomp_bind_var t _ k k (fun i => by simp)]
@@ -85,9 +117,16 @@ theorem decomp_bind_var_below (t : Term sig ℕ) (g : ℕ → ℕ) (k : ℕ) (hb
 
 /-- Changing the start (page 88): if the names of `t` are below `k ≤ K`, decomposing `t` from `K`
 shifts every cut name, and the next unused name, by `K - k`, and keeps the names of `t`. -/
-theorem decomp_shift (t : Term sig ℕ) (k K : ℕ) (hkK : k ≤ K) (hb : t.Below k) :
-    decomp K t = (decomp k t).rename (fun x => if x < k then x else x + (K - k))
-      ((decomp k t).k + (K - k)) := by
+theorem decomp_shift
+    -- the tree, with its names below `k`
+    (t : Term sig ℕ)
+    (k K : ℕ)
+    (hkK : k ≤ K)
+    (hb : t.Below k) :
+    -- decomposing from `K` shifts the names from `k` by `K - k`
+    decomp K t
+      = (decomp k t).rename (fun x => if x < k then x else x + (K - k))
+          ((decomp k t).k + (K - k)) := by
   have e : t = t.bind fun x => var (if x < k then x else x + (K - k)) := by
     conv_lhs => rw [← Term.bind_var_self t]
     exact Term.bind_congr fun x hx => by simp [hb x hx]
@@ -98,9 +137,12 @@ theorem decomp_shift (t : Term sig ℕ) (k K : ℕ) (hkK : k ≤ K) (hb : t.Belo
   omega
 
 /-- Renaming the auxiliary trees of `M_n` renames `M_n`. -/
-theorem bind_var_mux (g : ℕ → ℕ) :
-    ∀ ts : List (Term sig ℕ), (mux ts).bind (fun x => var (g x)) =
-      mux (ts.map fun t => t.bind fun x => var (g x))
+theorem bind_var_mux
+    -- the renaming
+    (g : ℕ → ℕ) :
+    -- for all auxiliary trees `ts`
+    ∀ ts : List (Term sig ℕ),
+      (mux ts).bind (fun x => var (g x)) = mux (ts.map fun t => t.bind fun x => var (g x))
   | [] => by simp [mux]
   | [t] => rfl
   | t :: t' :: ts => by
@@ -108,9 +150,12 @@ theorem bind_var_mux (g : ℕ → ℕ) :
     rfl
 
 /-- Renaming the auxiliary trees of `M_n*` renames `M_n*`. -/
-theorem bind_var_muxStar (g : ℕ → ℕ) :
-    ∀ us : List (Term sig ℕ), (muxStar us).bind (fun x => var (g x)) =
-      muxStar (us.map fun t => t.bind fun x => var (g x))
+theorem bind_var_muxStar
+    -- the renaming
+    (g : ℕ → ℕ) :
+    -- for all auxiliary trees `us`
+    ∀ us : List (Term sig ℕ),
+      (muxStar us).bind (fun x => var (g x)) = muxStar (us.map fun t => t.bind fun x => var (g x))
   | [] => by simp [muxStar]
   | [u] => rfl
   | u :: u' :: us => by
@@ -120,18 +165,34 @@ theorem bind_var_muxStar (g : ℕ → ℕ) :
 /-- The code is equivariant (Fig. 8, page 88): if `g` sends `k + i` to `K + i` for every `i`, the
 code of `t` renamed by `g`, with new names from `K`, is the code of `t` with new names from `k`,
 renamed by `g`. -/
-theorem code_bind_var (t : Term sig ℕ) (g : ℕ → ℕ) (k K : ℕ) (hg : ∀ i, g (k + i) = K + i) :
+theorem code_bind_var
+    -- the tree
+    (t : Term sig ℕ)
+    -- the renaming, which sends the block of new names from `k` to the block from `K`
+    (g : ℕ → ℕ)
+    (k K : ℕ)
+    (hg : ∀ i, g (k + i) = K + i) :
+    -- the code of the renamed tree from `K` is the renamed code from `k`
     code K (t.bind fun x => var (g x)) = (code k t).bind fun x => var (g x) := by
   rw [code, code, decomp_bind_var t g k K hg]
   simp only [Decomp.code, Decomp.rename, bind_var_mux, bind_var_muxStar, List.map_cons,
     List.map_nil, List.map_map]
   rfl
 
-/-! ## Renaming the internal wires, from the renamed net -/
+-- ============================================================================================
+-- 3. Auxiliary lemmas: renaming the internal wires, from the renamed net
+-- ============================================================================================
 
 /-- Two names with the same image occur in the renamed multiset at least as often as together. -/
-theorem count_add_count_le_count_map (s : Multiset ℕ) (f : ℕ → ℕ) (x y : ℕ) (hxy : x ≠ y)
-    (h : f x = f y) : s.count x + s.count y ≤ (s.map f).count (f x) := by
+theorem count_add_count_le_count_map
+    -- the multiset and the renaming
+    (s : Multiset ℕ)
+    (f : ℕ → ℕ)
+    -- two distinct names with the same image
+    (x y : ℕ)
+    (hxy : x ≠ y)
+    (h : f x = f y) :
+    s.count x + s.count y ≤ (s.map f).count (f x) := by
   have hle : Multiset.replicate (s.count x) x + Multiset.replicate (s.count y) y ≤ s := by
     rw [Multiset.le_iff_count]
     intro a
@@ -141,7 +202,11 @@ theorem count_add_count_le_count_map (s : Multiset ℕ) (f : ℕ → ℕ) (x y :
   simpa [Multiset.map_add, Multiset.map_replicate, Multiset.count_replicate, h] using this
 
 /-- A name occurs in the renamed multiset at least as often as in the multiset. -/
-theorem count_le_count_map (s : Multiset ℕ) (f : ℕ → ℕ) (x : ℕ) :
+theorem count_le_count_map
+    -- the multiset, the renaming and the name
+    (s : Multiset ℕ)
+    (f : ℕ → ℕ)
+    (x : ℕ) :
     s.count x ≤ (s.map f).count (f x) := by
   have hle : Multiset.replicate (s.count x) x ≤ s := Multiset.le_count_iff_replicate_le.1 le_rfl
   have := Multiset.count_le_of_le (f x) (Multiset.map_le_map (f := f) hle)
@@ -152,9 +217,14 @@ gives a linear net, and `f` keeps the free ports of `N`, then `N` is linear, `f`
 distinct, and the renamed net is the same graph (`Net.equiv_bind_var`; page 70: the names of the
 internal wires do not matter). Two distinct names with the same image would give that image at
 least twice, so both would be free ports, which `f` keeps. -/
-theorem Net.equiv_bind_var_of_linear {N : CNet} (f : ℕ → ℕ)
+theorem Net.equiv_bind_var_of_linear
+    -- the net
+    {N : CNet}
+    -- the renaming: the renamed net is linear, and the free ports of `N` are kept
+    (f : ℕ → ℕ)
     (hlin : Net.Linear (N.bind fun x => var (f x)))
     (hfree : ∀ x, N.vars.count x = 1 → f x = x) :
+    -- the renamed net is the same graph as `N`
     Equiv N (N.bind fun x => var (f x)) := by
   have hv := Net.vars_bind_var (S := sig) f N
   have hL : N.Linear := fun x => by
@@ -175,7 +245,9 @@ theorem Net.equiv_bind_var_of_linear {N : CNet} (f : ℕ → ℕ)
   have ey := hfree y (by omega)
   exact hne (ex.symm.trans (hxy.trans ey))
 
-/-! ## Fig. 9 on a renamed copy of the code -/
+-- ============================================================================================
+-- 4. Main result: Fig. 9 on a renamed copy of the code
+-- ============================================================================================
 
 /-- Fig. 9 on a renamed copy of the code, as Fig. 10 needs (pages 89 and 90). In Fig. 10 the
 decoder `D` meets a copy of `!π` left by the copier (`copier_code`): the code `code k π` renamed by
@@ -186,10 +258,26 @@ a function `f` injective on its names. Plugged into the decoder with free port `
 Proof: the copy is the same graph as `code K π''`, where `π''` is `π` renamed by `f` and `K` is
 above every name of the net (`code_bind_var`, `Net.equiv_bind_var_of_linear`); there the loop of
 the decoder is moved to the next name unused by that code, and `code_decoder_package` applies. -/
-theorem code_decoder_copy (π : Term sig ℕ) (hπ : π.IsPackage) (k : ℕ) (hb : π.Below k)
-    (f : ℕ → ℕ) (hf : Set.InjOn f {x | x ∈ (code k π).vars}) (w k₀ : ℕ) (Δ : CNet)
+theorem code_decoder_copy
+    -- the package, with its names below `k`, where its code starts numbering
+    (π : Term sig ℕ)
+    (hπ : π.IsPackage)
+    (k : ℕ)
+    (hb : π.Below k)
+    -- the renaming of the copy, injective on the names of the code
+    (f : ℕ → ℕ)
+    (hf : Set.InjOn f {x | x ∈ (code k π).vars})
+    -- the free port `w` of the decoder and its loop `k₀, k₀ + 1`
+    (w k₀ : ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net we start from is linear: the copy of the code on the decoder, and `Δ`
     (hlin : Net.Linear (s((code k π).bind (fun x => var (f x)), decoder w k₀) ::ₘ Δ)) :
-    ∃ M, StepsE system (s((code k π).bind (fun x => var (f x)), decoder w k₀) ::ₘ Δ) M ∧
+    -- there is a net `M` such that
+    ∃ M,
+      -- the net reduces, up to wires, to `M`,
+      StepsE system (s((code k π).bind (fun x => var (f x)), decoder w k₀) ::ₘ Δ) M ∧
+      -- and `M` is the same graph as: the package renamed by `f` on `w`; and `Δ`
       Equiv M (s(var w, π.bind (fun x => var (f x))) ::ₘ Δ) := by
   set C := (code k π).bind (fun x => var (f x)) with hC
   set N : CNet := s(C, decoder w k₀) ::ₘ Δ with hN
@@ -278,7 +366,8 @@ theorem code_decoder_copy (π : Term sig ℕ) (hπ : π.IsPackage) (k : ℕ) (hb
     split_ifs at hy <;> omega
   have E : Equiv N' N := hbind ▸ Net.equiv_bind_var_of_linear σ (hbind ▸ hlin) hfree
   -- Fig. 9 on `code K π''`
-  have hπ''p : π''.IsPackage := IsPackage.bind_var hπ f (hf.mono fun x hx => Multiset.mem_of_le hπc hx)
+  have hπ''p : π''.IsPackage :=
+    IsPackage.bind_var hπ f (hf.mono fun x hx => Multiset.mem_of_le hπc hx)
   have hle : Net.vars (s(var w, π'') ::ₘ Δ) ≤ Net.vars N := by
     rw [hNv, Net.vars_cons, eqVars_mk, vars_var]
     refine add_le_add (add_comm ({w} : Multiset ℕ) _ ▸ add_le_add ?_ ?_) le_rfl
