@@ -11,38 +11,63 @@ of `!Γ` comes from another cell, whose names start elsewhere. This file shows t
 instance of the principal net `[β]` of `codeTranslation` (`CodeTr.lean`), so that the
 translation relation `TermTr` holds.
 
-* `codeTerm_shift`, `codeExtras_shift`, `codeGamma_shift`, `menu_codeCellMenu_shift`,
-  `menu_codeMenus_shift` — the pieces of Fig. 10 numbered from `k₀` are those numbered from
-  `k₀'`, renamed by any `g` with `g (k₀ + i) = k₀' + i`.
-* `treePNet_inst_bind` — an instance of `treePNet` is the tree with the ports plugged and the other
-  names renamed.
-* `codeNet_inst_eq` — the tree left by the extraction is an instance of `[β]`.
+The versions with `E` number the symbols by any `e : S.Sym ≃ Fin n`; the versions without `E`
+take `e := symEnum S`.
 
-`menu_codeCellMenuE_shift`, `menu_codeMenusE_shift` and `codeNetE_inst_eq` are the same with the
-symbols numbered by any `e : S.Sym ≃ Fin n`; the versions without `E` take `e := symEnum S`.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: shifting the pieces of Fig. 10. `bind_codeExtra`, `codeTerm_shift`,
+   `codeExtras_shift`, `codeGamma_shift`, `codeGammaOpt_shift`: the pieces numbered from `k₀`
+   are those numbered from `k₀'`, renamed by any `g` with `g (k₀ + i) = k₀' + i`.
+2. Auxiliary lemmas for any numbering: shifting the menus. `menu_codeCellMenuE_shift`,
+   `menu_codeMenusE_shift`.
+3. Auxiliary lemmas: instances of a tree. `treePNet_inst_bind` (an instance of `treePNet` is the
+   tree with the ports plugged and the other names renamed), `bind_cellSkel_of`.
+4. Main result for any numbering: `codeNetE_inst_eq`, the tree left by the extraction is an
+   instance of `[β]`.
+5. Main results for the enumeration `symEnum S`: `menu_codeCellMenu_shift`,
+   `menu_codeMenus_shift`, and `codeNet_inst_eq`, the tree left by the extraction is an instance
+   of `[β]`.
 -/
 
 namespace INet.Comb
 
 open Term Translation
 
+-- the interaction system, an arity and a number of auxiliary ports
 variable {S : Signature} {a k : ℕ}
 
-/-! ## Shifting the pieces of Fig. 10 -/
+-- ============================================================================================
+-- 1. Auxiliary lemmas: shifting the pieces of Fig. 10
+-- ============================================================================================
 
 /-- Renaming goes through the tree on the extra port of `⟨α_i⟩` (page 89). -/
-theorem bind_codeExtra (g : ℕ → ℕ) (m i y u k₀ : ℕ) (hg : g (k₀ + 1) = g k₀ + 1) :
-    (codeExtra m i y u k₀).bind (fun x => var (g x)) = codeExtra m i (g y) (g u) (g k₀) := by
+theorem bind_codeExtra
+    -- the renaming
+    (g : ℕ → ℕ)
+    -- the data of the tree: the number of symbols, the symbol, the names, the first cut name
+    (m i y u k₀ : ℕ)
+    -- `g` sends `k₀ + 1` to the successor of the image of `k₀`
+    (hg : g (k₀ + 1) = g k₀ + 1) :
+    (codeExtra m i y u k₀).bind (fun x => var (g x))
+      = codeExtra m i (g y) (g u) (g k₀) := by
   simp [codeExtra, copier, bind_autoMux, bind_muxStar, selector_eq_cellSel, bind_cellSel, hg]
 
+-- the number of symbols, and the numbering of the symbols
 variable (m : ℕ) (idx : S.Sym → ℕ)
 
 /-- **Shifting `⟨t⟩`** (Fig. 10, page 89): renaming `⟨t⟩`, numbered from `b`, by a `g` that sends
 `b + i` to `b' + i` gives `⟨t⟩` of the renamed tree, numbered from `b'`. -/
-theorem codeTerm_shift (g : ℕ → ℕ) (t : Term S ℕ) :
+theorem codeTerm_shift
+    -- the renaming
+    (g : ℕ → ℕ)
+    -- the tree
+    (t : Term S ℕ) :
+    -- for any first names `b` and `b'`, if `g` sends `b + i` to `b' + i`,
     ∀ (b b' : ℕ), (∀ i, g (b + i) = b' + i) →
-      (codeTerm m idx b t).bind (fun x => var (g x)) =
-        codeTerm m idx b' (t.bind fun x => var (g x)) := by
+      -- then the renamed `⟨t⟩` is `⟨t⟩` of the renamed tree, numbered from `b'`
+      (codeTerm m idx b t).bind (fun x => var (g x))
+        = codeTerm m idx b' (t.bind fun x => var (g x)) := by
   induction t with
   | var x => intro b b' _; rfl
   | app α ts ih =>
@@ -56,10 +81,16 @@ theorem codeTerm_shift (g : ℕ → ℕ) (t : Term S ℕ) :
       ih i _ _ fun j => by rw [add_assoc, add_assoc, hg, add_assoc, add_assoc])
 
 /-- **Shifting the trees on the extra ports of `⟨t⟩`** (Fig. 10, page 89). -/
-theorem codeExtras_shift (g : ℕ → ℕ) (t : Term S ℕ) :
+theorem codeExtras_shift
+    -- the renaming
+    (g : ℕ → ℕ)
+    -- the tree
+    (t : Term S ℕ) :
+    -- for any first names `b` and `b'`, if `g` sends `b + i` to `b' + i`,
     ∀ (b b' : ℕ), (∀ i, g (b + i) = b' + i) →
-      (codeExtras m idx b t).map (·.bind fun x => var (g x)) =
-        codeExtras m idx b' (t.bind fun x => var (g x)) := by
+      -- then the renamed extra trees are those of the renamed tree, numbered from `b'`
+      (codeExtras m idx b t).map (·.bind fun x => var (g x))
+        = codeExtras m idx b' (t.bind fun x => var (g x)) := by
   induction t with
   | var x => intro b b' _; rfl
   | app α ts ih =>
@@ -74,9 +105,17 @@ theorem codeExtras_shift (g : ℕ → ℕ) (t : Term S ℕ) :
 
 /-- **Shifting `Γ_{i,j}`** (Fig. 10, page 89): the package numbered from `k₀`, renamed by a `g`
 that sends `k₀ + i` to `k₀' + i`, is the package numbered from `k₀'`. -/
-theorem codeGamma_shift (φ : Rule S a k) (σ : Equiv.Perm (Fin k)) (hσ : Function.Involutive σ)
-    (g : ℕ → ℕ) (k₀ k₀' : ℕ) (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (codeGamma m idx φ σ hσ k₀).bind (fun x => var (g x)) = codeGamma m idx φ σ hσ k₀' := by
+theorem codeGamma_shift
+    -- the rule, and the involution of its auxiliary ports
+    (φ : Rule S a k)
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ)
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
+    (hg : ∀ i, g (k₀ + i) = k₀' + i) :
+    (codeGamma m idx φ σ hσ k₀).bind (fun x => var (g x))
+      = codeGamma m idx φ σ hσ k₀' := by
   have hb : ∀ p i, g (codeBase φ k₀ p + i) = codeBase φ k₀' p + i := fun p i => by
     simp only [codeBase, add_assoc]; exact hg _
   have hp : ∀ p, (codePort m idx φ k₀ p).bind (fun x => var (g x)) = codePort m idx φ k₀' p :=
@@ -92,27 +131,41 @@ theorem codeGamma_shift (φ : Rule S a k) (σ : Equiv.Perm (Fin k)) (hσ : Funct
   rfl
 
 /-- Shifting `codeGammaOpt` (page 89). -/
-theorem codeGammaOpt_shift (o : Option (ExpSide S a)) (g : ℕ → ℕ) (k₀ k₀' : ℕ)
+theorem codeGammaOpt_shift
+    -- the expanded side, if any
+    (o : Option (ExpSide S a))
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
     (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (codeGammaOpt m idx o k₀).bind (fun x => var (g x)) = codeGammaOpt m idx o k₀' := by
+    (codeGammaOpt m idx o k₀).bind (fun x => var (g x))
+      = codeGammaOpt m idx o k₀' := by
   cases o with
   | none => simp [codeGammaOpt]
   | some s => exact codeGamma_shift m idx s.φ s.σ s.involutive g k₀ k₀' hg
 
-/-! ### The menus, for any numbering `e` of the symbols -/
-
 section Enum
 
+-- the numbering `e` of the `n` symbols, and the expanded sides of the rules
 variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas for any numbering: shifting the menus
+-- ============================================================================================
 
 /-- **Shifting the menu `Γ_β`** (Fig. 10, page 89), with the symbols numbered by any `e`: the menu
 numbered from `k₀`, renamed by a `g` that sends `k₀ + i` to `k₀' + i`, is the menu numbered from
 `k₀'`. -/
-theorem menu_codeCellMenuE_shift (β : S.Sym) (g : ℕ → ℕ) (k₀ k₀' : ℕ)
+theorem menu_codeCellMenuE_shift
+    -- the symbol
+    (β : S.Sym)
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
     (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (menu (codeCellMenuE e side β k₀)).bind (fun x => var (g x)) =
-      menu (codeCellMenuE e side β k₀') := by
+    (menu (codeCellMenuE e side β k₀)).bind (fun x => var (g x))
+      = menu (codeCellMenuE e side β k₀') := by
   rw [menu, bind_mux, codeCellMenuE, codeCellMenuE, List.map_ofFn, menu]
   congr 2
   funext j
@@ -120,8 +173,13 @@ theorem menu_codeCellMenuE_shift (β : S.Sym) (g : ℕ → ℕ) (k₀ k₀' : �
 
 /-- **Shifting the menu `Γ = Γ_0 & ⋯ & Γ_{m-1}`** (Fig. 10, page 89), with the symbols numbered by
 any `e`. -/
-theorem menu_codeMenusE_shift (g : ℕ → ℕ) (k₀ k₀' : ℕ) (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (menu (codeMenusE e side k₀)).bind (fun x => var (g x)) = menu (codeMenusE e side k₀') := by
+theorem menu_codeMenusE_shift
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
+    (hg : ∀ i, g (k₀ + i) = k₀' + i) :
+    (menu (codeMenusE e side k₀)).bind (fun x => var (g x))
+      = menu (codeMenusE e side k₀') := by
   rw [menu, bind_mux, codeMenusE, codeMenusE, List.map_ofFn, menu]
   congr 2
   funext i
@@ -129,15 +187,24 @@ theorem menu_codeMenusE_shift (g : ℕ → ℕ) (k₀ k₀' : ℕ) (hg : ∀ i, 
 
 end Enum
 
-/-! ## The tree left by the extraction is an instance of `[β]` -/
+-- ============================================================================================
+-- 3. Auxiliary lemmas: instances of a tree
+-- ============================================================================================
 
 /-- **An instance of `treePNet`** (page 80): with the tree `args i` on the port `i` and the internal
 wire of name `x` named `h x`, the instance is `t` with each port `i < n` replaced by `args i` and
 every other name `x` by `h x`. -/
-theorem treePNet_inst_bind (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
-    (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) (args : Fin n → Term sig ℕ) (h : ℕ → ℕ) :
-    (treePNet n t hp hw).inst args (fun w => h ((wireNum n t).symm w).1) =
-      t.bind fun x => if hx : x < n then args ⟨x, hx⟩ else var (h x) := by
+theorem treePNet_inst_bind
+    -- the tree: the ports `i < n` occur once, the other names twice
+    (n : ℕ)
+    (t : Term sig ℕ)
+    (hp : ∀ i < n, t.vars.count i = 1)
+    (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2)
+    -- the trees on the ports, and the names of the internal wires
+    (args : Fin n → Term sig ℕ)
+    (h : ℕ → ℕ) :
+    (treePNet n t hp hw).inst args (fun w => h ((wireNum n t).symm w).1)
+      = t.bind fun x => if hx : x < n then args ⟨x, hx⟩ else var (h x) := by
   show (t.bind (treeLeaf n t)).bind (Sum.elim args
     fun w : Fin (wireSet n t).card => var (h ((wireNum n t).symm w).1)) = _
   rw [Term.bind_bind]
@@ -151,28 +218,52 @@ theorem treePNet_inst_bind (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.
 
 /-- Plugging trees into the names of the cell `[αᵢ]` of Fig. 6 (page 86), when the loop is renamed
 to a name. -/
-theorem bind_cellSkel_of (f : ℕ → Term sig ℕ) (Γ : Term sig ℕ) (m i : ℕ) (ts : List (Term sig ℕ))
-    (ℓ ℓ' : ℕ) (hℓ : f ℓ = var ℓ') :
-    (cellSkel Γ m i ts ℓ).bind f = cellSkel (Γ.bind f) m i (ts.map (·.bind f)) ℓ' := by
+theorem bind_cellSkel_of
+    -- the trees plugged into the names
+    (f : ℕ → Term sig ℕ)
+    -- the cell: the menu, the number of symbols, the symbol, the trees on the ports
+    (Γ : Term sig ℕ)
+    (m i : ℕ)
+    (ts : List (Term sig ℕ))
+    -- the loop `ℓ`, sent by `f` to the name `ℓ'`
+    (ℓ ℓ' : ℕ)
+    (hℓ : f ℓ = var ℓ') :
+    (cellSkel Γ m i ts ℓ).bind f
+      = cellSkel (Γ.bind f) m i (ts.map (·.bind f)) ℓ' := by
   simp [cellSkel, bind_transpositor, bind_cellSel, bind_mux, hℓ]
-
 
 section Enum
 
+-- the numbering `e` of the `n` symbols, and the expanded sides of the rules
 variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+-- ============================================================================================
+-- 4. Main result for any numbering: the extracted tree is an instance of `[β]`
+-- ============================================================================================
 
 /-- **The extracted tree is an instance of `[β]`** (Fig. 10, pages 89–90), with the `n` symbols
 numbered by any `e : S.Sym ≃ Fin n`. The tree of `[β]` with a copy of the menu `Γ_β` (numbered from
 any `B`, renamed by `g`), a copy of the code `!Γ` of `Γ = codeMenusE e side k₀` (cut names from `K`,
 renamed by `g'`), the trees `args` on the ports and the loop `ℓ` is the principal net
 `codeNetE e side β` with `args` on its ports and its internal wires named by some `F`. -/
-theorem codeNetE_inst_eq (β : S.Sym) (B k₀ K : ℕ)
-    (g g' : ℕ → ℕ) (ℓ : ℕ) (args : Fin (S.arity β) → Term sig ℕ) :
-    ∃ F, (codeNetE e side β).inst args F =
-      cellSkel ((menu (codeCellMenuE e side β B)).bind fun x => var (g x)) n
-        (e β) (((code K (menu (codeMenusE e side k₀))).bind fun x => var (g' x)) ::
-          List.ofFn args) ℓ := by
+theorem codeNetE_inst_eq
+    -- the symbol of the cell
+    (β : S.Sym)
+    -- the first names: of the copy of `Γ_β`, of `Γ`, and the first cut name of `!Γ`
+    (B k₀ K : ℕ)
+    -- the renamings of the copy of `Γ_β` and of the copy of `!Γ`
+    (g g' : ℕ → ℕ)
+    -- the loop
+    (ℓ : ℕ)
+    -- the trees on the ports
+    (args : Fin (S.arity β) → Term sig ℕ) :
+    -- some naming `F` of the internal wires makes the instance of `[β]` with `args` on its ports
+    ∃ F, (codeNetE e side β).inst args F
+      -- equal to the cell `⟨β⟩` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
+      = cellSkel ((menu (codeCellMenuE e side β B)).bind fun x => var (g x)) n
+          (e β) (((code K (menu (codeMenusE e side k₀))).bind fun x => var (g' x)) ::
+            List.ofFn args) ℓ := by
   set MB := codeMenuBaseE e side β
   set KB := codeKeyE e side β
   -- the shift of the menu `Γ_β` from `S.arity β + 1` to `B`, and that of `Γ` from `MB` to `k₀`
@@ -234,19 +325,33 @@ theorem codeNetE_inst_eq (β : S.Sym) (B k₀ K : ℕ)
 
 end Enum
 
-/-! ### The enumeration `symEnum S` -/
+-- ============================================================================================
+-- 5. Main results for the enumeration `symEnum S`
+-- ============================================================================================
 
+-- finitely many symbols, and the expanded sides of the rules
 variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
 /-- **Shifting the menu `Γ_β`** (Fig. 10, page 89). -/
-theorem menu_codeCellMenu_shift (β : S.Sym) (g : ℕ → ℕ) (k₀ k₀' : ℕ)
+theorem menu_codeCellMenu_shift
+    -- the symbol
+    (β : S.Sym)
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
     (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (menu (codeCellMenu side β k₀)).bind (fun x => var (g x)) = menu (codeCellMenu side β k₀') :=
+    (menu (codeCellMenu side β k₀)).bind (fun x => var (g x))
+      = menu (codeCellMenu side β k₀') :=
   menu_codeCellMenuE_shift (symEnum S) side β g k₀ k₀' hg
 
 /-- **Shifting the menu `Γ = Γ_0 & ⋯ & Γ_{m-1}`** (Fig. 10, page 89). -/
-theorem menu_codeMenus_shift (g : ℕ → ℕ) (k₀ k₀' : ℕ) (hg : ∀ i, g (k₀ + i) = k₀' + i) :
-    (menu (codeMenus side k₀)).bind (fun x => var (g x)) = menu (codeMenus side k₀') :=
+theorem menu_codeMenus_shift
+    -- the renaming, which sends `k₀ + i` to `k₀' + i`
+    (g : ℕ → ℕ)
+    (k₀ k₀' : ℕ)
+    (hg : ∀ i, g (k₀ + i) = k₀' + i) :
+    (menu (codeMenus side k₀)).bind (fun x => var (g x))
+      = menu (codeMenus side k₀') :=
   menu_codeMenusE_shift (symEnum S) side g k₀ k₀' hg
 
 /-- **The extracted tree is an instance of `[β]`** (Fig. 10, pages 89–90). The tree of `[β]` with
@@ -254,12 +359,23 @@ a copy of the menu `Γ_β` (numbered from any `B`, renamed by `g`), a copy of th
 `Γ = codeMenus side k₀` (cut names from `K`, renamed by `g'`), the trees `args` on the ports and the
 loop `ℓ` is the principal net `[β]` of `codeTranslation side` with `args` on its ports and its
 internal wires named by some `F`. -/
-theorem codeNet_inst_eq (β : S.Sym) (B k₀ K : ℕ)
-    (g g' : ℕ → ℕ) (ℓ : ℕ) (args : Fin (S.arity β) → Term sig ℕ) :
-    ∃ F, (codeNet side β).inst args F =
-      cellSkel ((menu (codeCellMenu side β B)).bind fun x => var (g x)) (Nat.card S.Sym)
-        (symEnum S β) (((code K (menu (codeMenus side k₀))).bind fun x => var (g' x)) ::
-          List.ofFn args) ℓ :=
+theorem codeNet_inst_eq
+    -- the symbol of the cell
+    (β : S.Sym)
+    -- the first names: of the copy of `Γ_β`, of `Γ`, and the first cut name of `!Γ`
+    (B k₀ K : ℕ)
+    -- the renamings of the copy of `Γ_β` and of the copy of `!Γ`
+    (g g' : ℕ → ℕ)
+    -- the loop
+    (ℓ : ℕ)
+    -- the trees on the ports
+    (args : Fin (S.arity β) → Term sig ℕ) :
+    -- some naming `F` of the internal wires makes the instance of `[β]` with `args` on its ports
+    ∃ F, (codeNet side β).inst args F
+      -- equal to the cell `⟨β⟩` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
+      = cellSkel ((menu (codeCellMenu side β B)).bind fun x => var (g x)) (Nat.card S.Sym)
+          (symEnum S β) (((code K (menu (codeMenus side k₀))).bind fun x => var (g' x)) ::
+            List.ofFn args) ℓ :=
   codeNetE_inst_eq (symEnum S) side β B k₀ K g g' ℓ args
 
 end INet.Comb
