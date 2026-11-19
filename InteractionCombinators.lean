@@ -117,3 +117,5 @@ import InteractionCombinators.Lafont.SimulationCountCheck
 import InteractionCombinators.Lafont.Cut
 import InteractionCombinators.Lafont.CutChain
 import InteractionCombinators.Lafont.CutCheck
+import InteractionCombinators.Lafont.Vicious
+import InteractionCombinators.Lafont.ViciousCheck
