@@ -154,4 +154,6 @@ import InteractionCombinators.Lafont.TranslationCompTrCheck
 import InteractionCombinators.Lafont.TranslationInvertible
 import InteractionCombinators.Lafont.TranslationInvertibleCheck
 import InteractionCombinators.Lafont.TranslationInvertibleReview
+import InteractionCombinators.Lafont.SimulationInvertible
+import InteractionCombinators.Lafont.SimulationInvertibleCheck
 import InteractionCombinators.Lafont.ViciousReview
