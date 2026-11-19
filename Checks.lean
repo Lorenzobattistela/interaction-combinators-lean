@@ -89,6 +89,7 @@ import Checks.TranslationInvertibleCheck
 import Checks.TranslationInvertibleReview
 import Checks.TranspositorCheck
 import Checks.TranspositorPermCheck
+import Checks.TranspositorConverseCheck
 import Checks.ViciousCheck
 import Checks.ViciousReflectCheck
 import Checks.ViciousReview

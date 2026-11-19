@@ -29,6 +29,7 @@ import InteractionCombinators.Lafont.RecursionFreeSide
 import InteractionCombinators.Lafont.RecursionFreeTr
 import InteractionCombinators.Lafont.RecursionFreeStrict
 import InteractionCombinators.Lafont.TranspositorPerm
+import InteractionCombinators.Lafont.TranspositorConverse
 import InteractionCombinators.Lafont.DupPackage
 import InteractionCombinators.Lafont.Copier
 import InteractionCombinators.Lafont.PackageDecomp
