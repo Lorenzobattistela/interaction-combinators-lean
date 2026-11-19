@@ -52,6 +52,7 @@ import Checks.NormalFormEReview
 import Checks.PackageCheck
 import Checks.PackageDecompCheck
 import Checks.PortTreeCCheck
+import Checks.PortTreeCReview
 import Checks.PlugTermTrCheck
 import Checks.PlugTermTrReview
 import Checks.PlugTrCheck
