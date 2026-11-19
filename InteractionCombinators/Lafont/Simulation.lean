@@ -397,14 +397,38 @@ the reduction up to wires of the target. -/
 theorem Translation.compatible_iff_compatibleBy {Φ : Translation S S'} {I : System S}
     {I' : System S'} : Φ.Compatible I I' ↔ Φ.CompatibleBy I (StepsE I') := Iff.rfl
 
+/-- `Translation.CompatibleBy`, for distinct names only: the rule is simulated when the names
+`xs` on the ports of the first cell are pairwise distinct, those `ys` of the second too, and no
+`xs i` is a `ys j`, as for the two cells of a rule in the paper (Lafont 1997, page 80). The
+proof of Proposition 4 only uses this case (`Translation.CompatibleByDistinct.step`). -/
+def Translation.CompatibleByDistinct (Φ : Translation S S') (I : System S)
+    (R : Net S' ℕ → Net S' ℕ → Prop) : Prop :=
+  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
+    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
+      Function.Injective xs → Function.Injective ys → (∀ i j, xs i ≠ ys j) →
+      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
+        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
+      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
+        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
+          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
+        Equiv M N' ∧
+        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
+
+/-- A translation compatible for all names is compatible for distinct names. -/
+theorem Translation.CompatibleBy.distinct {Φ : Translation S S'} {I : System S}
+    {R : Net S' ℕ → Net S' ℕ → Prop} (h : Φ.CompatibleBy I R) : Φ.CompatibleByDistinct I R :=
+  fun α β r hr xs ys f g _ _ _ hl => h α β r hr xs ys f g hl
+
 /-- **One interaction is simulated, for any reduction of the target** (Lafont 1997,
 Proposition 4, page 81, the case of one step). `R` is a reduction of the target nets that can be
 done beside a context (`hadd`), that can start from an equivalent net (`heq`), and that is a
-reduction up to wires (`hR`). If the translations of the two cells of every rule reduce by `R` to
-a translation of its right-hand side, `N` reduces to `M` by one interaction, and `N'` is a
-translation of `N`, then `N'` reduces by `R` to a net that is the same graph as a translation of
-`M`. The rules of `I` and of `I'` are linear, as Lafont's rules are (page 72). -/
-theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
+reduction up to wires (`hR`). If the translations of the two cells of every rule, with distinct
+names on their ports, reduce by `R` to a translation of its right-hand side, `N` reduces to `M` by
+one interaction, and `N'` is a translation of `N`, then `N'` reduces by `R` to a net that is the
+same graph as a translation of `M`. The rules of `I` and of `I'` are linear, as Lafont's rules are
+(page 72). -/
+theorem Translation.CompatibleByDistinct.step {I : System S} {I' : System S'}
     {R : Net S' ℕ → Net S' ℕ → Prop}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
@@ -412,7 +436,7 @@ theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
       ∃ M', R (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear)
     (heq : ∀ {N K M : Net S' ℕ}, Equiv N K → R K M → ∃ M', R N M' ∧ Equiv M' M)
     (hR : ∀ {N M : Net S' ℕ}, R N M → StepsE I' N M)
-    {Φ : Translation S S'} (hΦ : Φ.CompatibleBy I R)
+    {Φ : Translation S S'} (hΦ : Φ.CompatibleByDistinct I R)
     {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
     ∃ M₁ M', R N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' := by
   obtain ⟨α, β, r, hr, as, bs, Δ, hh, hhinj, hhfresh⟩ := h
@@ -451,7 +475,9 @@ theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
   have hTΓ : Φ.NetTr (Δ + W) Γ' := ⟨hΓ', hΓl⟩
   -- the compatibility, then the reduction beside `Γ'`
   obtain ⟨M₁, R', h₁, hS₁, E₁, hR'⟩ :=
-    hΦ α β r hr (fun i => B + i) (fun j => B + S.arity α + j) f g hPl
+    hΦ α β r hr (fun i => B + i) (fun j => B + S.arity α + j) f g
+      (fun i i' e => Fin.ext (by simpa using e)) (fun j j' e => Fin.ext (by simpa using e))
+      (fun i j e => by have := i.isLt; omega) hPl
   have hPΓ : ({P} : Net S' ℕ) + Γ' = P ::ₘ Γ' := Multiset.singleton_add _ _
   obtain ⟨M₂, hS₂, E₂, hl₂⟩ := hadd Γ' hS₁ (hPΓ ▸ hlin')
   -- the fresh names are free ports of the active pair, hence of `R'` and of `M₂`
@@ -549,6 +575,22 @@ theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
   have E₇ : Equiv (M₂ + Γ') ((R'.bind fun y => var (ι y)) + Γ') :=
     Equiv.add_right Γ' ((E₂.trans E₁).trans ER) hl₂ hTl
   exact ⟨X, M'', hX, EX.trans (E₇.trans E₆), hM''⟩
+
+/-- **One interaction is simulated, for any reduction of the target** (Lafont 1997,
+Proposition 4, page 81, the case of one step): `Translation.CompatibleByDistinct.step` for a
+translation compatible for all names. -/
+theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
+    {R : Net S' ℕ → Net S' ℕ → Prop}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
+    (hadd : ∀ {N M : Net S' ℕ} (Γ : Net S' ℕ), R N M → (N + Γ).Linear →
+      ∃ M', R (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear)
+    (heq : ∀ {N K M : Net S' ℕ}, Equiv N K → R K M → ∃ M', R N M' ∧ Equiv M' M)
+    (hR : ∀ {N M : Net S' ℕ}, R N M → StepsE I' N M)
+    {Φ : Translation S S'} (hΦ : Φ.CompatibleBy I R)
+    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
+    ∃ M₁ M', R N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' :=
+  hΦ.distinct.step hI hI' hadd heq hR h hT
 
 /-- **One interaction is simulated** (Lafont 1997, Proposition 4, page 81, the case of one step).
 If `Φ` is a translation of interaction systems from `I` to `I'`, `N` reduces to `M` by one
