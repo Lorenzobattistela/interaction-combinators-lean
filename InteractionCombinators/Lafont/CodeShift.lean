@@ -122,10 +122,10 @@ wire of name `x` named `h x`, the instance is `t` with each port `i < n` replace
 every other name `x` by `h x`. -/
 theorem treePNet_inst_bind (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
     (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) (args : Fin n → Term sig ℕ) (h : ℕ → ℕ) :
-    (treePNet n t hp hw).inst args (fun w => h ((wireSet n t).equivFin.symm w).1) =
+    (treePNet n t hp hw).inst args (fun w => h ((wireNum n t).symm w).1) =
       t.bind fun x => if hx : x < n then args ⟨x, hx⟩ else var (h x) := by
   show (t.bind (treeLeaf n t)).bind (Sum.elim args
-    fun w : Fin (wireSet n t).card => var (h ((wireSet n t).equivFin.symm w).1)) = _
+    fun w : Fin (wireSet n t).card => var (h ((wireNum n t).symm w).1)) = _
   rw [Term.bind_bind]
   refine Term.bind_congr fun x hx => ?_
   unfold treeLeaf
@@ -160,7 +160,7 @@ theorem codeNet_inst_eq (β : S.Sym) (B k₀ K : ℕ)
   set s₂ : ℕ → ℕ := fun x => k₀ + (x - MB)
   set ρ : ℕ → ℕ := fun x => if x < KB then s₂ x else K + (x - KB)
   set h : ℕ → ℕ := fun x => if x = S.arity β then ℓ else if x < MB then g (s₁ x) else g' (ρ x)
-  refine ⟨fun w => h ((wireSet (S.arity β) (codeTree side β)).equivFin.symm w).1, ?_⟩
+  refine ⟨fun w => h ((wireNum (S.arity β) (codeTree side β)).symm w).1, ?_⟩
   have hMB : S.arity β + 1 ≤ MB := Nat.le_add_right _ _
   have hKB : MB ≤ KB := Nat.le_add_right _ _
   have hΓv : ∀ x ∈ (menu (codeCellMenu side β (S.arity β + 1))).vars, S.arity β + 1 ≤ x ∧ x < MB := fun x hx => by

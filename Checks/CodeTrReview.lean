@@ -115,10 +115,10 @@ on the port `i` and the internal wires named back is `t` with each name `i < n` 
 `args i`, and every other name kept. -/
 theorem treePNet_inst_args (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
     (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) (args : Fin n → Term sig ℕ) :
-    (treePNet n t hp hw).inst args (fun w => ((wireSet n t).equivFin.symm w).1) =
+    (treePNet n t hp hw).inst args (fun w => ((wireNum n t).symm w).1) =
       t.bind fun x => if h : x < n then args ⟨x, h⟩ else var x := by
   show (t.bind (treeLeaf n t)).bind (Sum.elim args
-    fun w : Fin (wireSet n t).card => var ((wireSet n t).equivFin.symm w).1) = _
+    fun w : Fin (wireSet n t).card => var ((wireNum n t).symm w).1) = _
   rw [Term.bind_bind]
   refine Term.bind_congr fun x hx => ?_
   unfold treeLeaf
@@ -138,7 +138,7 @@ with the tree `args i` on the port `i` (internal wires named back) is the tree o
 `args 0, …, args (n - 1)` on the leaves of `M_{n+2}` between `!Γ` and the loop, in this order. -/
 theorem codeNet_inst_args (α : S.Sym) (args : Fin (S.arity α) → Term sig ℕ) :
     (codeNet side α).inst args
-        (fun w => ((wireSet (S.arity α) (codeTree side α)).equivFin.symm w).1) =
+        (fun w => ((wireNum (S.arity α) (codeTree side α)).symm w).1) =
       mkDup
         (mkCon (menu (codeCellMenu side α (S.arity α + 1)))
           (cellSel (Nat.card S.Sym) (symEnum S α)
@@ -216,7 +216,7 @@ theorem codeMenus_sideNoneTwo (k : ℕ) : codeMenus sideNoneTwo k = [mkEra] := b
 theorem codeNet_sigTwoPorts_inst (α : sigTwoPorts.Sym)
     (args : Fin (sigTwoPorts.arity α) → Term sig ℕ) :
     (codeNet sideNoneTwo α).inst args
-        (fun w => ((wireSet (sigTwoPorts.arity α) (codeTree sideNoneTwo α)).equivFin.symm w).1) =
+        (fun w => ((wireNum (sigTwoPorts.arity α) (codeTree sideNoneTwo α)).symm w).1) =
       mkDup (mkCon mkEra (cellSel 1 0 (mux [mux [mkEra, mkEra, mkEra, mkEra],
         args ⟨0, Nat.zero_lt_two⟩, args ⟨1, Nat.one_lt_two⟩, var 2]))) (var 2) := by
   rw [codeNet_inst_args, codeCellMenu_sideNoneTwo, codeMenus_sideNoneTwo, symEnum_sigTwoPorts,

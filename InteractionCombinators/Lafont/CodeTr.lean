@@ -19,6 +19,7 @@ consecutive. So the principal net is built by a general constructor `treePNet`: 
 `< n` occur once and whose other names occur twice is a principal net with `n` ports, its other names
 numbered in increasing order as internal wires.
 
+* `wireNum`, `wireNum_strictMono` — the numbering of the internal names by rank, increasing.
 * `treePNet` — a tree with ports `0, …, n - 1` and every other name twice, as a `PNet`;
   `treePNet_inst` (the instance with the ports and wires named back gives the tree),
   `treePNet_strict`, and `treePNet_hyps` (the hypotheses from `Ico 0 n + 2 • X`).
@@ -38,19 +39,33 @@ open Term Translation
 def wireSet (n : ℕ) (t : Term sig ℕ) : Finset ℕ :=
   t.vars.toFinset.filter (n ≤ ·)
 
+/-- The numbering of the internal names of a tree with `n` ports (page 80): each name of
+`wireSet n t` is sent to its rank, so the internal wires are numbered in increasing order. -/
+def wireNum (n : ℕ) (t : Term sig ℕ) : wireSet n t ≃ Fin (wireSet n t).card :=
+  ((wireSet n t).orderIsoOfFin rfl).symm.toEquiv
+
+/-- **The numbering `wireNum` is increasing** (page 80): a smaller internal name gets a smaller
+wire number. -/
+theorem wireNum_strictMono (n : ℕ) (t : Term sig ℕ) : StrictMono (wireNum n t) :=
+  ((wireSet n t).orderIsoOfFin rfl).symm.strictMono
+
+/-- The inverse numbering is increasing too (page 80): wire `i` is the `i`-th internal name. -/
+theorem wireNum_symm_strictMono (n : ℕ) (t : Term sig ℕ) : StrictMono (wireNum n t).symm :=
+  ((wireSet n t).orderIsoOfFin rfl).strictMono
+
 /-- The leaf of a name `x` of `t`: the port `x` if `x < n`, otherwise the internal wire numbered by
 the rank of `x` among the internal names. (The eraser is never used for a name of `t`.) -/
-noncomputable def treeLeaf (n : ℕ) (t : Term sig ℕ) (x : ℕ) :
+def treeLeaf (n : ℕ) (t : Term sig ℕ) (x : ℕ) :
     Term sig (Fin n ⊕ Fin (wireSet n t).card) :=
   if h : x < n then var (.inl ⟨x, h⟩)
-  else if h' : x ∈ wireSet n t then var (.inr ((wireSet n t).equivFin ⟨x, h'⟩))
+  else if h' : x ∈ wireSet n t then var (.inr ((wireNum n t) ⟨x, h'⟩))
   else mkEra
 
 /-- The leaf of a name that occurs in `t`. -/
-noncomputable def treeName (n : ℕ) (t : Term sig ℕ) (x : {x // x ∈ t.vars}) :
+def treeName (n : ℕ) (t : Term sig ℕ) (x : {x // x ∈ t.vars}) :
     Fin n ⊕ Fin (wireSet n t).card :=
   if h : x.1 < n then .inl ⟨x.1, h⟩
-  else .inr ((wireSet n t).equivFin
+  else .inr ((wireNum n t)
     ⟨x.1, Finset.mem_filter.2 ⟨Multiset.mem_toFinset.2 x.2, not_lt.1 h⟩⟩)
 
 theorem treeName_injective (n : ℕ) (t : Term sig ℕ) : Function.Injective (treeName n t) := by
@@ -62,7 +77,7 @@ theorem treeName_injective (n : ℕ) (t : Term sig ℕ) : Function.Injective (tr
   · simp [h1, h2] at h
   · simp [h1, h2] at h
   · simp only [h1, h2, dite_false, Sum.inr.injEq] at h
-    have := (wireSet n t).equivFin.injective h
+    have := (wireNum n t).injective h
     exact Subtype.ext (by simpa using congrArg Subtype.val this)
 
 theorem vars_treeLeaf (n : ℕ) (t : Term sig ℕ) (x : ℕ) (hx : x ∈ t.vars) :
@@ -85,7 +100,7 @@ theorem vars_bind_treeLeaf (n : ℕ) (t : Term sig ℕ) :
 /-- **A tree as a principal net** (principal nets, page 80). A tree `t` whose names `0, …, n - 1`
 occur once and whose names `≥ n` occur twice is a principal net with `n` auxiliary ports: the names
 `< n` are the ports, the names `≥ n` the internal wires, numbered in increasing order. -/
-noncomputable def treePNet (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
+def treePNet (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
     (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) : PNet sig n where
   internal := (wireSet n t).card
   tree := t.bind (treeLeaf n t)
@@ -97,13 +112,13 @@ noncomputable def treePNet (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.
       Multiset.count_attach]
     exact hp i i.isLt
   internal_count w := by
-    have hx := Finset.mem_filter.1 ((wireSet n t).equivFin.symm w).2
-    have hxv : ((wireSet n t).equivFin.symm w).1 ∈ t.vars := Multiset.mem_toFinset.1 hx.1
+    have hx := Finset.mem_filter.1 ((wireNum n t).symm w).2
+    have hxv : ((wireNum n t).symm w).1 ∈ t.vars := Multiset.mem_toFinset.1 hx.1
     have e : (Sum.inr w : Fin n ⊕ Fin (wireSet n t).card) =
-        treeName n t ⟨((wireSet n t).equivFin.symm w).1, hxv⟩ := by
-      have hn : ¬ ((wireSet n t).equivFin.symm w).1 < n := not_lt.2 hx.2
+        treeName n t ⟨((wireNum n t).symm w).1, hxv⟩ := by
+      have hn : ¬ ((wireNum n t).symm w).1 < n := not_lt.2 hx.2
       simp only [treeName, hn, dite_false]
-      exact congrArg Sum.inr ((wireSet n t).equivFin.apply_symm_apply w).symm
+      exact congrArg Sum.inr ((wireNum n t).apply_symm_apply w).symm
     rw [vars_bind_treeLeaf, e, Multiset.count_map_eq_count' _ _ (treeName_injective n t),
       Multiset.count_attach]
     exact hw _ hxv hx.2
@@ -112,10 +127,10 @@ noncomputable def treePNet (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.
 named `i` and each internal wire named back by the numbering of `wireSet` is `t`. -/
 theorem treePNet_inst (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
     (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) :
-    (treePNet n t hp hw).inst (fun i => var (i : ℕ)) (fun w => ((wireSet n t).equivFin.symm w).1) =
+    (treePNet n t hp hw).inst (fun i => var (i : ℕ)) (fun w => ((wireNum n t).symm w).1) =
       t := by
   show (t.bind (treeLeaf n t)).bind (Sum.elim (fun i : Fin n => var (i : ℕ))
-    fun w : Fin (wireSet n t).card => var ((wireSet n t).equivFin.symm w).1) = t
+    fun w : Fin (wireSet n t).card => var ((wireNum n t).symm w).1) = t
   rw [Term.bind_bind]
   conv_rhs => rw [← Term.bind_var_self t]
   refine Term.bind_congr fun x hx => ?_
@@ -258,7 +273,7 @@ noncomputable def codeTranslation : Translation S sig :=
 `i` and the internal wires named back is `codeTree side α`. -/
 theorem codeNet_inst (α : S.Sym) :
     (codeNet side α).inst (fun i => var (i : ℕ))
-      (fun w => ((wireSet (S.arity α) (codeTree side α)).equivFin.symm w).1) = codeTree side α :=
+      (fun w => ((wireNum (S.arity α) (codeTree side α)).symm w).1) = codeTree side α :=
   treePNet_inst _ _ _ _
 
 /-- The root of `[α]` is the `dup` cell of `T_{1,1}` (Fig. 10, page 89). -/

@@ -50,10 +50,10 @@ is `t` renamed by `codeRen xs K`. -/
 theorem treePNet_inst_codeRen (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
     (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) (xs : Fin n → ℕ) (K : ℕ) :
     (treePNet n t hp hw).inst (fun i => var (xs i))
-        (fun w => K + ((wireSet n t).equivFin.symm w).1) =
+        (fun w => K + ((wireNum n t).symm w).1) =
       t.bind fun x => var (codeRen xs K x) := by
   show (t.bind (treeLeaf n t)).bind (Sum.elim (fun i : Fin n => var (xs i))
-    fun w : Fin (wireSet n t).card => var (K + ((wireSet n t).equivFin.symm w).1)) = _
+    fun w : Fin (wireSet n t).card => var (K + ((wireNum n t).symm w).1)) = _
   rw [Term.bind_bind]
   refine Term.bind_congr fun x hx => ?_
   unfold treeLeaf
@@ -68,7 +68,7 @@ variable {S : Signature} [Finite S.Sym]
 
 /-- The names of the internal wires of `[α]`, shifted by `K` (page 89). -/
 noncomputable def codeWires (α : S.Sym) (K : ℕ) : Fin (codeNet side α).internal → ℕ :=
-  fun w => K + ((wireSet (S.arity α) (codeTree side α)).equivFin.symm w).1
+  fun w => K + ((wireNum (S.arity α) (codeTree side α)).symm w).1
 
 /-- **The instance of `[α]` of Fig. 10 with its wires shifted** (page 89): with the names `xs` on
 its ports and its internal wires named by `codeWires`, `[α]` is its tree renamed by `codeRen`. -/
@@ -80,10 +80,10 @@ theorem inst_codeNet_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ
 /-- The internal wires named by `codeWires` are distinct. -/
 theorem codeWires_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWires side α K) := by
   intro a b h
-  have h' : ((wireSet (S.arity α) (codeTree side α)).equivFin.symm a).1 =
-      ((wireSet (S.arity α) (codeTree side α)).equivFin.symm b).1 := by
+  have h' : ((wireNum (S.arity α) (codeTree side α)).symm a).1 =
+      ((wireNum (S.arity α) (codeTree side α)).symm b).1 := by
     simpa [codeWires] using h
-  exact (wireSet (S.arity α) (codeTree side α)).equivFin.symm.injective (Subtype.ext h')
+  exact (wireNum (S.arity α) (codeTree side α)).symm.injective (Subtype.ext h')
 
 /-- The internal wires named by `codeWires` are at least `K`. -/
 theorem le_codeWires (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
@@ -93,7 +93,7 @@ theorem le_codeWires (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal)
 /-- The internal wires named by `codeWires` are below `K` plus a bound of the names of the tree. -/
 theorem codeWires_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
     codeWires side α K w < K + ((codeTree side α).vars.sup + 1) := by
-  have hm := Finset.mem_filter.1 ((wireSet (S.arity α) (codeTree side α)).equivFin.symm w).2
+  have hm := Finset.mem_filter.1 ((wireNum (S.arity α) (codeTree side α)).symm w).2
   have := Multiset.le_sup (Multiset.mem_toFinset.1 hm.1)
   simp only [codeWires]
   omega
