@@ -50,6 +50,29 @@ normalisation of page 85 (`ψ_{j,i} = φ_{i,j}`) is not done here.
 * `plug_linear` — plugging two linear sides gives a linear net.
 * `plug_decompose` — plugging `φ` and `ψ` through `σ` gives back `r.net`, up to `Equiv` and an
   injective renaming of the internal wires of `r`, for every linear rule.
+
+Contents, in the order of the file:
+
+1. Definitions: a decomposition and the plug of two sides: `Decomposition`, `Rule.plugL`,
+   `Rule.plugR`, `Rule.plug`.
+2. Auxiliary lemmas on the plug: `plugL_injective`, `plugR_injective`,
+   `Multiset.count_map_eq_zero`, `Net.cells_bind_var`.
+3. Result: `plug_linear`, plugging two linear sides gives a linear net.
+4. Definitions and lemmas: the two parts of a rule and its middle wires: `leftPart`,
+   `rightPart`, `swapName`, `leftSw`, `rightSw`, `midL`, `midR`, with `swapName_mem_midR` and
+   `card_midR`.
+5. Definitions and lemmas: the numbering of the middle wires and the permutation: `kDec`, `midφ`,
+   `midψ`, `unrankL`, `σfun`, `σDec`, with `σDec_midφ`.
+6. Definition: `decompose`, the canonical decomposition (page 85).
+7. Results on the sides: `leftPart_add_rightPart`, `vars_parts`, `vars_sw`, then
+   `decompose_linear`, `decompose_reduced`, `decompose_cells_left`, `decompose_cells_right`,
+   `decompose_cells`.
+8. Definitions: plugging the sides back together: `plugInt`, `mem_innerR`, `iotaDec`, `mw`,
+   `thetaDec`.
+9. Auxiliary lemmas on the plugged net: `iotaDec_injective`, `thetaDec_of_mem`,
+   `thetaDec_of_notMem`, `plug_decompose_net`, `Rule.Linear.net_linear`, `mw_injective`.
+10. Main result: `plug_decompose`, the plugged canonical decomposition is the rule, up to wires
+    (page 85).
 -/
 
 namespace INet
@@ -58,11 +81,18 @@ variable {S : Signature}
 
 open Term Half
 
+-- ============================================================================================
+-- 1. Definitions: a decomposition and the plug of two sides
+-- ============================================================================================
+
 /-- A decomposition of the right member of a rule for two cells with `a` and `b` auxiliary ports
 (Lafont 1997, page 85): `k` middle wires, a net `φ` on the `a` ports of the first cell and the
 middle wires, a net `ψ` on the `b` ports of the second cell and the middle wires, and the
 permutation `σ` that joins the middle wire `l` of `φ` to the middle wire `σ l` of `ψ`. -/
-structure Decomposition (S : Signature) (a b : ℕ) where
+structure Decomposition
+    -- the signature, and the numbers of auxiliary ports of the two cells
+    (S : Signature)
+    (a b : ℕ) where
   /-- The number of middle wires. -/
   k : ℕ
   /-- The side of the first cell (`φ_{i,j}`). -/
@@ -74,35 +104,52 @@ structure Decomposition (S : Signature) (a b : ℕ) where
 
 namespace Rule
 
+-- the ports of the two cells (`a`, `b`), the middle wires (`k`), and the internal wires of the
+-- two sides (`m`, `n`)
 variable {a b k m n : ℕ}
 
-/-! ### Plugging two sides together -/
-
 /-- The names of `φ` in the plugged net. -/
-def plugL : Fin a ⊕ Fin k ⊕ Fin m → Fin a ⊕ Fin b ⊕ Fin (k + m + n)
+def plugL :
+    Fin a ⊕ Fin k ⊕ Fin m → Fin a ⊕ Fin b ⊕ Fin (k + m + n)
   | .inl i => .inl i
   | .inr (.inl l) => .inr (.inr (Fin.castAdd n (Fin.castAdd m l)))
   | .inr (.inr j) => .inr (.inr (Fin.castAdd n (Fin.natAdd k j)))
 
 /-- The names of `ψ` in the plugged net: its middle wire `l` is the middle wire `σ⁻¹ l` of `φ`. -/
-def plugR (σ : Equiv.Perm (Fin k)) : Fin b ⊕ Fin k ⊕ Fin n → Fin a ⊕ Fin b ⊕ Fin (k + m + n)
+def plugR
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k)) :
+    Fin b ⊕ Fin k ⊕ Fin n → Fin a ⊕ Fin b ⊕ Fin (k + m + n)
   | .inl j => .inr (.inl j)
   | .inr (.inl l) => .inr (.inr (Fin.castAdd n (Fin.castAdd m (σ.symm l))))
   | .inr (.inr j) => .inr (.inr (Fin.natAdd (k + m) j))
 
 /-- The figure of page 85: `φ` and `ψ` plugged together, the middle wire `l` of `φ` joined to the
 middle wire `σ l` of `ψ`. -/
-def plug (φ : Rule S a k) (ψ : Rule S b k) (σ : Equiv.Perm (Fin k)) : Rule S a b where
+def plug
+    -- the two sides and the permutation of the middle wires
+    (φ : Rule S a k)
+    (ψ : Rule S b k)
+    (σ : Equiv.Perm (Fin k)) :
+    Rule S a b where
   internal := k + φ.internal + ψ.internal
   net := φ.net.bind (fun x => var (plugL x)) + ψ.net.bind (fun x => var (plugR σ x))
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas on the plug
+-- ============================================================================================
+
+/-- The renaming `plugL` of the names of `φ` is injective. -/
 theorem plugL_injective :
     Function.Injective (plugL : Fin a ⊕ Fin k ⊕ Fin m → Fin a ⊕ Fin b ⊕ Fin (k + m + n)) := by
   intro x y h
   rcases x with i | l | j <;> rcases y with i' | l' | j' <;>
     simp [plugL, Fin.ext_iff] at h ⊢ <;> omega
 
-theorem plugR_injective (σ : Equiv.Perm (Fin k)) :
+/-- The renaming `plugR σ` of the names of `ψ` is injective. -/
+theorem plugR_injective
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k)) :
     Function.Injective (plugR (a := a) (m := m) (b := b) (n := n) σ) := by
   intro x y h
   rcases x with i | l | j <;> rcases y with i' | l' | j' <;>
@@ -111,16 +158,53 @@ theorem plugR_injective (σ : Equiv.Perm (Fin k)) :
     | omega
     | (have := σ.symm.injective (Fin.ext h); exact congrArg Fin.val this)
 
-theorem _root_.Multiset.count_map_eq_zero {α β : Type} [DecidableEq β] {f : α → β}
-    {s : Multiset α} {z : β} (h : ∀ y, f y ≠ z) : (s.map f).count z = 0 :=
+/-- A point that is not in the image of `f` does not occur in the image of a multiset by `f`. -/
+theorem _root_.Multiset.count_map_eq_zero
+    -- the two types and the map
+    {α β : Type}
+    [DecidableEq β]
+    {f : α → β}
+    -- the multiset
+    {s : Multiset α}
+    -- a point outside the image of `f`
+    {z : β}
+    (h : ∀ y, f y ≠ z) :
+    (s.map f).count z = 0 :=
   Multiset.count_eq_zero.2 fun hm => by
     obtain ⟨y, -, hy⟩ := Multiset.mem_map.1 hm
     exact h y hy
 
+/-- Renaming the names of a net does not change its cells. -/
+theorem _root_.INet.Net.cells_bind_var
+    -- the two types of names and the renaming
+    {ν μ : Type}
+    (f : ν → μ)
+    -- the net
+    (N : Net S ν) :
+    (N.bind fun x => var (f x)).cells = N.cells := by
+  unfold Net.cells Net.bind
+  rw [Multiset.bind_map]
+  congr 1
+  funext e
+  induction e using Sym2.ind with
+  | _ u v => simp [Term.cells_bind]
+
+-- ============================================================================================
+-- 3. Result: plugging two linear sides gives a linear net
+-- ============================================================================================
+
 /-- Plugging two linear sides together gives a linear net: each middle wire occurs once in each
 side, so twice in the result (page 85). -/
-theorem plug_linear {φ : Rule S a k} {ψ : Rule S b k} (σ : Equiv.Perm (Fin k)) (hφ : φ.Linear)
-    (hψ : ψ.Linear) : (plug φ ψ σ).Linear := by
+theorem plug_linear
+    -- the two sides
+    {φ : Rule S a k}
+    {ψ : Rule S b k}
+    -- the permutation of the middle wires
+    (σ : Equiv.Perm (Fin k))
+    -- both sides are linear
+    (hφ : φ.Linear)
+    (hψ : ψ.Linear) :
+    (plug φ ψ σ).Linear := by
   let V := Fin a ⊕ Fin b ⊕ Fin (k + φ.internal + ψ.internal)
   have hvars : ∀ z : V, Multiset.count z
       (Net.vars (φ.net.bind (fun x => var (plugL x)) + ψ.net.bind (fun x => var (plugR σ x)))) =
@@ -166,55 +250,80 @@ theorem plug_linear {φ : Rule S a k} {ψ : Rule S b k} (σ : Equiv.Perm (Fin k)
   exact ⟨fun i => (hvars _).trans (hl i), fun j => (hvars _).trans (hr j),
     fun t => (hvars _).trans (hw t)⟩
 
-/-! ### The canonical decomposition -/
+-- ============================================================================================
+-- 4. Definitions and lemmas: the two parts of a rule and its middle wires
+-- ============================================================================================
 
-theorem _root_.INet.Net.cells_bind_var {ν μ : Type} (f : ν → μ) (N : Net S ν) :
-    (N.bind fun x => var (f x)).cells = N.cells := by
-  unfold Net.cells Net.bind
-  rw [Multiset.bind_map]
-  congr 1
-  funext e
-  induction e using Sym2.ind with
-  | _ u v => simp [Term.cells_bind]
-
+-- the rule to decompose, between two cells with `a` and `b` auxiliary ports
 variable {a b : ℕ} (r : Rule S a b)
 
 /-- The equations of the right member rooted at a port of the first cell. -/
-def leftPart : Net S (Fin a ⊕ Fin b ⊕ Fin r.internal) := r.net.filter LeftRooted
+def leftPart :
+    Net S (Fin a ⊕ Fin b ⊕ Fin r.internal) :=
+  r.net.filter LeftRooted
 
 /-- The other equations; for a reduced rule they are rooted at a port of the second cell. -/
-def rightPart : Net S (Fin a ⊕ Fin b ⊕ Fin r.internal) := r.net.filter fun e => ¬LeftRooted e
+def rightPart :
+    Net S (Fin a ⊕ Fin b ⊕ Fin r.internal) :=
+  r.net.filter fun e => ¬LeftRooted e
 
 /-- Exchange the two groups of ports, as in `Rule.swap`. -/
-def swapName {a b n : ℕ} : Fin a ⊕ Fin b ⊕ Fin n → Fin b ⊕ Fin a ⊕ Fin n :=
+def swapName
+    -- the numbers of ports of the two cells and of internal wires
+    {a b n : ℕ} :
+    Fin a ⊕ Fin b ⊕ Fin n → Fin b ⊕ Fin a ⊕ Fin n :=
   Sum.elim (fun i => .inr (.inl i)) (Sum.elim .inl fun w => .inr (.inr w))
 
-theorem swapName_swapName {a b n : ℕ} (x : Fin a ⊕ Fin b ⊕ Fin n) :
+/-- Exchanging the ports twice gives back the name. -/
+theorem swapName_swapName
+    -- the numbers of ports of the two cells and of internal wires
+    {a b n : ℕ}
+    -- the name
+    (x : Fin a ⊕ Fin b ⊕ Fin n) :
     swapName (swapName x) = x := by
   rcases x with i | j | w <;> rfl
 
-theorem swapName_injective {a b n : ℕ} :
+/-- Exchanging the ports is injective. -/
+theorem swapName_injective
+    -- the numbers of ports of the two cells and of internal wires
+    {a b n : ℕ} :
     Function.Injective (swapName : Fin a ⊕ Fin b ⊕ Fin n → Fin b ⊕ Fin a ⊕ Fin n) :=
   fun x y h => by simpa [swapName_swapName] using congrArg swapName h
 
 /-- The second part with the ports exchanged: the side being built for `ψ`. -/
-def leftSw : Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) := r.rightPart.bind fun x => var (swapName x)
+def leftSw :
+    Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) :=
+  r.rightPart.bind fun x => var (swapName x)
 
 /-- The first part with the ports exchanged: the other side for `ψ`. -/
-def rightSw : Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) := r.leftPart.bind fun x => var (swapName x)
+def rightSw :
+    Net S (Fin b ⊕ Fin a ⊕ Fin r.internal) :=
+  r.leftPart.bind fun x => var (swapName x)
 
 /-- The middle wires, as names of `r`. -/
-def midL : Finset (Fin a ⊕ Fin b ⊕ Fin r.internal) := middle r.leftPart r.rightPart
+def midL :
+    Finset (Fin a ⊕ Fin b ⊕ Fin r.internal) :=
+  middle r.leftPart r.rightPart
 
 /-- The middle wires, as names of `r` with the ports exchanged. -/
-def midR : Finset (Fin b ⊕ Fin a ⊕ Fin r.internal) := middle r.leftSw r.rightSw
+def midR :
+    Finset (Fin b ⊕ Fin a ⊕ Fin r.internal) :=
+  middle r.leftSw r.rightSw
 
-theorem mem_vars_sw {N : Net S (Fin a ⊕ Fin b ⊕ Fin r.internal)} {x : Fin a ⊕ Fin b ⊕ Fin r.internal} :
+/-- A name occurs in a net with the ports exchanged exactly when it occurs in the net. -/
+theorem mem_vars_sw
+    -- a net over the names of `r`
+    {N : Net S (Fin a ⊕ Fin b ⊕ Fin r.internal)}
+    -- a name of `r`
+    {x : Fin a ⊕ Fin b ⊕ Fin r.internal} :
     swapName x ∈ (N.bind fun x => var (swapName x)).vars ↔ x ∈ N.vars := by
   rw [Net.vars_bind_var]
   exact Multiset.mem_map_of_injective swapName_injective
 
-theorem swapName_mem_midR (x : Fin a ⊕ Fin b ⊕ Fin r.internal) :
+/-- The middle wires with the ports exchanged are the middle wires, exchanged. -/
+theorem swapName_mem_midR
+    -- a name of `r`
+    (x : Fin a ⊕ Fin b ⊕ Fin r.internal) :
     swapName x ∈ r.midR ↔ x ∈ r.midL := by
   rcases x with i | j | w
   · exact (mem_middle_inr_inl _ _ i).trans ((r.mem_vars_sw).trans (mem_middle_inl _ _ i).symm)
@@ -222,7 +331,9 @@ theorem swapName_mem_midR (x : Fin a ⊕ Fin b ⊕ Fin r.internal) :
   · exact (mem_middle_inr_inr _ _ w).trans ((and_congr r.mem_vars_sw r.mem_vars_sw).trans
       (and_comm.trans (mem_middle_inr_inr _ _ w).symm))
 
-theorem card_midR : r.midR.card = r.midL.card := by
+/-- The two sides see the same number of middle wires. -/
+theorem card_midR :
+    r.midR.card = r.midL.card := by
   have : r.midR = r.midL.map ⟨swapName, swapName_injective⟩ := by
     ext y
     simp only [Finset.mem_map, Function.Embedding.coeFn_mk]
@@ -234,56 +345,100 @@ theorem card_midR : r.midR.card = r.midL.card := by
       exact (r.swapName_mem_midR x).2 hx
   rw [this, Finset.card_map]
 
+-- ============================================================================================
+-- 5. Definitions and lemmas: the numbering of the middle wires and the permutation
+-- ============================================================================================
+
 /-- The number of middle wires. -/
-def kDec : ℕ := r.midL.card
+def kDec :
+    ℕ :=
+  r.midL.card
 
 /-- The number of a middle wire in `φ`. -/
-def midφ (x : Fin a ⊕ Fin b ⊕ Fin r.internal) (h : x ∈ r.midL) : Fin r.kDec :=
+def midφ
+    -- a middle wire, as a name of `r`
+    (x : Fin a ⊕ Fin b ⊕ Fin r.internal)
+    (h : x ∈ r.midL) :
+    Fin r.kDec :=
   ⟨rankIn r.midL (key r.leftPart) x, rankIn_lt h⟩
 
 /-- The number of a middle wire in `ψ`. -/
-def midψ (y : Fin b ⊕ Fin a ⊕ Fin r.internal) (h : y ∈ r.midR) : Fin r.kDec :=
+def midψ
+    -- a middle wire, as a name of `r` with the ports exchanged
+    (y : Fin b ⊕ Fin a ⊕ Fin r.internal)
+    (h : y ∈ r.midR) :
+    Fin r.kDec :=
   ⟨rankIn r.midR (key r.leftSw) y, (rankIn_lt h).trans_eq r.card_midR⟩
 
-theorem midφ_inj : ∀ x hx y hy, r.midφ x hx = r.midφ y hy → x = y :=
+/-- Two middle wires with the same number in `φ` are the same. -/
+theorem midφ_inj :
+    ∀ x hx y hy, r.midφ x hx = r.midφ y hy → x = y :=
   fun _ hx _ hy h => rankIn_injOn (key_injective _) hx hy (congrArg Fin.val h)
 
-theorem midφ_surj : ∀ l, ∃ x hx, r.midφ x hx = l := fun l => by
+/-- Every number is the number of a middle wire in `φ`. -/
+theorem midφ_surj :
+    ∀ l, ∃ x hx, r.midφ x hx = l := fun l => by
   obtain ⟨x, hx, h⟩ := rankIn_surj (M := r.midL) (key_injective r.leftPart) l.isLt
   exact ⟨x, hx, Fin.ext h⟩
 
-theorem midψ_congr {y y' : Fin b ⊕ Fin a ⊕ Fin r.internal} (e : y = y') (h : y ∈ r.midR)
-    (h' : y' ∈ r.midR) : r.midψ y h = r.midψ y' h' := by
+/-- The number of a middle wire in `ψ` depends only on the wire. -/
+theorem midψ_congr
+    -- two equal middle wires, as names of `r` with the ports exchanged
+    {y y' : Fin b ⊕ Fin a ⊕ Fin r.internal}
+    (e : y = y')
+    (h : y ∈ r.midR)
+    (h' : y' ∈ r.midR) :
+    r.midψ y h = r.midψ y' h' := by
   subst e; rfl
 
-theorem midψ_inj : ∀ x hx y hy, r.midψ x hx = r.midψ y hy → x = y :=
+/-- Two middle wires with the same number in `ψ` are the same. -/
+theorem midψ_inj :
+    ∀ x hx y hy, r.midψ x hx = r.midψ y hy → x = y :=
   fun _ hx _ hy h => rankIn_injOn (key_injective _) hx hy (congrArg Fin.val h)
 
-theorem midψ_surj : ∀ l, ∃ x hx, r.midψ x hx = l := fun l => by
+/-- Every number is the number of a middle wire in `ψ`. -/
+theorem midψ_surj :
+    ∀ l, ∃ x hx, r.midψ x hx = l := fun l => by
   obtain ⟨x, hx, h⟩ := rankIn_surj (M := r.midR) (key_injective r.leftSw)
     (l.isLt.trans_eq r.card_midR.symm)
   exact ⟨x, hx, Fin.ext h⟩
 
 /-- The middle wire numbered `l` in `φ`. -/
-def unrankL (l : Fin r.kDec) : Fin a ⊕ Fin b ⊕ Fin r.internal :=
+def unrankL
+    -- the number
+    (l : Fin r.kDec) :
+    Fin a ⊕ Fin b ⊕ Fin r.internal :=
   Fintype.choose (fun x => ∃ h : x ∈ r.midL, r.midφ x h = l) (by
     obtain ⟨x, hx, h⟩ := r.midφ_surj l
     exact ⟨x, ⟨hx, h⟩, fun y ⟨hy, h'⟩ => r.midφ_inj _ hy _ hx (h'.trans h.symm)⟩)
 
-theorem unrankL_spec (l : Fin r.kDec) : ∃ h : r.unrankL l ∈ r.midL, r.midφ _ h = l :=
+/-- The wire `unrankL l` is a middle wire, numbered `l` in `φ`. -/
+theorem unrankL_spec
+    -- the number
+    (l : Fin r.kDec) :
+    ∃ h : r.unrankL l ∈ r.midL, r.midφ _ h = l :=
   Fintype.choose_spec (fun x => ∃ h : x ∈ r.midL, r.midφ x h = l) _
 
-theorem unrankL_midφ (x : Fin a ⊕ Fin b ⊕ Fin r.internal) (h : x ∈ r.midL) :
+/-- `unrankL` inverts the numbering in `φ`. -/
+theorem unrankL_midφ
+    -- a middle wire, as a name of `r`
+    (x : Fin a ⊕ Fin b ⊕ Fin r.internal)
+    (h : x ∈ r.midL) :
     r.unrankL (r.midφ x h) = x := by
   obtain ⟨h', e⟩ := r.unrankL_spec (r.midφ x h)
   exact r.midφ_inj _ h' _ h e
 
 /-- The permutation of the middle wires: the wire numbered `l` in `φ` has the number `σ l` in
 `ψ`. -/
-def σfun (l : Fin r.kDec) : Fin r.kDec :=
+def σfun
+    -- the number of the wire in `φ`
+    (l : Fin r.kDec) :
+    Fin r.kDec :=
   r.midψ (swapName (r.unrankL l)) ((r.swapName_mem_midR _).2 (r.unrankL_spec l).1)
 
-theorem σfun_bijective : Function.Bijective r.σfun := by
+/-- The renumbering `σfun` is a bijection. -/
+theorem σfun_bijective :
+    Function.Bijective r.σfun := by
   refine Finite.injective_iff_bijective.1 fun l l' h => ?_
   have h1 := r.midψ_inj _ _ _ _ h
   have h2 := swapName_injective h1
@@ -293,39 +448,64 @@ theorem σfun_bijective : Function.Bijective r.σfun := by
   simp only [h2]
 
 /-- The permutation `σ` of the canonical decomposition. -/
-def σDec : Equiv.Perm (Fin r.kDec) where
+def σDec :
+    Equiv.Perm (Fin r.kDec) where
   toFun := r.σfun
   invFun := Fintype.bijInv r.σfun_bijective
   left_inv := Fintype.leftInverse_bijInv r.σfun_bijective
   right_inv := Fintype.rightInverse_bijInv r.σfun_bijective
 
-theorem σDec_midφ (x : Fin a ⊕ Fin b ⊕ Fin r.internal) (h : x ∈ r.midL) :
+/-- `σ` sends the number of a middle wire in `φ` to its number in `ψ`. -/
+theorem σDec_midφ
+    -- a middle wire, as a name of `r`
+    (x : Fin a ⊕ Fin b ⊕ Fin r.internal)
+    (h : x ∈ r.midL) :
     r.σDec (r.midφ x h) = r.midψ (swapName x) ((r.swapName_mem_midR x).2 h) := by
   exact r.midψ_congr (by rw [r.unrankL_midφ x h])
     ((r.swapName_mem_midR _).2 (r.unrankL_spec _).1) _
 
+-- ============================================================================================
+-- 6. Definition: the canonical decomposition (page 85)
+-- ============================================================================================
+
 /-- The canonical decomposition of a rule (Lafont 1997, page 85): `φ` is built from the trees
 rooted at the ports of the first cell, `ψ` from the other trees, and `σ` joins their middle
 wires. -/
-def decompose : Decomposition S a b where
+def decompose :
+    Decomposition S a b where
   k := r.kDec
   φ := half r.leftPart r.rightPart r.kDec r.midφ
   ψ := half r.leftSw r.rightSw r.kDec r.midψ
   σ := r.σDec
 
-theorem leftPart_add_rightPart : r.leftPart + r.rightPart = r.net :=
+-- ============================================================================================
+-- 7. Results on the sides: linear, reduced, and the cells (page 85)
+-- ============================================================================================
+
+/-- The two parts make up the right member. -/
+theorem leftPart_add_rightPart :
+    r.leftPart + r.rightPart = r.net :=
   Multiset.filter_add_not _ _
 
-theorem vars_parts : r.leftPart.vars + r.rightPart.vars = r.net.vars := by
+/-- The names of the two parts make up the names of the right member. -/
+theorem vars_parts :
+    r.leftPart.vars + r.rightPart.vars = r.net.vars := by
   rw [← Net.vars_add, leftPart_add_rightPart]
 
-theorem vars_sw : r.leftSw.vars + r.rightSw.vars = r.net.vars.map swapName := by
+/-- The names of the two parts with the ports exchanged are the names of the right member,
+exchanged. -/
+theorem vars_sw :
+    r.leftSw.vars + r.rightSw.vars = r.net.vars.map swapName := by
   rw [leftSw, rightSw, Net.vars_bind_var, Net.vars_bind_var, ← Multiset.map_add, add_comm,
     vars_parts]
 
 /-- The sides of the canonical decomposition of a linear rule are linear (page 85): each port of
 the cell and each middle wire occurs once, each internal wire twice. -/
-theorem decompose_linear (hr : r.Linear) : r.decompose.φ.Linear ∧ r.decompose.ψ.Linear := by
+theorem decompose_linear
+    -- the rule is linear
+    (hr : r.Linear) :
+    -- `φ` is linear, and `ψ` is linear
+    r.decompose.φ.Linear ∧ r.decompose.ψ.Linear := by
   refine ⟨half_linear (fun i => ?_) (fun j => ?_) (fun w => ?_) r.midφ_inj r.midφ_surj,
     half_linear (fun j => ?_) (fun i => ?_) (fun w => ?_) r.midψ_inj r.midψ_surj⟩
   · rw [vars_parts]; exact hr.left i
@@ -343,7 +523,11 @@ theorem decompose_linear (hr : r.Linear) : r.decompose.φ.Linear ∧ r.decompose
 
 /-- The sides of the canonical decomposition of a reduced rule are reduced nets (page 85): every
 equation has a free port on one side. -/
-theorem decompose_reduced (hr : r.Reduced) : r.decompose.φ.Reduced ∧ r.decompose.ψ.Reduced := by
+theorem decompose_reduced
+    -- the rule is reduced
+    (hr : r.Reduced) :
+    -- `φ` is reduced, and `ψ` is reduced
+    r.decompose.φ.Reduced ∧ r.decompose.ψ.Reduced := by
   refine ⟨half_reduced fun e he => (Multiset.mem_filter.1 he).2, half_reduced fun e he => ?_⟩
   obtain ⟨e₀, he₀, rfl⟩ := Multiset.mem_map.1 he
   obtain ⟨he₀, hnl⟩ := Multiset.mem_filter.1 he₀
@@ -355,7 +539,8 @@ theorem decompose_reduced (hr : r.Reduced) : r.decompose.φ.Reduced ∧ r.decomp
 
 /-- The cells of `φ` are those of the trees of the right member rooted at a port of the first
 cell (page 85). -/
-theorem decompose_cells_left : r.decompose.φ.net.cells = Net.cells (r.net.filter LeftRooted) :=
+theorem decompose_cells_left :
+    r.decompose.φ.net.cells = Net.cells (r.net.filter LeftRooted) :=
   half_cells _ _ _ _
 
 /-- The cells of `ψ` are those of the other trees of the right member (page 85). -/
@@ -364,21 +549,31 @@ theorem decompose_cells_right :
   (half_cells _ _ _ _).trans (Net.cells_bind_var _ _)
 
 /-- The canonical decomposition loses no cell and creates none (page 85). -/
-theorem decompose_cells : r.decompose.φ.net.cells + r.decompose.ψ.net.cells = r.net.cells := by
+theorem decompose_cells :
+    r.decompose.φ.net.cells + r.decompose.ψ.net.cells = r.net.cells := by
   rw [decompose_cells_left, decompose_cells_right]
   unfold Net.cells
   rw [← Multiset.add_bind, Multiset.filter_add_not]
 
-/-! ### Plugging the sides back together -/
+-- ============================================================================================
+-- 8. Definitions: plugging the sides back together
+-- ============================================================================================
 
 /-- The number of internal wires of the plugged canonical decomposition. -/
-abbrev plugInt : ℕ :=
+abbrev plugInt :
+    ℕ :=
   r.kDec + (inner r.leftPart r.rightPart).card + (inner r.leftSw r.rightSw).card
 
 /-- An internal wire of `r` with both ends in the second part, when it is neither a middle wire
 nor inside the first part (for a linear rule). -/
-theorem mem_innerR (hr : r.Linear) {w : Fin r.internal} (h : .inr (.inr w) ∉ r.midL)
-    (h' : w ∉ inner r.leftPart r.rightPart) : w ∈ inner r.leftSw r.rightSw := by
+theorem mem_innerR
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r`, neither a middle wire nor inside the first part
+    {w : Fin r.internal}
+    (h : .inr (.inr w) ∉ r.midL)
+    (h' : w ∉ inner r.leftPart r.rightPart) :
+    w ∈ inner r.leftSw r.rightSw := by
   have hc := hr.internal w
   rw [← vars_parts, Multiset.count_add] at hc
   rw [midL, mem_middle_inr_inr] at h
@@ -396,32 +591,65 @@ theorem mem_innerR (hr : r.Linear) {w : Fin r.internal} (h : .inr (.inr w) ∉ r
 
 /-- Where an internal wire of `r` goes in the plugged canonical decomposition: a middle wire to
 its number in `φ`, an internal wire of `φ` or of `ψ` to its number there, shifted. -/
-def iotaDec (hr : r.Linear) (w : Fin r.internal) : Fin r.plugInt :=
+def iotaDec
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r`
+    (w : Fin r.internal) :
+    Fin r.plugInt :=
   if h : .inr (.inr w) ∈ r.midL then Fin.castAdd _ (Fin.castAdd _ (r.midφ _ h))
   else if h' : w ∈ inner r.leftPart r.rightPart then
     Fin.castAdd _ (Fin.natAdd _ (innerIdx _ _ h'))
   else Fin.natAdd _ (innerIdx _ _ (r.mem_innerR hr h h'))
 
 /-- A middle wire in the plugged net. -/
-def mw (l : Fin r.kDec) : Fin a ⊕ Fin b ⊕ Fin r.plugInt :=
+def mw
+    -- the number of the middle wire
+    (l : Fin r.kDec) :
+    Fin a ⊕ Fin b ⊕ Fin r.plugInt :=
   .inr (.inr (Fin.castAdd _ (Fin.castAdd _ l)))
 
 /-- Where a name of `r` goes in the plugged net before the equations between a port and a middle
 wire are absorbed: a middle wire, even a port, to its wire; the other names as `iotaDec`. -/
-def thetaDec (hr : r.Linear) (x : Fin a ⊕ Fin b ⊕ Fin r.internal) : Fin a ⊕ Fin b ⊕ Fin r.plugInt :=
+def thetaDec
+    -- the rule is linear
+    (hr : r.Linear)
+    -- a name of `r`
+    (x : Fin a ⊕ Fin b ⊕ Fin r.internal) :
+    Fin a ⊕ Fin b ⊕ Fin r.plugInt :=
   if h : x ∈ r.midL then r.mw (r.midφ x h) else Sum.map id (Sum.map id (r.iotaDec hr)) x
 
-theorem iotaDec_val_lt (hr : r.Linear) (w : Fin r.internal) :
+-- ============================================================================================
+-- 9. Auxiliary lemmas on the plugged net
+-- ============================================================================================
+
+/-- An internal wire of `r` goes to one of the first `k` wires exactly when it is a middle
+wire. -/
+theorem iotaDec_val_lt
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r`
+    (w : Fin r.internal) :
     (r.iotaDec hr w).val < r.kDec ↔ .inr (.inr w) ∈ r.midL := by
   unfold iotaDec
   split_ifs with h h' <;> simp [h]
   omega
 
-theorem iotaDec_of_mem (hr : r.Linear) {w : Fin r.internal} (h : .inr (.inr w) ∈ r.midL) :
+/-- A middle wire of `r` goes to its number in `φ`. -/
+theorem iotaDec_of_mem
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r` that is a middle wire
+    {w : Fin r.internal}
+    (h : .inr (.inr w) ∈ r.midL) :
     r.iotaDec hr w = Fin.castAdd _ (Fin.castAdd _ (r.midφ _ h)) := by
   simp [iotaDec, h]
 
-theorem iotaDec_injective (hr : r.Linear) : Function.Injective (r.iotaDec hr) := by
+/-- Distinct internal wires of `r` go to distinct internal wires of the plugged net. -/
+theorem iotaDec_injective
+    -- the rule is linear
+    (hr : r.Linear) :
+    Function.Injective (r.iotaDec hr) := by
   intro w w' he
   have hv := congrArg Fin.val he
   have hl := r.iotaDec_val_lt hr w
@@ -446,32 +674,62 @@ theorem iotaDec_injective (hr : r.Linear) : Function.Injective (r.iotaDec hr) :=
     · exact rankIn_injOn Fin.val_injective (r.mem_innerR hr h1 h2) (r.mem_innerR hr h1' h2')
         (by omega)
 
-theorem iotaDec_of_innerL (hr : r.Linear) {w : Fin r.internal}
-    (h : .inr (.inr w) ∉ r.midL) (h' : w ∈ inner r.leftPart r.rightPart) :
+/-- An internal wire inside the first part goes to its number among the internal wires of `φ`. -/
+theorem iotaDec_of_innerL
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r`, not a middle wire, inside the first part
+    {w : Fin r.internal}
+    (h : .inr (.inr w) ∉ r.midL)
+    (h' : w ∈ inner r.leftPart r.rightPart) :
     r.iotaDec hr w = Fin.castAdd _ (Fin.natAdd _ (innerIdx _ _ h')) := by
   simp [iotaDec, h, h']
 
-theorem iotaDec_of_innerR (hr : r.Linear) {w : Fin r.internal}
-    (h : .inr (.inr w) ∉ r.midL) (h' : w ∉ inner r.leftPart r.rightPart) :
+/-- Any other internal wire goes to its number among the internal wires of `ψ`. -/
+theorem iotaDec_of_innerR
+    -- the rule is linear
+    (hr : r.Linear)
+    -- an internal wire of `r`, neither a middle wire nor inside the first part
+    {w : Fin r.internal}
+    (h : .inr (.inr w) ∉ r.midL)
+    (h' : w ∉ inner r.leftPart r.rightPart) :
     r.iotaDec hr w = Fin.natAdd _ (innerIdx _ _ (r.mem_innerR hr h h')) := by
   simp [iotaDec, h, h']
 
-theorem thetaDec_of_mem (hr : r.Linear) {x : Fin a ⊕ Fin b ⊕ Fin r.internal} (h : x ∈ r.midL) :
+/-- A middle wire, even a port, goes to its middle wire in the plugged net. -/
+theorem thetaDec_of_mem
+    -- the rule is linear
+    (hr : r.Linear)
+    -- a name of `r` that is a middle wire
+    {x : Fin a ⊕ Fin b ⊕ Fin r.internal}
+    (h : x ∈ r.midL) :
     r.thetaDec hr x = r.mw (r.midφ x h) := by
   simp [thetaDec, h]
 
-theorem thetaDec_of_notMem (hr : r.Linear) {x : Fin a ⊕ Fin b ⊕ Fin r.internal} (h : x ∉ r.midL) :
+/-- A name that is not a middle wire goes where `iotaDec` sends it; a port stays a port. -/
+theorem thetaDec_of_notMem
+    -- the rule is linear
+    (hr : r.Linear)
+    -- a name of `r` that is not a middle wire
+    {x : Fin a ⊕ Fin b ⊕ Fin r.internal}
+    (h : x ∉ r.midL) :
     r.thetaDec hr x = Sum.map id (Sum.map id (r.iotaDec hr)) x := by
   simp [thetaDec, h]
 
 /-- The plugged canonical decomposition is `r.net` renamed by `thetaDec`, plus an equation
 `p = thetaDec p` for each port `p` that is a middle wire. -/
-theorem plug_decompose_net (hr : r.Linear) :
+theorem plug_decompose_net
+    -- the rule is linear
+    (hr : r.Linear) :
+    -- the plugged canonical decomposition is
     (Rule.plug r.decompose.φ r.decompose.ψ r.decompose.σ).net =
-      r.net.bind (fun x => var (r.thetaDec hr x)) +
-        ((leftsOut r.leftPart r.rightPart).val.map
-            (fun i => s(var (.inl i), var (r.thetaDec hr (.inl i)))) +
-          (leftsOut r.leftSw r.rightSw).val.map
+      -- `r.net` renamed by `thetaDec`,
+      r.net.bind (fun x => var (r.thetaDec hr x))
+      -- with an equation for each port of the first cell that is a middle wire
+      + ((leftsOut r.leftPart r.rightPart).val.map
+            (fun i => s(var (.inl i), var (r.thetaDec hr (.inl i))))
+        -- and an equation for each port of the second cell that is a middle wire
+        + (leftsOut r.leftSw r.rightSw).val.map
             (fun j => s(var (.inr (.inl j)), var (r.thetaDec hr (.inr (.inl j)))))) := by
   have hφ := half_bind r.leftPart r.rightPart r.kDec r.midφ
     (plugL (b := b) (n := (inner r.leftSw r.rightSw).card)) (r.thetaDec hr)
@@ -521,7 +779,12 @@ theorem plug_decompose_net (hr : r.Linear) :
   simp only [Net.bind, Multiset.map_add, plugL, plugR, swapName, Sum.elim_inl]
   abel
 
-theorem _root_.INet.Rule.Linear.net_linear {a b : ℕ} {r : Rule S a b} (hr : r.Linear) :
+/-- The right member of a linear rule is a linear net. -/
+theorem _root_.INet.Rule.Linear.net_linear
+    -- a linear rule
+    {a b : ℕ}
+    {r : Rule S a b}
+    (hr : r.Linear) :
     r.net.Linear := by
   intro x
   rcases x with i | j | w
@@ -529,19 +792,30 @@ theorem _root_.INet.Rule.Linear.net_linear {a b : ℕ} {r : Rule S a b} (hr : r.
   · rw [hr.right j]; omega
   · rw [hr.internal w]
 
-theorem mw_injective : Function.Injective r.mw := by
+/-- Distinct numbers give distinct middle wires in the plugged net. -/
+theorem mw_injective :
+    Function.Injective r.mw := by
   intro l l' h
   simp only [mw, Sum.inr.injEq] at h
   exact Fin.ext (by simpa using congrArg Fin.val h)
 
+-- ============================================================================================
+-- 10. Main result: the plugged canonical decomposition is the rule (page 85)
+-- ============================================================================================
+
 /-- Plugging the two sides of the canonical decomposition of a linear rule through `σ` gives back
 the right member of the rule (Lafont 1997, page 85): the plugged net is `r.net` with its internal
 wires renamed one for one, up to `Equiv` (wire substitution). Only linearity is needed. -/
-theorem plug_decompose (hr : r.Linear) :
+theorem plug_decompose
+    -- the rule is linear
+    (hr : r.Linear) :
+    -- there is a renaming `ι` of the internal wires of `r` into those of the plugged net
     ∃ ι : Fin r.internal → Fin (Rule.plug r.decompose.φ r.decompose.ψ r.decompose.σ).internal,
+      -- that is injective,
       Function.Injective ι ∧
-        Equiv (Rule.plug r.decompose.φ r.decompose.ψ r.decompose.σ).net
-          (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)) := by
+      -- and the plugged net is the same graph as `r.net` renamed by `ι`
+      Equiv (Rule.plug r.decompose.φ r.decompose.ψ r.decompose.σ).net
+        (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)) := by
   classical
   refine ⟨r.iotaDec hr, r.iotaDec_injective hr, ?_⟩
   set θ := r.thetaDec hr with hθ
