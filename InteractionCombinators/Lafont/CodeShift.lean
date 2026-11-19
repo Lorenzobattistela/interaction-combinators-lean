@@ -102,7 +102,7 @@ variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.a
 theorem menu_codeCellMenu_shift (β : S.Sym) (g : ℕ → ℕ) (k₀ k₀' : ℕ)
     (hg : ∀ i, g (k₀ + i) = k₀' + i) :
     (menu (codeCellMenu side β k₀)).bind (fun x => var (g x)) = menu (codeCellMenu side β k₀') := by
-  rw [menu, bind_mux, codeCellMenu, codeCellMenu, List.map_ofFn, menu]
+  rw [menu, bind_mux, codeCellMenu_eq, codeCellMenu_eq, List.map_ofFn, menu]
   congr 2
   funext j
   exact codeGammaOpt_shift _ _ _ g _ _ fun i => by rw [add_assoc, hg, add_assoc]
@@ -110,7 +110,7 @@ theorem menu_codeCellMenu_shift (β : S.Sym) (g : ℕ → ℕ) (k₀ k₀' : ℕ
 /-- **Shifting the menu `Γ = Γ_0 & ⋯ & Γ_{m-1}`** (Fig. 10, page 89). -/
 theorem menu_codeMenus_shift (g : ℕ → ℕ) (k₀ k₀' : ℕ) (hg : ∀ i, g (k₀ + i) = k₀' + i) :
     (menu (codeMenus side k₀)).bind (fun x => var (g x)) = menu (codeMenus side k₀') := by
-  rw [menu, bind_mux, codeMenus, codeMenus, List.map_ofFn, menu]
+  rw [menu, bind_mux, codeMenus_eq, codeMenus_eq, List.map_ofFn, menu]
   congr 2
   funext i
   exact menu_codeCellMenu_shift side _ g _ _ fun j => by rw [add_assoc, hg, add_assoc]

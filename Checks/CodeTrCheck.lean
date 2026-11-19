@@ -27,12 +27,12 @@ def sideNone : ∀ α : sigOne.Sym, sigOne.Sym → Option (ExpSide sigOne (sigOn
 theorem card_sigOne : Nat.card sigOne.Sym = 1 := Nat.card_unique
 
 theorem codeCellMenu_sideNone (β : sigOne.Sym) (k : ℕ) : codeCellMenu sideNone β k = [mkEra] := by
-  rw [codeCellMenu]
+  rw [codeCellMenu_eq]
   simp only [sideNone, codeGammaOpt, List.ofFn_const, card_sigOne]
   rfl
 
 theorem codeMenus_sideNone (k : ℕ) : codeMenus sideNone k = [mkEra] := by
-  rw [codeMenus]
+  rw [codeMenus_eq]
   simp only [codeCellMenu_sideNone, List.ofFn_const, card_sigOne]
   rfl
 

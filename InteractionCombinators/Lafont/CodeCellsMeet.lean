@@ -112,7 +112,7 @@ theorem getElem_codeCellMenu (α β : S.Sym) (k₀ : ℕ)
     (codeCellMenu side β k₀)[(symEnum S α : ℕ)]'h =
       codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side α β)
         (k₀ + off (codeCellSizes side β) (symEnum S α)) := by
-  simp only [codeCellMenu, List.getElem_ofFn, Fin.eta]
+  simp only [codeCellMenu_eq, List.getElem_ofFn, Fin.eta]
   congr 2 <;> exact (symEnum S).symm_apply_apply α
 
 /-- The packages of the menu `Γ_β` (page 89): each `Γ_{j,β}` is a package. -/

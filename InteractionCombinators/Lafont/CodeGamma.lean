@@ -319,73 +319,198 @@ theorem vars_codeGammaOpt (o : Option (ExpSide S a)) (k₀ : ℕ) :
   | none => simp [codeGammaOpt, codeGammaOptSize]
   | some s => exact vars_codeGamma m idx s.expanded s.linear s.σ s.involutive k₀
 
+/-! ### The menus for a given enumeration of the symbols
+
+The construction of Fig. 10 numbers the symbols `α_0, …, α_{m-1}`; page 90 notes that no order on
+the symbols is needed. Here the numbering is an argument `e : S.Sym ≃ Fin n`, so that the menus are
+computable; the versions without `E` below take `e := symEnum S`. -/
+
+section Enum
+
+variable {n : ℕ} (e : S.Sym ≃ Fin n)
+  (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
+
+/-- The numbers of names of the packages `Γ_{j,β}` of the menu of `⟨β⟩`, with the symbols numbered
+by `e`. -/
+def codeCellSizesE (β : S.Sym) : Fin n → ℕ :=
+  fun j => codeGammaOptSize (side (e.symm j) β)
+
+/-- **The menu `Γ_β = Γ_{0,β} & ⋯ & Γ_{m-1,β}`** of Fig. 10 (page 89), as a list, with the symbols
+numbered by `e`: `Γ_{j,β}` is built from the side of `α_j` against `β` given by `side`, on the
+`j`-th block of names above `k₀`. -/
+def codeCellMenuE (β : S.Sym) (k₀ : ℕ) : List (Term sig ℕ) :=
+  List.ofFn fun j => codeGammaOpt n (fun α => e α)
+    (side (e.symm j) β) (k₀ + off (codeCellSizesE e side β) j)
+
+/-- The names of the menu `Γ_β` (page 89) are both ends of each name of a block above `k₀`, for any
+numbering `e` of the symbols. -/
+theorem vars_menu_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
+    (menu (codeCellMenuE e side β k₀)).vars =
+      2 • Multiset.Ico k₀ (k₀ + ∑ j, codeCellSizesE e side β j) := by
+  rw [menu, vars_mux, codeCellMenuE, List.map_ofFn, List.sum_ofFn]
+  simp only [Function.comp_def, vars_codeGammaOpt]
+  rw [← Finset.smul_sum]
+  exact congrArg (2 • ·) (sum_Ico_off (codeCellSizesE e side β) k₀)
+
+/-- The numbers of names of the menus `Γ_0, …, Γ_{m-1}`, with the symbols numbered by `e`. -/
+def codeMenuSizesE : Fin n → ℕ :=
+  fun i => ∑ j, codeCellSizesE e side (e.symm i) j
+
+/-- **The menus `Γ_0, …, Γ_{m-1}`** of Fig. 10 (page 89), with the symbols numbered by `e`: `Γ_i` is
+the menu of the symbol numbered `i`, on the `i`-th block of names above `k₀`. -/
+def codeMenusE (k₀ : ℕ) : List (Term sig ℕ) :=
+  List.ofFn fun i => menu (codeCellMenuE e side (e.symm i) (k₀ + off (codeMenuSizesE e side) i))
+
+/-- There is one menu per symbol, for any numbering `e` (page 89). -/
+theorem length_codeMenusE (k₀ : ℕ) : (codeMenusE e side k₀).length = n :=
+  List.length_ofFn
+
+/-- The menu of `codeMenusE e` at the number of `β` is the menu `Γ_β` of `β` (page 89). -/
+theorem getElem_codeMenusE (k₀ : ℕ) (β : S.Sym) (h : (e β : ℕ) < (codeMenusE e side k₀).length) :
+    (codeMenusE e side k₀)[(e β : ℕ)] =
+      menu (codeCellMenuE e side β (k₀ + off (codeMenuSizesE e side) (e β))) := by
+  simp [codeMenusE]
+
+/-- The names of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (page 89) are both ends of each name of a block above
+`k₀`, for any numbering `e`. -/
+theorem vars_menu_codeMenusE (k₀ : ℕ) :
+    (menu (codeMenusE e side k₀)).vars =
+      2 • Multiset.Ico k₀ (k₀ + ∑ i, codeMenuSizesE e side i) := by
+  rw [menu, vars_mux, codeMenusE, List.map_ofFn, List.sum_ofFn]
+  simp only [Function.comp_def, vars_menu_codeCellMenuE]
+  rw [← Finset.smul_sum]
+  exact congrArg (2 • ·) (sum_Ico_off (codeMenuSizesE e side) k₀)
+
+/-- **Each menu `Γ_i` is a package** (page 89), for any numbering `e`. -/
+theorem codeMenusE_isPackage (k₀ : ℕ) : ∀ π ∈ codeMenusE e side k₀, π.IsPackage := by
+  intro π hπ
+  obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
+  exact isPackage_of_vars_eq (vars_menu_codeCellMenuE e side _ _)
+
+/-- **`Γ = Γ_0 & ⋯ & Γ_{m-1}` is a package** (page 89), for any numbering `e`. -/
+theorem menu_codeMenusE_isPackage (k₀ : ℕ) : (menu (codeMenusE e side k₀)).IsPackage :=
+  isPackage_of_vars_eq (vars_menu_codeMenusE e side k₀)
+
+/-- The names of `Γ` are below `k₀ + ∑ i, codeMenuSizesE e side i` (page 89). -/
+theorem menu_codeMenusE_below (k₀ : ℕ) :
+    (menu (codeMenusE e side k₀)).Below (k₀ + ∑ i, codeMenuSizesE e side i) := by
+  intro x hx
+  rw [vars_menu_codeMenusE] at hx
+  exact (Multiset.mem_Ico.1 (Multiset.mem_of_mem_nsmul hx)).2
+
+/-- **The extraction of page 90 for the `Γ` of Fig. 10, for any numbering `e` of the symbols.**
+With `Γ = codeMenusE e side k₀`, a copy of `!Γ` (renamed by `f`, injective on its names) on the
+extra port of `⟨β⟩`, in any context `Δ`, reduces to a net that is `Equiv` to the cell `[β]` of
+Fig. 10 with a copy of the menu `Γ_β` and a copy of `!Γ`. This is `codeCell_code`, whose hypotheses
+on `Γ` hold by `codeMenusE_isPackage`, `menu_codeMenusE_isPackage` and `menu_codeMenusE_below`. -/
+theorem codeCell_code_codeMenusE (k₀ K : ℕ) (hK : k₀ + ∑ i, codeMenuSizesE e side i ≤ K)
+    (β : S.Sym) (f : ℕ → ℕ)
+    (hf : Set.InjOn f {x | x ∈ (code K (menu (codeMenusE e side k₀))).vars})
+    (P : Term sig ℕ) (ts : List (Term sig ℕ)) (ℓ u w y k₁ : ℕ) (Δ : CNet)
+    (hlin : Net.Linear (codeCell (codeMenusE e side k₀).length (e β) P
+      ((code K (menu (codeMenusE e side k₀))).bind fun x => var (f x)) ts ℓ u w y k₁ + Δ)) :
+    ∃ (g g' : ℕ → ℕ) (M : CNet),
+      Set.InjOn g {x | x ∈ (code K (menu (codeMenusE e side k₀))).vars} ∧
+      Set.InjOn g' {x | x ∈ (code K (menu (codeMenusE e side k₀))).vars} ∧
+      StepsE system (codeCell (codeMenusE e side k₀).length (e β) P
+        ((code K (menu (codeMenusE e side k₀))).bind fun x => var (f x)) ts ℓ u w y k₁ + Δ) M ∧
+      Equiv M (s(P, cellSkel ((menu (codeCellMenuE e side β
+          (k₀ + off (codeMenuSizesE e side) (e β)))).bind fun x => var (g x))
+        (codeMenusE e side k₀).length (e β)
+        (((code K (menu (codeMenusE e side k₀))).bind fun x => var (g' x)) :: ts) ℓ) ::ₘ Δ) := by
+  have hk : (e β : ℕ) < (codeMenusE e side k₀).length := by
+    rw [length_codeMenusE]; exact (e β).isLt
+  have hb : (menu (codeMenusE e side k₀)).Below K := fun x hx =>
+    (menu_codeMenusE_below e side k₀ x hx).trans_le hK
+  have := codeCell_code (codeMenusE e side k₀) (codeMenusE_isPackage e side k₀)
+    (menu_codeMenusE_isPackage e side k₀) K hb (e β) hk f hf P ts ℓ u w y k₁ Δ hlin
+  rwa [getElem_codeMenusE e side k₀ β hk] at this
+
+end Enum
+
+/-! ### The menus for the enumeration `symEnum S` -/
+
 variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
-/-- The numbers of names of the packages `Γ_{j,β}` of the menu of `⟨β⟩`. -/
+/-- The numbers of names of the packages `Γ_{j,β}` of the menu of `⟨β⟩`: `codeCellSizesE` with the
+symbols numbered by `symEnum`. -/
 noncomputable def codeCellSizes (β : S.Sym) : Fin (Nat.card S.Sym) → ℕ :=
-  fun j => codeGammaOptSize (side ((symEnum S).symm j) β)
+  codeCellSizesE (symEnum S) side β
+
+/-- `codeCellSizes` unfolded. -/
+theorem codeCellSizes_eq (β : S.Sym) :
+    codeCellSizes side β = fun j => codeGammaOptSize (side ((symEnum S).symm j) β) :=
+  rfl
 
 /-- **The menu `Γ_β = Γ_{0,β} & ⋯ & Γ_{m-1,β}`** of Fig. 10 (page 89), as a list: `Γ_{j,β}` is built
 from the side of `α_j` against `β` given by `side`, with the symbols numbered by `symEnum`, on the
 `j`-th block of names above `k₀`. -/
 noncomputable def codeCellMenu (β : S.Sym) (k₀ : ℕ) : List (Term sig ℕ) :=
-  List.ofFn fun j => codeGammaOpt (Nat.card S.Sym) (fun α => symEnum S α)
-    (side ((symEnum S).symm j) β) (k₀ + off (codeCellSizes side β) j)
+  codeCellMenuE (symEnum S) side β k₀
+
+/-- `codeCellMenu` unfolded. -/
+theorem codeCellMenu_eq (β : S.Sym) (k₀ : ℕ) :
+    codeCellMenu side β k₀ =
+      List.ofFn fun j => codeGammaOpt (Nat.card S.Sym) (fun α => symEnum S α)
+        (side ((symEnum S).symm j) β) (k₀ + off (codeCellSizes side β) j) :=
+  rfl
 
 /-- The names of the menu `Γ_β` (page 89) are both ends of each name of a block above `k₀`. -/
 theorem vars_menu_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
     (menu (codeCellMenu side β k₀)).vars =
-      2 • Multiset.Ico k₀ (k₀ + ∑ j, codeCellSizes side β j) := by
-  rw [menu, vars_mux, codeCellMenu, List.map_ofFn, List.sum_ofFn]
-  simp only [Function.comp_def, vars_codeGammaOpt]
-  rw [← Finset.smul_sum]
-  exact congrArg (2 • ·) (sum_Ico_off (codeCellSizes side β) k₀)
+      2 • Multiset.Ico k₀ (k₀ + ∑ j, codeCellSizes side β j) :=
+  vars_menu_codeCellMenuE (symEnum S) side β k₀
 
 /-- The numbers of names of the menus `Γ_0, …, Γ_{m-1}`. -/
 noncomputable def codeMenuSizes : Fin (Nat.card S.Sym) → ℕ :=
-  fun i => ∑ j, codeCellSizes side ((symEnum S).symm i) j
+  codeMenuSizesE (symEnum S) side
+
+/-- `codeMenuSizes` unfolded. -/
+theorem codeMenuSizes_eq :
+    codeMenuSizes side = fun i => ∑ j, codeCellSizes side ((symEnum S).symm i) j :=
+  rfl
 
 /-- **The menus `Γ_0, …, Γ_{m-1}`** of Fig. 10 (page 89), whose menu `Γ = Γ_0 & ⋯ & Γ_{m-1}` is
 the package coded by `!Γ`: `Γ_i` is the menu of the symbol numbered `i`, on the `i`-th block of
 names above `k₀`. -/
 noncomputable def codeMenus (k₀ : ℕ) : List (Term sig ℕ) :=
-  List.ofFn fun i => menu (codeCellMenu side ((symEnum S).symm i) (k₀ + off (codeMenuSizes side) i))
+  codeMenusE (symEnum S) side k₀
+
+/-- `codeMenus` unfolded. -/
+theorem codeMenus_eq (k₀ : ℕ) :
+    codeMenus side k₀ =
+      List.ofFn fun i =>
+        menu (codeCellMenu side ((symEnum S).symm i) (k₀ + off (codeMenuSizes side) i)) :=
+  rfl
 
 /-- There is one menu per symbol. -/
 theorem length_codeMenus (k₀ : ℕ) : (codeMenus side k₀).length = Nat.card S.Sym :=
-  List.length_ofFn
+  length_codeMenusE (symEnum S) side k₀
 
 /-- The menu of `codeMenus` at the number of `β` is the menu `Γ_β` of `β` (page 89). -/
 theorem getElem_codeMenus (k₀ : ℕ) (β : S.Sym) (h : (symEnum S β : ℕ) < (codeMenus side k₀).length) :
     (codeMenus side k₀)[(symEnum S β : ℕ)] =
-      menu (codeCellMenu side β (k₀ + off (codeMenuSizes side) (symEnum S β))) := by
-  simp [codeMenus]
+      menu (codeCellMenu side β (k₀ + off (codeMenuSizes side) (symEnum S β))) :=
+  getElem_codeMenusE (symEnum S) side k₀ β h
 
 /-- The names of `Γ = Γ_0 & ⋯ & Γ_{m-1}` (page 89) are both ends of each name of a block above
 `k₀`. -/
 theorem vars_menu_codeMenus (k₀ : ℕ) :
-    (menu (codeMenus side k₀)).vars = 2 • Multiset.Ico k₀ (k₀ + ∑ i, codeMenuSizes side i) := by
-  rw [menu, vars_mux, codeMenus, List.map_ofFn, List.sum_ofFn]
-  simp only [Function.comp_def, vars_menu_codeCellMenu]
-  rw [← Finset.smul_sum]
-  exact congrArg (2 • ·) (sum_Ico_off (codeMenuSizes side) k₀)
+    (menu (codeMenus side k₀)).vars = 2 • Multiset.Ico k₀ (k₀ + ∑ i, codeMenuSizes side i) :=
+  vars_menu_codeMenusE (symEnum S) side k₀
 
 /-- **Each menu `Γ_i` is a package** (page 89). -/
-theorem codeMenus_isPackage (k₀ : ℕ) : ∀ π ∈ codeMenus side k₀, π.IsPackage := by
-  intro π hπ
-  obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
-  exact isPackage_of_vars_eq (vars_menu_codeCellMenu side _ _)
+theorem codeMenus_isPackage (k₀ : ℕ) : ∀ π ∈ codeMenus side k₀, π.IsPackage :=
+  codeMenusE_isPackage (symEnum S) side k₀
 
 /-- **`Γ = Γ_0 & ⋯ & Γ_{m-1}` is a package** (page 89), as the extraction of page 90 needs. -/
 theorem menu_codeMenus_isPackage (k₀ : ℕ) : (menu (codeMenus side k₀)).IsPackage :=
-  isPackage_of_vars_eq (vars_menu_codeMenus side k₀)
+  menu_codeMenusE_isPackage (symEnum S) side k₀
 
 /-- The names of `Γ` are below `k₀ + ∑ i, codeMenuSizes side i` (page 89). -/
 theorem menu_codeMenus_below (k₀ : ℕ) :
-    (menu (codeMenus side k₀)).Below (k₀ + ∑ i, codeMenuSizes side i) := by
-  intro x hx
-  rw [vars_menu_codeMenus] at hx
-  exact (Multiset.mem_Ico.1 (Multiset.mem_of_mem_nsmul hx)).2
+    (menu (codeMenus side k₀)).Below (k₀ + ∑ i, codeMenuSizes side i) :=
+  menu_codeMenusE_below (symEnum S) side k₀
 
 /-- **The extraction of page 90 for the `Γ` of Fig. 10.** With `Γ = codeMenus side k₀` (the menus
 `Γ_0, …, Γ_{m-1}` built from any choice of expanded sides), a copy of `!Γ` (renamed by `f`,
@@ -406,13 +531,7 @@ theorem codeCell_code_codeMenus (k₀ K : ℕ) (hK : k₀ + ∑ i, codeMenuSizes
       Equiv M (s(P, cellSkel ((menu (codeCellMenu side β
           (k₀ + off (codeMenuSizes side) (symEnum S β)))).bind fun x => var (g x))
         (codeMenus side k₀).length (symEnum S β)
-        (((code K (menu (codeMenus side k₀))).bind fun x => var (g' x)) :: ts) ℓ) ::ₘ Δ) := by
-  have hk : (symEnum S β : ℕ) < (codeMenus side k₀).length := by
-    rw [length_codeMenus]; exact (symEnum S β).isLt
-  have hb : (menu (codeMenus side k₀)).Below K := fun x hx =>
-    (menu_codeMenus_below side k₀ x hx).trans_le hK
-  have := codeCell_code (codeMenus side k₀) (codeMenus_isPackage side k₀)
-    (menu_codeMenus_isPackage side k₀) K hb (symEnum S β) hk f hf P ts ℓ u w y k₁ Δ hlin
-  rwa [getElem_codeMenus side k₀ β hk] at this
+        (((code K (menu (codeMenus side k₀))).bind fun x => var (g' x)) :: ts) ℓ) ::ₘ Δ) :=
+  codeCell_code_codeMenusE (symEnum S) side k₀ K hK β f hf P ts ℓ u w y k₁ Δ hlin
 
 end INet.Comb

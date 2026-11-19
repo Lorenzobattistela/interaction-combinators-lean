@@ -77,10 +77,10 @@ theorem codeTree_eq_fig10 (α : S.Sym) :
 /-- **The entries of the menu `Γ_α`** (Fig. 10, top right, page 89): the entry `j` is built from
 the side of `α_j` against `α`, that is `Γ_{j,α}`, as in `Γ_i = Γ_{1,i} & ⋯ & Γ_{m,i}`. -/
 theorem getElem_codeCellMenu (α : S.Sym) (k₀ : ℕ) (j : Fin (Nat.card S.Sym)) :
-    (codeCellMenu side α k₀)[(j : ℕ)]'(by simp [codeCellMenu]) =
+    (codeCellMenu side α k₀)[(j : ℕ)]'(by simp [codeCellMenu_eq]) =
       codeGammaOpt (Nat.card S.Sym) (fun β => symEnum S β) (side ((symEnum S).symm j) α)
         (k₀ + off (codeCellSizes side α) j) := by
-  simp [codeCellMenu]
+  simp [codeCellMenu_eq]
 
 end general
 
@@ -201,12 +201,12 @@ theorem symEnum_sigTwoPorts (α : sigTwoPorts.Sym) : (symEnum sigTwoPorts α : �
 
 theorem codeCellMenu_sideNoneTwo (β : sigTwoPorts.Sym) (k : ℕ) :
     codeCellMenu sideNoneTwo β k = [mkEra] := by
-  rw [codeCellMenu]
+  rw [codeCellMenu_eq]
   simp only [sideNoneTwo, codeGammaOpt, List.ofFn_const, card_sigTwoPorts]
   rfl
 
 theorem codeMenus_sideNoneTwo (k : ℕ) : codeMenus sideNoneTwo k = [mkEra] := by
-  rw [codeMenus]
+  rw [codeMenus_eq]
   simp only [codeCellMenu_sideNoneTwo, List.ofFn_const, card_sigTwoPorts]
   rfl
 
@@ -239,7 +239,7 @@ def sideNoneBool : ∀ α : sigBool.Sym, sigBool.Sym → Option (ExpSide sigBool
 
 theorem codeCellMenu_sideNoneBool (β : sigBool.Sym) (k : ℕ) :
     codeCellMenu sideNoneBool β k = [mkEra, mkEra] := by
-  rw [codeCellMenu]
+  rw [codeCellMenu_eq]
   simp only [sideNoneBool, codeGammaOpt, List.ofFn_const, card_sigBool]
   rfl
 
@@ -248,7 +248,7 @@ rule, `Γ = Γ_0 & Γ_1` with `Γ_i = ε & ε`. It does not depend on the symbol
 theorem codeMenus_two (k : ℕ) :
     menu (codeMenus sideNoneBool k) =
       (mux [mux [mkEra, mkEra], mux [mkEra, mkEra]] : Term sig ℕ) := by
-  rw [codeMenus]
+  rw [codeMenus_eq]
   simp only [codeCellMenu_sideNoneBool, List.ofFn_const, card_sigBool]
   rfl
 
@@ -274,13 +274,13 @@ the side of `con` against `dup` given by `sideConDup` (four cells) and no other 
 `Γ_dup` of `[dup]` holds at the number of `con` the package `codeGamma` of that side, and erasers at
 the other numbers; the menu `Γ_con` of `[con]` holds only erasers. -/
 theorem codeCellMenu_sideConDup (k₀ : ℕ) (j : Fin (Nat.card sig.Sym)) :
-    (codeCellMenu sideConDup .dup k₀)[(j : ℕ)]'(by simp [codeCellMenu]) =
+    (codeCellMenu sideConDup .dup k₀)[(j : ℕ)]'(by simp [codeCellMenu, codeCellMenuE]) =
       (if (symEnum sig).symm j = .con then
         codeGamma (Nat.card sig.Sym) (fun β => symEnum sig β) ruleConDup (Equiv.swap 0 1) hs
           (k₀ + off (codeCellSizes sideConDup .dup) j)
       else mkEra) ∧
-    (codeCellMenu sideConDup .con k₀)[(j : ℕ)]'(by simp [codeCellMenu]) = mkEra := by
-  simp only [codeCellMenu, List.getElem_ofFn]
+    (codeCellMenu sideConDup .con k₀)[(j : ℕ)]'(by simp [codeCellMenu, codeCellMenuE]) = mkEra := by
+  simp only [codeCellMenu, codeCellMenuE, List.getElem_ofFn]
   constructor <;> rcases (symEnum sig).symm j with _ | _ | _ <;>
     simp only [sideConDup, codeGammaOpt] <;> split_ifs with hc <;>
     first | rfl | exact absurd rfl hc | contradiction
