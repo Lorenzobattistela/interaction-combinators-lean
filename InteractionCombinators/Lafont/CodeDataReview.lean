@@ -1,4 +1,5 @@
 import InteractionCombinators.Lafont.CodeData
+import InteractionCombinators.Lafont.CodeDataSides
 import InteractionCombinators.Lafont.DecompositionSymmReview
 import InteractionCombinators.Lafont.ExpandedIso
 
@@ -66,35 +67,7 @@ namespace System.DecData
 
 variable {I : System S} (D : I.DecData)
 
-/-- For a rule `α`–`α`, the side `ψ` is the side `φ` (page 86, `φ_{i,i} = ψ_{i,i}`). -/
-theorem rawψ_self {α : S.Sym} {r : Rule S (S.arity α) (S.arity α)} (h : I.rule α α = some r) :
-    D.rawψ α α r h = D.rawφ α α r h := by
-  have e := D.self α r h
-  unfold rawψ rawφ
-  congr 1
-
-/-- **The side of `β` against `α`, for a rule `α`–`β`, is the `ψ` of its decomposition** (page 86,
-`φ_{j,i} = ψ_{i,j}`), in a well-formed system: for `α ≠ β` there is no rule `β`–`α`
-(`WellFormed.unique`), for `α = β` the field `self` applies. -/
-theorem rawSide_swap_of_rule (hI : I.WellFormed) {α β : S.Sym}
-    {r : Rule S (S.arity α) (S.arity β)} (h : I.rule α β = some r) :
-    D.rawSide β α = some (D.rawψ β α r h) := by
-  by_cases hab : α = β
-  · subst hab
-    rw [D.rawSide_of_rule h, D.rawψ_self h]
-  · exact D.rawSide_of_rule_swap (hI.unique α β hab (by simp [h])) h
-
-/-- **The two sides of a rule plug back into it** (pages 85–86, Fig. 10). In a well-formed system,
-for a rule `α`–`β`: the side of `α` against `β` is the `φ` of its decomposition, the side of `β`
-against `α` is its `ψ`, the two carry the same permutation (`σ_{j,i} = σ_{i,j}`), and plugging the
-first against the second through it gives back the rule. -/
-theorem sides_of_rule (hI : I.WellFormed) {α β : S.Sym} {r : Rule S (S.arity α) (S.arity β)}
-    (h : I.rule α β = some r) :
-    D.rawSide α β = some (D.rawφ α β r h) ∧ D.rawSide β α = some (D.rawψ β α r h) ∧
-      (D.rawψ β α r h).σ = (D.rawφ α β r h).σ ∧
-      (⟨(D.rawφ α β r h).k, (D.rawφ α β r h).φ, (D.rawψ β α r h).φ, (D.rawφ α β r h).σ⟩ :
-        Decomposition S (S.arity α) (S.arity β)).Plugs r :=
-  ⟨D.rawSide_of_rule h, D.rawSide_swap_of_rule hI h, rfl, D.plug α β r h⟩
+/-! `rawψ_self`, `rawSide_swap_of_rule` and `sides_of_rule` are in `Lafont/CodeDataSides.lean`. -/
 
 /-- For `α ≠ β`, the permutation carried by both sides of the rule `α`–`β` is the identity
 (page 86). -/
