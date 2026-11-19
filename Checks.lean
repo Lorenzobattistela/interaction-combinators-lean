@@ -97,3 +97,4 @@ import Checks.WantedCheck
 import Checks.GraphCheck
 import Checks.ComputableMarksCheck
 import Checks.WireNumCheck
+import Checks.WireNumReview
