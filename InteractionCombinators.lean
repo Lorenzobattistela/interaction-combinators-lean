@@ -36,6 +36,7 @@ import InteractionCombinators.Lafont.RecursionFree
 import InteractionCombinators.Lafont.RecursionFreeCheck
 import InteractionCombinators.Lafont.RecursionFreeSide
 import InteractionCombinators.Lafont.RecursionFreeTr
+import InteractionCombinators.Lafont.RecursionFreeTrReview
 import InteractionCombinators.Lafont.TranspositorCheck
 import InteractionCombinators.Lafont.TranspositorPerm
 import InteractionCombinators.Lafont.TranspositorPermCheck
