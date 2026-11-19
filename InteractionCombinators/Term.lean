@@ -1,4 +1,43 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Fin
+import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset.Lemmas
+import Mathlib.Algebra.BigOperators.Group.Multiset.Basic
+import Mathlib.Algebra.BigOperators.GroupWithZero.Action
+import Mathlib.Algebra.Module.NatInt
+import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Algebra.Order.Group.Multiset
+import Mathlib.Basic.Finite.Defs
+import Mathlib.Basic.Finite.Sum
+import Mathlib.Data.Fin.Tuple.Basic
+import Mathlib.Data.Finset.Lattice.Fold
+import Mathlib.Data.Finset.Sort
+import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Fintype.BigOperators
+import Mathlib.Data.Fintype.Inv
+import Mathlib.Data.Fintype.Perm
+import Mathlib.Data.Fintype.Sum
+import Mathlib.Data.List.Perm.Basic
+import Mathlib.Data.List.Sort
+import Mathlib.Data.Multiset.Bind
+import Mathlib.Data.Multiset.Count
+import Mathlib.Data.Multiset.Fintype
+import Mathlib.Data.Multiset.Lattice
+import Mathlib.Data.Multiset.Sum
+import Mathlib.Data.Set.Finite.Basic
+import Mathlib.Data.Sym.Sym2
+import Mathlib.GroupTheory.Perm.Basic
+import Mathlib.Logic.Equiv.Fin.Basic
+import Mathlib.Logic.Equiv.Fin.Rotate
+import Mathlib.Logic.Relation
+import Mathlib.Order.Fin.Basic
+import Mathlib.Order.Lattice.Nat
+import Mathlib.SetTheory.Cardinal.Finite
+import Mathlib.SetTheory.Cardinal.NatCard
+import Mathlib.Tactic.Abel
+import Mathlib.Tactic.FinCases
+import Mathlib.Tactic.IntervalCases
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Tauto
 
 /-!
 # Trees over a signature
