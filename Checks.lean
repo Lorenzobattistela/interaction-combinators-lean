@@ -15,6 +15,7 @@ import Checks.CodeDataCheck
 import Checks.CodeDataReview
 import Checks.CodeDataSidesCheck
 import Checks.CodeFig8Check
+import Checks.CodeFig8Review
 import Checks.CodeGammaCheck
 import Checks.CodeGammaExtractCheck
 import Checks.CodeGammaMeetCheck
