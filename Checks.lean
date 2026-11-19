@@ -20,6 +20,7 @@ import Checks.CodeFig8Review
 import Checks.CodeGammaCheck
 import Checks.CodeGammaExtractCheck
 import Checks.CodeGammaExtractECheck
+import Checks.CodeCompatibleECheck
 import Checks.CodeGammaMeetCheck
 import Checks.CodeGammaReview
 import Checks.CodeMeetReview
