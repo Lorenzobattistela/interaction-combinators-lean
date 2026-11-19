@@ -10,7 +10,7 @@ translation of Fig. 10.
 
 namespace INet.Comb
 
-/-- **Theorem 1** (Lafont 1997, page 90). Any interaction system can be translated into the system
+/-- **Theorem 1** (Lafont 1997, stated on page 82; its proof ends on page 90). Any interaction system can be translated into the system
 of interaction combinators. -/
 theorem universal : Universal system :=
   universal'

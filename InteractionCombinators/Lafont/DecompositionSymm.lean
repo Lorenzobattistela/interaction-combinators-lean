@@ -8,7 +8,9 @@ Lafont 1997, page 86 (PDF page 18): "To sum up, one can assume that in all cases
 `φ_{j,i} = ψ_{i,j}`, `σ_{j,i} = σ_{i,j}`, and `σ_{i,j}` is involutive"; Fig. 7. Issue #66, part 4.
 
 A linear reduced rule `r : Rule S a a` whose net, read from the other cell, is `Equiv` to itself
-(`System.WellFormed.symm`) has a decomposition `(φ, φ, σ)` with `σ` involutive whose plug is `r`.
+(the first form of the symmetry condition; for `System.WellFormed.symm` as it is now, up to a
+permutation of the internal wires, see `Rule.exists_symm_decomposition_of_symmPerm` in
+`Lafont/SymmPerm.lean`) has a decomposition `(φ, φ, σ)` with `σ` involutive whose plug is `r`.
 The proof assembles the three parts:
 
 1. `Rule.exists_expanded` (`Lafont/Expand.lean`): `r` is `Equiv` to an expanded rule `r'`;
