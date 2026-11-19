@@ -341,7 +341,7 @@ involutive").
 
 | Paper item | Page | Status |
 |---|---|---|
-| The consequence of Proposition 1: uniqueness of the normal form and of the length of reductions | 73-74 | not found |
+| The consequence of Proposition 1: uniqueness of the normal form and of the length of reductions | 73-74 | proved in the second phase: `StepE.Normal`, `StepsEN.normal_of_stepsEN`, `StepsEN.normal_unique` in `InteractionCombinators/Lafont/NormalFormE.lean`; check `Checks/NormalFormECheck.lean` |
 | Section 1.3, Turing machines; Section 1.4, cellular automata; Fig. 1 | 74-77 | not found |
 | Section 1.5, unary arithmetic | 77-78 | addition only, as a demo: `Demo/Arithmetic.lean` (`system_wellFormed`, `two_plus_two`, `two_plus_two_in_combinators`); multiplication, which needs duplication and erasing, is not there |
 | Proposition 2 (unique decomposition of a reduced net into trees and a wiring) | 79 | not found; its conclusion is built into `Rule.Reduced`, `PNet`, `Term.IsPackage` |
@@ -352,7 +352,7 @@ involutive").
 | Lemma 2 and Lemma 3 "more generally for principal nets / reduced nets" | 85, 87 | not found |
 | Uniqueness of the canonical decomposition | 85 | not found; the symmetric decomposition is obtained another way (expanded forms) |
 | Termination of recursion-free systems | 86 | not found |
-| "δ cannot duplicate δ" as a theorem | 87 | not found (`Checks/DupPackageCheck.lean` explains the obstacle) |
+| "δ cannot duplicate δ" | 87 | proved in the second phase as a refutation of `dup_package` and `copier_package` without `DupFree`: `Checks/DupDupCheck.lean` |
 | Section 2.8, minimality of the system | 90 | not found |
 | Section 3, semantics: execution (Prop. 5, Fig. 11-13), equivalence (Prop. 6, Fig. 14), algebraic formulation (Fig. 15), directed combinators and 2-translations (Prop. 7, Fig. 16-19) | 90-99 | not found |
 | Section 4, discussion | 99-100 | nothing to formalize |
@@ -378,8 +378,9 @@ the later progress files, and from reading the statements.
 3. **Proposition 1** exists in both forms: `Step.strong_confluence` for literal steps
    (`InteractionCombinators/Lafont/StrongConfluence.lean:46`) and `StepE.strong_confluence` for
    reduction of graphs (`InteractionCombinators/Lafont/StrongConfluenceE.lean:502`). Its
-   consequences (uniqueness of the normal form and of the length of reductions) and the
-   necessity of `DupFree` are not proved yet.
+   consequences (uniqueness of the normal form and of the length of reductions,
+   `InteractionCombinators/Lafont/NormalFormE.lean`) and the necessity of `DupFree`
+   (`Checks/DupDupCheck.lean`) are proved too.
 4. **Which results use which reduction.** Literal `Red`: `erase_tree`, `mux_muxStar`,
    `autoMux_autoMux`, `transpositor_transpositor`, `transpositorPerm_transpositorPerm`, `dup_tree`,
    `code_decoder`. Up to wires (`StepsE`, then `Equiv` to the stated net): `erase_wiring`,
@@ -405,7 +406,7 @@ the later progress files, and from reading the statements.
 8. **Hypotheses whose necessity was shown only in checks, or not at all.** Shown in `Checks/`:
    linearity in `Equiv.add_right`, `IsPackage` in `dup_package`, well-formedness in
    `sides_expand`, distinct names in `not_equiv_pair_of_strict`, linear sides in `plug_rename`.
-   Not shown: `DupFree` in `dup_package` and `copier_package`.
+   `DupFree` in `dup_package` and `copier_package` (`Checks/DupDupCheck.lean`).
 9. **The translations are not computable** (`Classical.choose` in `RawSide.expand`, `symmDec`,
    `decData`; `Finite.equivFin` in `symEnum`). No translated net is evaluated; the checks are
    proofs. The bounds `L`, `M` of Theorem 1 are shown to exist with `0 < L`, not computed.
