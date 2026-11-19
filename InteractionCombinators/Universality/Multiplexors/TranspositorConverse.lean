@@ -23,6 +23,19 @@ of `σ⁻¹` are the same graph. Two wirings that are the same graph are equal (
 by the solutions where every cell is `true` of `PairStepE`), so `σ = σ⁻¹`.
 
 The statement holds in any well-formed interaction system, the combinators included.
+
+Contents, in the order of the file:
+
+1. Definitions: `wiring`, the wiring σ of page 84; `swapNames`, the renaming that exchanges the
+   two copies.
+2. Auxiliary lemmas on wirings: `sum_ite_add`, `count_vars_wiring` (every name below `2n` occurs
+   once), `eq_of_equiv_wiring` (two wirings that are the same graph are equal), `normal_wiring`
+   (a wiring is irreducible), `wiring_bind` (the wiring σ, copies exchanged, is the wiring `σ⁻¹`).
+3. Auxiliary lemmas on exchanging the two copies: `swapNames_lt`, `swapNames_add`,
+   `swapNames_f`, `swapNames_g`, `swapNames_involutive`.
+4. Auxiliary lemmas on the names of an instance: `mem_vars_inst_port`, `mem_vars_inst_wire`,
+   `inst_bind_var`.
+5. Main result: `involutive_of_transpositor`, the converse of page 84.
 -/
 
 namespace INet
@@ -33,16 +46,48 @@ open Term
 
 namespace TranspositorConverse
 
-/-! ## Wirings -/
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
 
 /-- The wiring σ of page 84: the name `i` (port `i` of the first copy) joined to the name
 `n + σ i` (port `σ i` of the second copy). -/
-def wiring (n : ℕ) (σ : Equiv.Perm (Fin n)) : Net S ℕ :=
+def wiring
+    -- the number of ports of each copy
+    (n : ℕ)
+    -- the permutation
+    (σ : Equiv.Perm (Fin n)) :
+    Net S ℕ :=
   Finset.univ.val.map fun i : Fin n => s(var (i : ℕ), var (n + (σ i : ℕ)))
 
+open Classical in
+/-- Exchanging the two copies of page 84: the port `i` of the first copy with the port `n + i` of
+the second, and the internal wire `f w` of the first copy with the internal wire `g w` of the
+second. Every other name is fixed. -/
+noncomputable def swapNames
+    -- the number of ports of each copy
+    (n : ℕ)
+    -- the names of the internal wires of the first copy (`f`) and of the second (`g`)
+    {k : ℕ}
+    (f g : Fin k → ℕ)
+    -- the name to rename
+    (x : ℕ) :
+    ℕ :=
+  if x < n then n + x else if x < 2 * n then x - n else
+    if h : ∃ w, f w = x then g h.choose else if h : ∃ w, g w = x then f h.choose else x
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: wirings
+-- ============================================================================================
+
 /-- Among the names `k + i`, `i < n`, the name `z` occurs once if `k ≤ z < k + n`, else never. -/
-theorem sum_ite_add {n : ℕ} (k z : ℕ) :
-    (∑ i : Fin n, if z = k + (i : ℕ) then 1 else 0) = if k ≤ z ∧ z < k + n then 1 else 0 := by
+theorem sum_ite_add
+    -- the number of names
+    {n : ℕ}
+    -- the first name `k`, and the name `z` counted
+    (k z : ℕ) :
+    (∑ i : Fin n, if z = k + (i : ℕ) then 1 else 0)
+      = if k ≤ z ∧ z < k + n then 1 else 0 := by
   split_ifs with h
   · rw [Finset.sum_eq_single ⟨z - k, by omega⟩]
     · simp only [ite_eq_left_iff]
@@ -55,7 +100,12 @@ theorem sum_ite_add {n : ℕ} (k z : ℕ) :
   · exact Finset.sum_eq_zero fun i _ => ite_eq_right_iff.2 fun e => by omega
 
 /-- Every name below `2n` occurs once in the wiring σ, and no other name occurs. -/
-theorem count_vars_wiring {n : ℕ} (σ : Equiv.Perm (Fin n)) (z : ℕ) :
+theorem count_vars_wiring
+    -- the permutation
+    {n : ℕ}
+    (σ : Equiv.Perm (Fin n))
+    -- the name counted
+    (z : ℕ) :
     (wiring (S := S) n σ).vars.count z = if z < 2 * n then 1 else 0 := by
   unfold wiring Net.vars
   rw [Multiset.bind_map, Multiset.count_bind]
@@ -73,8 +123,13 @@ theorem count_vars_wiring {n : ℕ} (σ : Equiv.Perm (Fin n)) (z : ℕ) :
 the free names that extend to a solution where every cell is `true` (`PairStepE.BlindSol`): giving
 the value `true` exactly to `i` and `n + σ i` solves the wiring σ, so it solves the wiring τ, whose
 wire from `i` ends at `n + τ i`. -/
-theorem eq_of_equiv_wiring {n : ℕ} {σ τ : Equiv.Perm (Fin n)}
-    (h : Equiv (wiring (S := S) n σ) (wiring n τ)) : σ = τ := by
+theorem eq_of_equiv_wiring
+    -- the two permutations
+    {n : ℕ}
+    {σ τ : Equiv.Perm (Fin n)}
+    -- their wirings are the same graph
+    (h : Equiv (wiring (S := S) n σ) (wiring n τ)) :
+    σ = τ := by
   ext i
   let s : ℕ → Bool := fun y => decide (y = i ∨ y = n + σ i)
   have hsol : PairStepE.BlindSol (wiring (S := S) n σ) s := by
@@ -109,7 +164,12 @@ theorem eq_of_equiv_wiring {n : ℕ} {σ τ : Equiv.Perm (Fin n)}
   · rw [e]
 
 /-- **A wiring is irreducible** (page 73). A wiring has no cell, and an interaction needs two. -/
-theorem normal_wiring (I : System S) {n : ℕ} (σ : Equiv.Perm (Fin n)) :
+theorem normal_wiring
+    -- the interaction system
+    (I : System S)
+    -- the permutation
+    {n : ℕ}
+    (σ : Equiv.Perm (Fin n)) :
     StepE.Normal I (wiring (S := S) n σ) := by
   rintro M ⟨N', hE, hs⟩
   have hc := hE.cells_eq
@@ -123,8 +183,14 @@ theorem normal_wiring (I : System S) {n : ℕ} (σ : Equiv.Perm (Fin n)) :
   simp at hc
 
 /-- The wiring σ renamed by exchanging `i` and `n + i` is the wiring `σ⁻¹`. -/
-theorem wiring_bind {n : ℕ} (σ : Equiv.Perm (Fin n)) (π : ℕ → ℕ)
-    (h1 : ∀ i < n, π i = n + i) (h2 : ∀ i < n, π (n + i) = i) :
+theorem wiring_bind
+    -- the permutation
+    {n : ℕ}
+    (σ : Equiv.Perm (Fin n))
+    -- a renaming that exchanges the port `i` of the first copy and the port `n + i` of the second
+    (π : ℕ → ℕ)
+    (h1 : ∀ i < n, π i = n + i)
+    (h2 : ∀ i < n, π (n + i) = i) :
     (wiring (S := S) n σ).bind (fun y => var (π y)) = wiring n σ⁻¹ := by
   unfold wiring Net.bind
   rw [Multiset.map_map]
@@ -134,35 +200,50 @@ theorem wiring_bind {n : ℕ} (σ : Equiv.Perm (Fin n)) (π : ℕ → ℕ)
   simp only [Function.comp_apply, Sym2.map_mk, Term.bind, h1 i i.2, h2 _ (σ i).2, hσ]
   exact Sym2.eq_swap
 
-/-! ## Exchanging the two copies -/
-
-open Classical in
-/-- Exchanging the two copies of page 84: the port `i` of the first copy with the port `n + i` of
-the second, and the internal wire `f w` of the first copy with the internal wire `g w` of the
-second. Every other name is fixed. -/
-noncomputable def swapNames (n : ℕ) {k : ℕ} (f g : Fin k → ℕ) (x : ℕ) : ℕ :=
-  if x < n then n + x else if x < 2 * n then x - n else
-    if h : ∃ w, f w = x then g h.choose else if h : ∃ w, g w = x then f h.choose else x
+-- ============================================================================================
+-- 3. Auxiliary lemmas: exchanging the two copies
+-- ============================================================================================
 
 section swapNames
 
-variable {n k : ℕ} {f g : Fin k → ℕ}
+variable
+    -- the number of ports of each copy, and the names of the internal wires of the two copies
+    {n k : ℕ}
+    {f g : Fin k → ℕ}
 
 /-- A port of the first copy goes to the same port of the second. -/
-theorem swapNames_lt {x : ℕ} (hx : x < n) : swapNames n f g x = n + x := by
+theorem swapNames_lt
+    -- a port of the first copy
+    {x : ℕ}
+    (hx : x < n) :
+    swapNames n f g x = n + x := by
   simp [swapNames, hx]
 
 /-- A port of the second copy goes to the same port of the first. -/
-theorem swapNames_add {i : ℕ} (hi : i < n) : swapNames n f g (n + i) = i := by
+theorem swapNames_add
+    -- a port of the second copy
+    {i : ℕ}
+    (hi : i < n) :
+    swapNames n f g (n + i) = i := by
   unfold swapNames
   split_ifs <;> omega
 
-variable (hf : Function.Injective f) (hg : Function.Injective g) (hf2 : ∀ w, 2 * n ≤ f w)
-  (hg2 : ∀ w, 2 * n ≤ g w) (hfg : ∀ w w', f w ≠ g w')
+variable
+    -- the names of the internal wires of each copy are distinct,
+    (hf : Function.Injective f)
+    (hg : Function.Injective g)
+    -- they are not ports,
+    (hf2 : ∀ w, 2 * n ≤ f w)
+    (hg2 : ∀ w, 2 * n ≤ g w)
+    -- and the two copies have no internal wire in common
+    (hfg : ∀ w w', f w ≠ g w')
 
 include hf hf2 in
 /-- The internal wire `f w` of the first copy goes to the wire `g w` of the second. -/
-theorem swapNames_f (w : Fin k) : swapNames n f g (f w) = g w := by
+theorem swapNames_f
+    -- an internal wire
+    (w : Fin k) :
+    swapNames n f g (f w) = g w := by
   have := hf2 w
   unfold swapNames
   split_ifs with h1 h2 h3
@@ -174,7 +255,10 @@ theorem swapNames_f (w : Fin k) : swapNames n f g (f w) = g w := by
 
 include hg hg2 hfg in
 /-- The internal wire `g w` of the second copy goes to the wire `f w` of the first. -/
-theorem swapNames_g (w : Fin k) : swapNames n f g (g w) = f w := by
+theorem swapNames_g
+    -- an internal wire
+    (w : Fin k) :
+    swapNames n f g (g w) = f w := by
   have := hg2 w
   unfold swapNames
   split_ifs with h1 h2 h3 h4
@@ -186,7 +270,8 @@ theorem swapNames_g (w : Fin k) : swapNames n f g (g w) = f w := by
 
 include hf hg hf2 hg2 hfg in
 /-- Exchanging the two copies twice changes nothing. -/
-theorem swapNames_involutive : Function.Involutive (swapNames n f g) := by
+theorem swapNames_involutive :
+    Function.Involutive (swapNames n f g) := by
   intro x
   by_cases h1 : x < n
   · rw [swapNames_lt h1, swapNames_add h1]
@@ -209,27 +294,51 @@ theorem swapNames_involutive : Function.Involutive (swapNames n f g) := by
 
 end swapNames
 
-/-! ## The names of an instance -/
+-- ============================================================================================
+-- 4. Auxiliary lemmas: the names of an instance
+-- ============================================================================================
 
 /-- The names of a tree plugged into a port of an instance are names of the instance. -/
-theorem mem_vars_inst_port {n : ℕ} (p : PNet S n) (args : Fin n → Term S ℕ)
-    (F : Fin p.internal → ℕ) (i : Fin n) {y : ℕ} (hy : y ∈ (args i).vars) :
+theorem mem_vars_inst_port
+    -- the principal net, the trees on its ports and the names of its internal wires
+    {n : ℕ}
+    (p : PNet S n)
+    (args : Fin n → Term S ℕ)
+    (F : Fin p.internal → ℕ)
+    -- a name of the tree on the port `i`
+    (i : Fin n)
+    {y : ℕ}
+    (hy : y ∈ (args i).vars) :
     y ∈ (p.inst args F).vars := by
   rw [PNet.inst, Term.vars_bind]
   exact Multiset.mem_bind.2 ⟨.inl i, Multiset.count_pos.1 (by rw [p.port_count]; omega), hy⟩
 
 /-- Every internal wire of an instance is a name of the instance. -/
-theorem mem_vars_inst_wire {n : ℕ} (p : PNet S n) (args : Fin n → Term S ℕ)
-    (F : Fin p.internal → ℕ) (w : Fin p.internal) : F w ∈ (p.inst args F).vars := by
+theorem mem_vars_inst_wire
+    -- the principal net, the trees on its ports and the names of its internal wires
+    {n : ℕ}
+    (p : PNet S n)
+    (args : Fin n → Term S ℕ)
+    (F : Fin p.internal → ℕ)
+    -- an internal wire
+    (w : Fin p.internal) :
+    F w ∈ (p.inst args F).vars := by
   rw [PNet.inst, Term.vars_bind]
   exact Multiset.mem_bind.2 ⟨.inr w, Multiset.count_pos.1 (by rw [p.internal_count]; omega),
     by simp⟩
 
 /-- An instance of a principal net with names on its ports, renamed. -/
-theorem inst_bind_var {n : ℕ} (p : PNet S n) (xs : Fin n → ℕ) (F : Fin p.internal → ℕ)
+theorem inst_bind_var
+    -- the principal net, the names on its ports and the names of its internal wires
+    {n : ℕ}
+    (p : PNet S n)
+    (xs : Fin n → ℕ)
+    (F : Fin p.internal → ℕ)
+    -- the renaming
     (π : ℕ → ℕ) :
-    (p.inst (fun i => var (xs i)) F).bind (fun y => var (π y)) =
-      p.inst (fun i => var (π (xs i))) (fun w => π (F w)) := by
+    -- renaming the instance is renaming the names on its ports and of its internal wires
+    (p.inst (fun i => var (xs i)) F).bind (fun y => var (π y))
+      = p.inst (fun i => var (π (xs i))) (fun w => π (F w)) := by
   rw [PNet.inst, PNet.inst, Term.bind_bind]
   congr 1
   funext q
@@ -239,6 +348,10 @@ end TranspositorConverse
 
 open TranspositorConverse
 
+-- ============================================================================================
+-- 5. Main result: the converse of page 84
+-- ============================================================================================
+
 /-- **Conversely, if a transpositor `T_σ` exists, σ is involutive** (Lafont 1997, page 84: "Note
 that conversely, if such a `T_σ` exists, the permutation σ is necessarily involutive. This is a
 consequence of the symmetry condition."). Let `I` be a well-formed interaction system and `p` a
@@ -247,13 +360,24 @@ first copy named `0, …, n - 1`, those of the second `n, …, 2n - 1`, and the 
 `f` and `g` so that the net is linear. If this net reduces up to wires to a net that is the same
 graph as the wiring joining port `i` of the first copy to port `σ i` of the second, then σ is
 involutive. -/
-theorem involutive_of_transpositor {I : System S} (hI : I.WellFormed) {n : ℕ} (p : PNet S n)
-    (σ : _root_.Equiv.Perm (Fin n)) (f g : Fin p.internal → ℕ)
+theorem involutive_of_transpositor
+    -- a well-formed interaction system
+    {I : System S}
+    (hI : I.WellFormed)
+    -- the principal net `p` with `n` ports, and the permutation σ
+    {n : ℕ}
+    (p : PNet S n)
+    (σ : _root_.Equiv.Perm (Fin n))
+    -- the names of the internal wires of the first copy (`f`) and of the second (`g`)
+    (f g : Fin p.internal → ℕ)
+    -- the two copies plugged by their roots form a linear net
     (hlin : Net.Linear
       (s(p.inst (fun i => var (i : ℕ)) f, p.inst (fun i => var (n + (i : ℕ))) g) ::ₘ 0))
+    -- the two copies reduce, up to wires, to a net `M` that is the same graph as the wiring σ
     (h : ∃ M, StepsE I
         (s(p.inst (fun i => var (i : ℕ)) f, p.inst (fun i => var (n + (i : ℕ))) g) ::ₘ 0) M ∧
       Equiv M (Finset.univ.val.map fun i : Fin n => s(var (i : ℕ), var (n + (σ i : ℕ))))) :
+    -- σ is involutive
     Function.Involutive σ := by
   set A := p.inst (fun i => var (i : ℕ)) f with hA
   set B := p.inst (fun i => var (n + (i : ℕ))) g with hB
