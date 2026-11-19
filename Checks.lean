@@ -44,6 +44,7 @@ import Checks.Fig7EndCheck
 import Checks.Fig7EndReview
 import Checks.GammaCheck
 import Checks.GammaReview
+import Checks.GammaTreeCReview
 import Checks.MenuCheck
 import Checks.NetTrEquivCheck
 import Checks.NetTrWireCheck
