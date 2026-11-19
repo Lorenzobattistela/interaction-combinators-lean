@@ -67,6 +67,9 @@ import InteractionCombinators.Lafont.CodeGammaCheck
 import InteractionCombinators.Lafont.CodeGammaReview
 import InteractionCombinators.Lafont.CodeTr
 import InteractionCombinators.Lafont.CodeTrCheck
+import InteractionCombinators.Lafont.DecompositionAbsorb
+import InteractionCombinators.Lafont.CodeData
+import InteractionCombinators.Lafont.CodeDataCheck
 import InteractionCombinators.Lafont.DecodeCopyReview
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
