@@ -49,6 +49,7 @@ import InteractionCombinators.Lafont.CodeGammaExtract
 import InteractionCombinators.Lafont.CodeGammaMeet
 import InteractionCombinators.Lafont.CodeCellsPlug
 import InteractionCombinators.Lafont.CodeCompatible
+import InteractionCombinators.Lafont.CodeCompatibleSides
 import InteractionCombinators.Lafont.Universality
 import InteractionCombinators.Lafont.DecompositionTools
 import InteractionCombinators.Lafont.DecompositionHalf
