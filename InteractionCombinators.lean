@@ -171,4 +171,5 @@ import InteractionCombinators.Lafont.SimulationUniformCheck
 import InteractionCombinators.Lafont.SimulationInvertibleReview
 import InteractionCombinators.Lafont.SimulationUniformReview
 import InteractionCombinators.Lafont.PairStepE
+import InteractionCombinators.Lafont.PairStepEReduced
 import InteractionCombinators.Lafont.ViciousReview
