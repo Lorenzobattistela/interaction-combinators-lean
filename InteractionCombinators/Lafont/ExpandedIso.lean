@@ -1,4 +1,4 @@
-import InteractionCombinators.Lafont.DecompositionReview
+import InteractionCombinators.Lafont.DecompositionLemmas
 
 /-!
 # Rules in expanded form are rigid

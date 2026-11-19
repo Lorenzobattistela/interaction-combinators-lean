@@ -1,4 +1,5 @@
 import InteractionCombinators.Lafont.DecodeCopyChain
+import InteractionCombinators.Lafont.DecodeReview
 
 /-!
 # Review of `code_decoder_copy` and `Decomp.rename` (Figs. 9 and 10, pages 89 and 90)

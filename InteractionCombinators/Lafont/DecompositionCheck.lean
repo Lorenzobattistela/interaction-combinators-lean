@@ -1,4 +1,4 @@
-import InteractionCombinators.Lafont.Decomposition
+import InteractionCombinators.Lafont.DecompositionLemmas
 import InteractionCombinators.Combinators
 
 /-!
@@ -28,27 +28,6 @@ Names in a side: `.inl i` is the port `i + 1` of the cell (ports numbered from 1
 namespace INet.Comb.DecompositionCheck
 
 open Term Rule
-
-/-- Equality of trees is decidable when equality of symbols and of names is: compare the
-symbols, then the subtrees. Only used to let `decide` compare nets in this file. -/
-def termDecEq {S : Signature} [DecidableEq S.Sym] {ν : Type} [DecidableEq ν] :
-    (t u : Term S ν) → Decidable (t = u)
-  | .var x, .var y =>
-    if h : x = y then isTrue (h ▸ rfl) else isFalse fun e => h (by cases e; rfl)
-  | .var _, .app _ _ => isFalse fun e => by cases e
-  | .app _ _, .var _ => isFalse fun e => by cases e
-  | .app α ts, .app β us =>
-    if h : α = β then by
-      subst h
-      exact
-        haveI : ∀ i, Decidable (ts i = us i) := fun i => termDecEq (ts i) (us i)
-        if h' : ∀ i, ts i = us i then isTrue (congrArg _ (funext h'))
-        else isFalse fun e => by cases e; exact h' fun _ => rfl
-    else isFalse fun e => by cases e; exact h rfl
-
-instance : DecidableEq sig.Sym := inferInstanceAs (DecidableEq Comb)
-
-instance {ν : Type} [DecidableEq ν] : DecidableEq (Term sig ν) := termDecEq
 
 /-! ### `con`–`dup` -/
 

@@ -1,4 +1,5 @@
 import InteractionCombinators.Lafont.PackageDecomp
+import InteractionCombinators.NetLemmas
 
 /-!
 # Review of `decomp` and `package_decomp` (Lafont 1997, page 88)
@@ -78,17 +79,8 @@ example : Equiv ({s(var 9, mkCon (mkDup (var 0) (var 1)) (mkDup (var 0) (var 1))
 /-- A net that is not linear is `Equiv` to itself only: no wire substitution applies to it, since
 `Wire` needs a linear net on the left and gives one on the right. -/
 theorem Equiv.eq_of_not_linear {N M : CNet} (h : Equiv N M) :
-    (¬ N.Linear → N = M) ∧ (¬ M.Linear → N = M) := by
-  induction h with
-  | rel _ _ h => exact ⟨fun hn => absurd h.linear_left hn, fun hn => absurd h.linear_right hn⟩
-  | refl _ => exact ⟨fun _ => rfl, fun _ => rfl⟩
-  | symm _ _ _ ih => exact ⟨fun hn => (ih.2 hn).symm, fun hn => (ih.1 hn).symm⟩
-  | trans _ M _ _ _ ih ih' =>
-    refine ⟨fun hn => ?_, fun hn => ?_⟩
-    · have e := ih.1 hn
-      exact e.trans (ih'.1 (e ▸ hn))
-    · have e := ih'.2 hn
-      exact (ih.2 (e ▸ hn)).trans e
+    (¬ N.Linear → N = M) ∧ (¬ M.Linear → N = M) :=
+  ⟨h.eq_of_not_linear_any, fun hn => (h.symm.eq_of_not_linear_any hn).symm⟩
 
 /-- **Linearity is needed** (page 88; nets are linear by definition, page 70). `s(0, dup(0, 0))`:
 the tree is a package, the names are below `1`, but the name `0` occurs three times. The net

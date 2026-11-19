@@ -1,6 +1,5 @@
 import InteractionCombinators.EquivAdd
 import InteractionCombinators.RenameStep
-import InteractionCombinators.WantedCheck
 
 /-!
 # Reduction up to wires inside a larger net
@@ -182,17 +181,6 @@ example : ∃ M', StepsE system
       vars_mkCon, vars_mkEra, vars_var, Multiset.count_add, Multiset.count_singleton,
       Multiset.count_cons, Multiset.count_zero]
     split_ifs <;> omega
-
-/-- Non-vacuity where renaming is necessary: the interaction of `con` and `dup` in
-`WantedCheck.cut` creates a wire named `4`, which the context `WantedCheck.ctx` uses, so
-`cutResult + ctx` is not linear (`WantedCheck.stepsE_add_right_must_rename`). The reduction is
-still done beside `ctx`, to a renamed copy of `cutResult`. -/
-example : ∃ M', StepsE system (WantedCheck.cut + WantedCheck.ctx) (M' + WantedCheck.ctx) ∧
-    Equiv M' WantedCheck.cutResult ∧ (M' + WantedCheck.ctx).Linear ∧
-    ¬ (WantedCheck.cutResult + WantedCheck.ctx).Linear :=
-  have h := WantedCheck.stepsE_add_right_must_rename
-  have ⟨M', hs, hE, hl⟩ := StepsE.add_right system_wellFormed.linear _ h.1 h.2.1
-  ⟨M', hs, hE, hl, h.2.2⟩
 
 end Example
 

@@ -1,4 +1,5 @@
 import InteractionCombinators.Lafont.Package
+import InteractionCombinators.NetLemmas
 
 /-!
 # Checks of `Lafont/Package.lean` against the paper
@@ -133,15 +134,8 @@ theorem step_count_of_mem {N M : CNet} (h : Step system N M) {y : ℕ} (hy : y �
 
 /-- A net that is not linear is equivalent only to itself: every wire substitution needs a linear
 net. -/
-theorem equiv_eq_of_not_linear {N M : CNet} (h : Equiv N M) (hN : ¬ N.Linear) : N = M := by
-  induction h with
-  | rel _ _ h => exact absurd h.linear_left hN
-  | refl => rfl
-  | symm a b hab ih =>
-    exact (ih fun ha => hN ((Equiv.linear_iff hab).1 ha)).symm
-  | trans a b c _ _ ih ih' =>
-    obtain rfl := ih hN
-    exact ih' hN
+theorem equiv_eq_of_not_linear {N M : CNet} (h : Equiv N M) (hN : ¬ N.Linear) : N = M :=
+  h.eq_of_not_linear_any hN
 
 /-- One interaction up to wires keeps a free port free. -/
 theorem stepE_free {N M : CNet} (h : StepE system N M) {y : ℕ} (hy : N.vars.count y = 1) :

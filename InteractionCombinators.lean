@@ -18,6 +18,9 @@ import InteractionCombinators.Lafont.Confluence2
 import InteractionCombinators.Wanted
 import InteractionCombinators.Combinators
 import InteractionCombinators.WantedCheck
+import InteractionCombinators.NetTrEquivCheck
+import InteractionCombinators.NetTrWireCheck
+import InteractionCombinators.StepsEAddCheck
 import InteractionCombinators.Lafont.Basic
 import InteractionCombinators.Lafont.AutoMux
 import InteractionCombinators.Lafont.AutoMuxCheck
@@ -54,6 +57,7 @@ import InteractionCombinators.Lafont.Decode
 import InteractionCombinators.Lafont.DecodeCheck
 import InteractionCombinators.Lafont.DecodeReview
 import InteractionCombinators.Lafont.DecodeCopy
+import InteractionCombinators.Lafont.DecodeCopyCheck
 import InteractionCombinators.Lafont.DecodeCopyChain
 import InteractionCombinators.Lafont.CodeCell
 import InteractionCombinators.Lafont.CodeCellCheck
@@ -66,6 +70,7 @@ import InteractionCombinators.Lafont.Universality
 import InteractionCombinators.Lafont.DecompositionTools
 import InteractionCombinators.Lafont.DecompositionHalf
 import InteractionCombinators.Lafont.Decomposition
+import InteractionCombinators.Lafont.DecompositionLemmas
 import InteractionCombinators.Lafont.DecompositionCheck
 import InteractionCombinators.Lafont.DecompositionReview
 import InteractionCombinators.Lafont.ExpandedIso

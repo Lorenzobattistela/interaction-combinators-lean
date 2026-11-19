@@ -1,4 +1,4 @@
-import InteractionCombinators.Lafont.DecompositionReview
+import InteractionCombinators.Lafont.DecompositionLemmas
 
 /-!
 # Recursion-free interaction systems (pages 85–87)

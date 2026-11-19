@@ -1,6 +1,7 @@
 import InteractionCombinators.Lafont.RecursionFreeSide
 import InteractionCombinators.RenameMany
 import InteractionCombinators.RenameStep
+import InteractionCombinators.NetLemmas
 
 /-!
 # `Decomposition.Plugs` survives replacing the sides by their expanded forms (pages 85–86)
@@ -39,18 +40,6 @@ variable {S : Signature}
 open Term
 
 /-! ### An `Equiv` beside a context -/
-
-/-- A net that is not linear is equivalent only to itself: no wire substitution applies to it
-(Lafont 1997, Section 1.2, page 71: wire substitution is done in a net). -/
-theorem Equiv.eq_of_not_linear_any {ν : Type} [DecidableEq ν] {N M : Net S ν} (h : Equiv N M)
-    (hN : ¬ N.Linear) : N = M := by
-  induction h with
-  | rel _ _ h => exact absurd h.linear_left hN
-  | refl _ => rfl
-  | symm K L h ih => exact (ih fun hK => hN (Equiv.linear h hK)).symm
-  | trans K M L h₁ _ ih₁ ih₂ =>
-    rw [ih₁ hN]
-    exact ih₂ fun hM => hN ((Equiv.symm h₁).linear hM)
 
 /-- **An `Equiv` renamed by an injective map holds beside a context** (Lafont 1997, Section 1.2,
 page 71: a net is a graph). Let `K` be linear and `Equiv K L`. Rename by an injective `f` and add

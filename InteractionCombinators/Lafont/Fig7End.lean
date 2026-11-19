@@ -1,6 +1,5 @@
 import InteractionCombinators.Lafont.Gamma
 import InteractionCombinators.Lafont.CellSkeleton
-import InteractionCombinators.Lafont.GammaCheck
 
 /-!
 # Lafont, "Interaction Combinators" (1997): the end of Fig. 7 (page 86)

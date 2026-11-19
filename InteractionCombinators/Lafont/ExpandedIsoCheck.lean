@@ -1,4 +1,5 @@
 import InteractionCombinators.Lafont.ExpandedIso
+import InteractionCombinators.Lafont.DecompositionReview
 
 /-!
 # Checks for `Lafont/ExpandedIso.lean`

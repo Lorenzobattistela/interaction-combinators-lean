@@ -1,5 +1,6 @@
 import InteractionCombinators.NetLemmas
 import InteractionCombinators.Lafont.Fig7End
+import InteractionCombinators.Lafont.GammaCheck
 
 /-!
 # Checks of the end of Fig. 7 (page 86)
