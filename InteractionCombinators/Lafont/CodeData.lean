@@ -11,7 +11,7 @@ normalises the decomposition: "one can assume that in all cases, `φ_{j,i} = ψ_
 `σ_{j,i} = σ_{i,j}`, and `σ_{i,j}` is involutive", with `σ_{i,j}` an identity for `i ≠ j`.
 
 Stage 5 (`System.RecursionFreeData`) asks in addition for an order on the alphabet. The general
-translation of Section 2.5 and Fig. 10 (pages 88–90, "in the general case") uses the same sides
+translation of Section 2.7 and Fig. 10 (pages 88–90, "in the general case") uses the same sides
 `φ_{i,j}` and permutations `σ_{i,j}`, but no order. This file gives the data of page 86 without
 the order.
 

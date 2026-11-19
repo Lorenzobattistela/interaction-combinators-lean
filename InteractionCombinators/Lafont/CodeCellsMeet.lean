@@ -246,8 +246,6 @@ theorem codeCells_meet (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin
 
 /-! ## The multiplexor of `[α]` against `Γ_{α,β}` -/
 
-/-! ## The multiplexor of `[α]` against `Γ_{α,β}` -/
-
 /-- Pairing two lists of trees given by functions on `Fin n`. -/
 theorem zipWith_ofFn_ofFn {n : ℕ} (ps qs : Fin n → Term sig ℕ) :
     List.zipWith (fun t u => s(t, u)) (List.ofFn ps) (List.ofFn qs) =

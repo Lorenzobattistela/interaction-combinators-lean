@@ -28,6 +28,15 @@ theorem Term.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term
     funext i
     exact ih i
 
+/-- Plugging trees into the names of a net twice is plugging the composite once. -/
+theorem Net.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term S κ) (N : Net S ν) :
+    (N.bind f).bind g = N.bind fun x => (f x).bind g := by
+  unfold Net.bind
+  rw [Multiset.map_map]
+  refine Multiset.map_congr rfl fun e _ => ?_
+  induction e using Sym2.ind with
+  | _ a b => simp [Term.bind_bind]
+
 namespace PNet
 
 /-- The names of an instance: those of the trees plugged into the ports, and both ends of each

@@ -497,11 +497,6 @@ theorem rel_count_le {N : Net S ℕ} {N' : Net S' ℕ} (h : Multiset.Rel Φ.EqTr
 
 end Cut
 
-/-- The source of a translation is linear: the translation keeps every name. -/
-theorem Translation.NetTr.linear_source {Φ : Translation S S'} {N : Net S ℕ} {N' : Net S' ℕ}
-    (h : Φ.NetTr N N') : N.Linear :=
-  fun y => (Cut.rel_count_le h.rel y).trans (h.linear y)
-
 /-- **A translation reflects cuts** (Lafont 1997, Proposition 3, first point of the proof,
 page 80): if `N'` translates `N` and `N'` has a cut, so has `N`. No strictness is needed.
 

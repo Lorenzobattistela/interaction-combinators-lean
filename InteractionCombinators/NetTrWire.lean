@@ -9,6 +9,8 @@ of the principal net of its symbol, "up to the names of the new wires". The pape
 a graph, so two spellings of the same graph have the same translation, as a graph.
 
 * `Translation.TermTr.count_le` — a translation keeps every leaf of the source tree.
+* `Translation.NetTr.count_le`, `Translation.NetTr.linear_source` — the same for a net, and so
+  the source of a translation is linear.
 * `Translation.TermTr.subst` — translation commutes with plugging a tree into a name, when that
   name is not an internal wire of an instance.
 * `Translation.NetTr.wire` — a wire substitution in the source is followed by a wire substitution
@@ -35,6 +37,26 @@ theorem TermTr.count_le {t : Term S ℕ} {t' : Term S' ℕ} (h : Φ.TermTr t t')
   | app α ts ts' f _ ih =>
     rw [PNet.count_vars_inst, Term.vars_app, Multiset.count_sum']
     exact (Finset.sum_le_sum fun i _ => ih i).trans (Nat.le_add_right _ _)
+
+/-- A translation of a net keeps every name of the source net: each name occurs in the
+translation at least as often as in the source (Lafont 1997, Section 1.7, page 80). -/
+theorem NetTr.count_le {N : Net S ℕ} {N' : Net S' ℕ} (h : Φ.NetTr N N') (y : ℕ) :
+    N.vars.count y ≤ N'.vars.count y := by
+  have hrel := h.rel
+  clear h
+  induction hrel with
+  | zero => simp
+  | @cons e e' N N' he _ ih =>
+    obtain ⟨c, d, c', d', rfl, rfl, hc, hd⟩ := he
+    simp only [Net.vars_cons, eqVars_mk, Multiset.count_add]
+    have := hc.count_le y
+    have := hd.count_le y
+    omega
+
+/-- The source of a translation is linear (Lafont 1997, Section 1.7, page 80): the translation
+keeps every name, and the translation is linear. -/
+theorem NetTr.linear_source {N : Net S ℕ} {N' : Net S' ℕ} (h : Φ.NetTr N N') : N.Linear :=
+  fun y => (h.count_le y).trans (h.linear y)
 
 /-- Plugging a tree into a name of an instance that is not one of its internal wires plugs it
 into the arguments. -/

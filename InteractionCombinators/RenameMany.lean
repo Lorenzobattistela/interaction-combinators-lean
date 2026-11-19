@@ -60,15 +60,6 @@ theorem bind_congr {ν μ : Type} {f g : ν → Term S μ} {N : Net S ν}
     show s(a.bind f, b.bind f) = s(a.bind g, b.bind g)
     rw [ha, hb]
 
-/-- Two successive pluggings are one plugging. -/
-theorem bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term S κ) (N : Net S ν) :
-    (N.bind f).bind g = N.bind fun x => (f x).bind g := by
-  unfold Net.bind
-  rw [Multiset.map_map]
-  refine Multiset.map_congr rfl fun e _ => ?_
-  induction e using Sym2.ind with
-  | _ a b => simp [Term.bind_bind]
-
 /-- Plugging every name into itself changes nothing. -/
 theorem bind_var_self {ν : Type} (N : Net S ν) : N.bind var = N := by
   unfold Net.bind

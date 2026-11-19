@@ -15,7 +15,6 @@ the translations of the two cells reduce to a translation of the right-hand side
 `Equiv` of the two right-hand sides. This file moves the translation along that link.
 
 * `Rule.equiv_inst_of_equiv_rename` — equivalent right-hand sides give equivalent instances.
-* `Translation.NetTr.count_le` — a translation of a net keeps every name of the source net.
 * `Translation.NetTr.inst_of_equiv_rename` — the `NetTr` moves along the `Equiv`.
 * `Decomposition.Plugs.netTr_inst` — the same, for a decomposition that plugs into `r`.
 -/
@@ -64,25 +63,6 @@ end Rule
 namespace Translation
 
 variable {Φ : Translation S S'}
-
-/-- A translation of a net keeps every name of the source net: each name occurs in the
-translation at least as often as in the source (Lafont 1997, Section 1.7, page 80). -/
-theorem NetTr.count_le {N : Net S ℕ} {N' : Net S' ℕ} (h : Φ.NetTr N N') (y : ℕ) :
-    N.vars.count y ≤ N'.vars.count y := by
-  have hrel := h.rel
-  clear h
-  induction hrel with
-  | zero => simp
-  | @cons e e' N N' he _ ih =>
-    obtain ⟨c, d, c', d', rfl, rfl, hc, hd⟩ := he
-    simp only [Net.vars_cons, eqVars_mk, Multiset.count_add]
-    have := hc.count_le y
-    have := hd.count_le y
-    omega
-
-/-- A source net with a translation is linear. -/
-theorem NetTr.linear_source {N : Net S ℕ} {N' : Net S' ℕ} (h : Φ.NetTr N N') : N.Linear :=
-  fun y => (h.count_le y).trans (h.linear y)
 
 /-- **A translation moves along equivalent right-hand sides** (Lafont 1997, pages 80 and 85). If
 the net of `P` is equivalent to the net of `r` with its internal wires renamed by an injective `ι`,

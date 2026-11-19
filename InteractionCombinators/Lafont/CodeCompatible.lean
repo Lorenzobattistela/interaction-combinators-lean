@@ -6,7 +6,7 @@ import InteractionCombinators.Lafont.CodeTr
 /-!
 # The translation of Fig. 10 is compatible, and Theorem 1 in strict form (pages 88–90)
 
-Lafont 1997, Section 2.6, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue of
+Lafont 1997, Section 2.7, Fig. 10 (journal page 89, PDF page 21) and page 90, where the analogue of
 Fig. 7 is "left to the reader"; Theorem 1, page 90.
 
 * `System.DecData.codeTranslation_compatible` — the translation of Fig. 10 built from the sides of
@@ -25,7 +25,7 @@ namespace INet.Comb
 
 open Term
 
-/-- **The translation of Fig. 10 is compatible with reduction** (Lafont 1997, Section 2.6, Fig. 10,
+/-- **The translation of Fig. 10 is compatible with reduction** (Lafont 1997, Section 2.7, Fig. 10,
 pages 89–90, the analogue of Fig. 7, pages 85–86). For every rule `α`–`β` of a well-formed system
 and any decomposition data `D`, the cells `[α]` and `[β]` of Fig. 10 plugged by their roots reduce,
 up to wires (`StepsE system`), to a translation of an instance of the rule. -/

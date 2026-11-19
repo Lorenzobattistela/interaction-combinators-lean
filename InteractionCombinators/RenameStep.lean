@@ -16,15 +16,6 @@ namespace INet
 
 variable {S : Signature}
 
-/-- Plugging trees into the names of a net twice is plugging the composite once. -/
-theorem Net.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term S κ) (N : Net S ν) :
-    (N.bind f).bind g = N.bind fun x => (f x).bind g := by
-  unfold Net.bind
-  rw [Multiset.map_map]
-  refine Multiset.map_congr rfl fun e _ => ?_
-  induction e using Sym2.ind with
-  | _ a b => simp [Term.bind_bind]
-
 /-- Plugging trees into the names of a net distributes over the sum of nets. -/
 theorem Net.bind_add {ν μ : Type} (f : ν → Term S μ) (N M : Net S ν) :
     Net.bind f (N + M) = N.bind f + M.bind f := Multiset.map_add _ _ _
