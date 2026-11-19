@@ -108,6 +108,8 @@ import InteractionCombinators.Lafont.Fig7EndCheck
 import InteractionCombinators.Lafont.PlugTr
 import InteractionCombinators.Lafont.PlugTrCheck
 import InteractionCombinators.Lafont.PlugTrReview
+import InteractionCombinators.Lafont.PlugTermTr
+import InteractionCombinators.Lafont.PlugTermTrCheck
 import InteractionCombinators.Lafont.RecursionFreeFig7
 import InteractionCombinators.Lafont.RecursionFreeFig7Check
 import InteractionCombinators.Lafont.PlugsNetTr
