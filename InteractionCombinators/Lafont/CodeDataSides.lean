@@ -19,7 +19,7 @@ For a well-formed system `I`, decomposition data `D : I.DecData` and a rule `α`
   `codeCells_meet_end` and the `Plugs` used at the end of the compatibility proof of Fig. 10.
 
 The well-formedness hypothesis is needed: `Comb.CodeDataReview.sysBoth_sides_disagree`
-(`Lafont/CodeDataReview.lean`) gives decomposition data of a system that is not well formed whose
+(`Checks/CodeDataReview.lean`) gives decomposition data of a system that is not well formed whose
 two sides disagree.
 -/
 

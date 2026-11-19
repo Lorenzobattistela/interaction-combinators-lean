@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 BASE="${GATE_BASE:-origin/main}"
-SRC=InteractionCombinators
+LIBS="InteractionCombinators Checks"
 
 fail() { echo "GATE FAILED: $*" >&2; exit 1; }
 step() { echo "== $*"; }
@@ -24,7 +24,7 @@ done < <(git show "$BASE:scripts/protected.txt" 2>/dev/null || cat scripts/prote
 
 step "forbidden constructs"
 W="[^A-Za-z0-9_.']"
-if grep -rnE "(^|$W)(sorry|admit|native_decide)($W|\$)|^[[:space:]]*(private |protected )?(axiom|unsafe)[[:space:]]|implemented_by|set_option[[:space:]]+debug" "$SRC" "$SRC.lean"; then
+if grep -rnE "(^|$W)(sorry|admit|native_decide)($W|\$)|^[[:space:]]*(private |protected )?(axiom|unsafe)[[:space:]]|implemented_by|set_option[[:space:]]+debug" $LIBS InteractionCombinators.lean Checks.lean; then
   fail "forbidden construct in the sources (see lines above)"
 fi
 
@@ -32,15 +32,22 @@ step "no new unproved statements"
 # Compare with the commit this work started from, not with the tip of the base: the owner may
 # have removed a proved statement from the base since then.
 fork="$(git merge-base "$BASE" HEAD)"
-base_wanted="$( (git grep -c -E '^[[:space:]]*proof_wanted[[:space:]]' "$fork" -- "$SRC" || true) | awk -F: '{s+=$NF} END {print s+0}')"
-head_wanted="$( (grep -rhcE '^[[:space:]]*proof_wanted[[:space:]]' "$SRC" || true) | awk '{s+=$1} END {print s+0}')"
+base_wanted="$( (git grep -c -E '^[[:space:]]*proof_wanted[[:space:]]' "$fork" -- $LIBS || true) | awk -F: '{s+=$NF} END {print s+0}')"
+head_wanted="$( (grep -rhcE '^[[:space:]]*proof_wanted[[:space:]]' $LIBS || true) | awk '{s+=$1} END {print s+0}')"
 [ "$head_wanted" -le "$base_wanted" ] || fail "proof_wanted went from $base_wanted to $head_wanted"
 
-step "every file is part of the library"
-while IFS= read -r f; do
-  mod="$(printf '%s' "${f%.lean}" | tr '/' '.')"
-  grep -q -x "import $mod" "$SRC.lean" || fail "$f is not imported by $SRC.lean, so it is neither built nor audited"
-done < <(find "$SRC" -name '*.lean' | sort)
+step "every file is part of a library"
+for lib in $LIBS; do
+  while IFS= read -r f; do
+    mod="$(printf '%s' "${f%.lean}" | tr '/' '.')"
+    grep -q -x "import $mod" "$lib.lean" || fail "$f is not imported by $lib.lean, so it is neither built nor audited"
+  done < <(find "$lib" -name '*.lean' | sort)
+done
+
+step "the library does not depend on the checks"
+if grep -rnE '^import Checks' InteractionCombinators InteractionCombinators.lean; then
+  fail "a library file imports a check"
+fi
 
 step "build"
 mkdir -p .lake

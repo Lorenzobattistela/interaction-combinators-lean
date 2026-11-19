@@ -4,3 +4,4 @@
 /sessions
 /.pool
 .claude/.pod-checksums
+__pycache__/

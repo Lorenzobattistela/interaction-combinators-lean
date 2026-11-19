@@ -40,7 +40,7 @@ Each side numbers its middle wires by itself: first by the port at the root of t
 wire occurs, then by the name of the wire in `r` (`Half.key`). The numbering of a tree's wires
 thus follows the names of the rule, not their position in the tree. `σ` sends the number of a
 wire in `φ` to its number in `ψ`. For `con`–`con` this gives the exchange, and for `con`–`dup` the
-permutation `(1 2)` of the four wires (`Lafont/DecompositionCheck.lean`). The symmetric
+permutation `(1 2)` of the four wires (`Checks/DecompositionCheck.lean`). The symmetric
 normalisation of page 85 (`ψ_{j,i} = φ_{i,j}`) is not done here.
 
 ## Results

@@ -1,10 +1,9 @@
 # Paths that only the project owner may change. One prefix per line.
 # A pull request that touches any of them is rejected by scripts/check.sh.
-PLAN.md
+history/
 .claude/CLAUDE.md
 .github/
 scripts/
-docs/
 lakefile.toml
 lake-manifest.json
 lean-toolchain
@@ -13,5 +12,4 @@ InteractionCombinators/Net.lean
 InteractionCombinators/System.lean
 InteractionCombinators/Translation.lean
 InteractionCombinators/Combinators.lean
-InteractionCombinators/Wanted.lean
 InteractionCombinators/Lafont/Universality.lean

@@ -1,7 +1,7 @@
 name = "InteractionCombinators"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["InteractionCombinators"]
+defaultTargets = ["InteractionCombinators", "Checks"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -16,3 +16,8 @@ rev = "v4.36.0"
 
 [[lean_lib]]
 name = "InteractionCombinators"
+
+# Checks of the library: examples, non-vacuity tests and attempts to refute its statements.
+# Nothing in `InteractionCombinators` depends on them.
+[[lean_lib]]
+name = "Checks"
