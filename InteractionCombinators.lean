@@ -107,4 +107,5 @@ import InteractionCombinators.Lafont.GraphIso
 import InteractionCombinators.Lafont.GraphEquiv
 import InteractionCombinators.Lafont.GraphIsoEquiv
 import InteractionCombinators.Lafont.GraphRealize
+import InteractionCombinators.Lafont.GraphStep
 import InteractionCombinators.Graph
