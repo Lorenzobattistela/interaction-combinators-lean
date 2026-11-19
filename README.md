@@ -13,7 +13,7 @@ with no `sorry` and no axiom beyond `propext`, `Classical.choice` and `Quot.soun
 theorem INet.Comb.universal_strict : StrictlyUniversal system
 ```
 
-in `InteractionCombinators/Lafont/Universality.lean`. The proof follows the paper: multiplexors
+in `InteractionCombinators/Universality/Theorem1.lean`. The proof follows the paper: multiplexors
 and transpositors, erasing and duplication, menus and selectors, codes, copiers and the decoder,
 and the translation of Fig. 10. It includes the compatibility of that translation with reduction,
 which the paper leaves to the reader.
