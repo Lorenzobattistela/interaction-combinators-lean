@@ -3,18 +3,57 @@ import InteractionCombinators.Core.Combinators
 /-!
 # Lafont, "Interaction Combinators" (1997): erasing and multiplexors
 
-* `erase_tree` — Lemma 2 (i): an eraser plugged into the root of a tree leaves an eraser on each
-  leaf.
-* `mux_muxStar` — Section 2.2: the multiplexor `M_n` against its dual `M_n*` reduces to `n` wires.
+Page 85, Lemma 2 (i): an `era` plugged into the root of a tree of combinators leaves an `era` on
+each leaf. Pages 82–83, Section 2.2 and Fig. 4: the multiplexor `M_n`, a right-nested tree of
+`con` cells, and its dual `M_n*`; `M_n` against `M_n*` reduces to `n` wires.
+
+Contents, in the order of the file:
+
+1. Definitions: `mux`, the multiplexor `M_n`, and `muxStar`, its dual `M_n*`.
+2. Erasing a tree: `erase_tree`, Lemma 2 (i).
+3. Main result: `mux_muxStar`, the multiplexor property, `M_n` against `M_n*` reduces to `n`
+   wires.
 -/
 
 namespace INet.Comb
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions: the multiplexor and its dual
+-- ============================================================================================
+
+/-- The multiplexor `M_n`, applied to the trees plugged into its `n` auxiliary ports. -/
+def mux :
+    -- the trees plugged into the auxiliary ports, in order
+    List (Term sig ℕ) →
+    Term sig ℕ
+  | [] => mkEra
+  | [t] => t
+  | t :: t' :: ts => mkCon t (mux (t' :: ts))
+
+/-- The dual multiplexor `M_n*`. -/
+def muxStar :
+    -- the trees plugged into the auxiliary ports, in order
+    List (Term sig ℕ) →
+    Term sig ℕ
+  | [] => mkEra
+  | [u] => u
+  | u :: u' :: us => mkCon (muxStar (u' :: us)) u
+
+-- ============================================================================================
+-- 2. Erasing a tree (Lemma 2 (i))
+-- ============================================================================================
+
 /-- Lafont's Lemma 2 (i). -/
-theorem erase_tree (τ : Term sig ℕ) (Δ : CNet) :
-    Red (s(mkEra, τ) ::ₘ Δ) (τ.vars.map (fun x => s(mkEra, var x)) + Δ) := by
+theorem erase_tree
+    -- the tree, with an `era` on its root
+    (τ : Term sig ℕ)
+    -- the rest of the net
+    (Δ : CNet) :
+    -- the net reduces to an `era` on each leaf of `τ`, and `Δ`
+    Red (s(mkEra, τ) ::ₘ Δ)
+      (τ.vars.map (fun x => s(mkEra, var x)) + Δ) := by
   induction τ using Comb.induction generalizing Δ with
   | var x => simpa using Relation.ReflTransGen.refl
   | era => simpa using Steps.single (step_era_era Δ)
@@ -35,21 +74,20 @@ theorem erase_tree (τ : Term sig ℕ) (Δ : CNet) :
     · simp only [vars_mkDup, Multiset.map_add]
       ms
 
-/-- The multiplexor `M_n`, applied to the trees plugged into its `n` auxiliary ports. -/
-def mux : List (Term sig ℕ) → Term sig ℕ
-  | [] => mkEra
-  | [t] => t
-  | t :: t' :: ts => mkCon t (mux (t' :: ts))
-
-/-- The dual multiplexor `M_n*`. -/
-def muxStar : List (Term sig ℕ) → Term sig ℕ
-  | [] => mkEra
-  | [u] => u
-  | u :: u' :: us => mkCon (muxStar (u' :: us)) u
+-- ============================================================================================
+-- 3. Main result: the multiplexor property
+-- ============================================================================================
 
 /-- Lafont's multiplexor property: `M_n` against `M_n*` reduces to `n` wires, here the equations
 between the trees plugged into matching auxiliary ports. -/
-theorem mux_muxStar : ∀ (ts us : List (Term sig ℕ)) (Δ : CNet), ts.length = us.length →
+theorem mux_muxStar :
+    -- the trees `ts` on the auxiliary ports of `M_n`, `us` on those of `M_n*`
+    ∀ (ts us : List (Term sig ℕ))
+    -- the rest of the net
+      (Δ : CNet),
+    -- both multiplexors have the same arity `n`
+    ts.length = us.length →
+    -- then `M_n` against `M_n*` reduces to the `n` equations between matching trees, and `Δ`
     Red (s(mux ts, muxStar us) ::ₘ Δ)
       ((List.zipWith (fun t u => s(t, u)) ts us : CNet) + Δ)
   | [], [], Δ, _ => by simpa [mux, muxStar] using Steps.single (step_era_era Δ)
