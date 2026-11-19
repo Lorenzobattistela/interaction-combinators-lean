@@ -10,6 +10,7 @@ import InteractionCombinators.RenameStep
 import InteractionCombinators.EquivAdd
 import InteractionCombinators.NetTrEquiv
 import InteractionCombinators.TranslationExists
+import InteractionCombinators.NetTrWire
 import InteractionCombinators.StepsEAdd
 import InteractionCombinators.Confluence
 import InteractionCombinators.Lafont.Confluence2
