@@ -41,3 +41,4 @@ import InteractionCombinators.Lafont.DecompositionTools
 import InteractionCombinators.Lafont.DecompositionHalf
 import InteractionCombinators.Lafont.Decomposition
 import InteractionCombinators.Lafont.DecompositionCheck
+import InteractionCombinators.Lafont.DecompositionReview
