@@ -106,3 +106,4 @@ import Checks.WireNumCheck
 import Checks.WireNumReview
 import Checks.GraphRawCheck
 import Checks.GraphContractCheck
+import Checks.GraphContractUniqueCheck
