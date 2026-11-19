@@ -74,6 +74,7 @@ import Checks.RecursionFreeCheck
 import Checks.ReducedClosedCheck
 import Checks.ReducedDecompCheck
 import Checks.ReducedDecompReview
+import Checks.ReducedDecompUniqueCheck
 import Checks.RecursionFreeCompatibleReview
 import Checks.RecursionFreeFig7Check
 import Checks.RecursionFreeTrReview
