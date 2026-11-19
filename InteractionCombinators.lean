@@ -79,6 +79,7 @@ import InteractionCombinators.Lafont.Fig7End
 import InteractionCombinators.Lafont.Fig7EndCheck
 import InteractionCombinators.Lafont.PlugTr
 import InteractionCombinators.Lafont.PlugTrCheck
+import InteractionCombinators.Lafont.PlugTrReview
 import InteractionCombinators.Lafont.PlugsNetTr
 import InteractionCombinators.Lafont.PlugsNetTrCheck
 import InteractionCombinators.Lafont.Fig7EndReview
