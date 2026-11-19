@@ -1,4 +1,4 @@
-import InteractionCombinators.Lafont.TranslationCompReview
+import InteractionCombinators.Lafont.TranslationCompBasic
 import InteractionCombinators.NetTrWire
 
 /-!

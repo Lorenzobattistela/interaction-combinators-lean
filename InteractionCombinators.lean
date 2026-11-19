@@ -152,6 +152,7 @@ import InteractionCombinators.Lafont.SimulationStrictCheck
 import InteractionCombinators.Lafont.SimulationCorollaryReview
 import InteractionCombinators.Lafont.TranslationComp
 import InteractionCombinators.Lafont.TranslationCompAssoc
+import InteractionCombinators.Lafont.TranslationCompBasic
 import InteractionCombinators.Lafont.TranslationCompAssocCheck
 import InteractionCombinators.Lafont.TranslationCompCheck
 import InteractionCombinators.Lafont.TranslationCompCompatible

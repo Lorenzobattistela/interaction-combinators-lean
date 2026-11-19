@@ -1,4 +1,4 @@
-import InteractionCombinators.Lafont.TranslationCompReview
+import InteractionCombinators.Lafont.TranslationCompBasic
 
 /-!
 # An invertible translation renames the symbols and permutes the ports (page 81)

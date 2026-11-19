@@ -1,3 +1,4 @@
+import InteractionCombinators.Lafont.TranslationCompReview
 import InteractionCombinators.Lafont.SimulationInvertible
 import InteractionCombinators.Lafont.PairStepE
 import InteractionCombinators.Combinators
