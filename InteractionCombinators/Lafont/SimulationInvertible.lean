@@ -15,8 +15,10 @@ which has no cut, so nothing follows.
 
 In Lean the reduction is `StepsE`: a wire substitution may come before each interaction. That
 the net reached after one interaction up to wires from the pair `α'(u) = β'(v)` has no cut is a
-statement about every net that is the same graph as the pair. The library does not have it yet,
-so here it is a hypothesis, `hpair`, about the target system alone. This file proves the rest:
+statement about every net that is the same graph as the pair. Here it is a hypothesis, `hpair`,
+about the target system alone; it is proved for every well-formed system in `Lafont/PairStepE.lean`
+(`System.WellFormed.stepE_pair_not_hasCut`), which also gives the theorem without it
+(`Translation.Invertible.compatibleWithin_one_of_wellFormed`). This file proves the rest:
 
 * `StepE.hasCut` — a net that reduces has a cut.
 * `StepsEN.cases_head` — a counted reduction is empty, or starts with one interaction.
@@ -178,8 +180,8 @@ a rule of a well-formed system has a reduced right member). Then every rule of `
 in exactly one interaction.
 
 The hypothesis `hpair` is about `I'` alone and is what the paper uses ("its right member, an
-instance of a reduced net, has no cut"); it is not yet proved in the library for the reduction
-up to wires, where the interaction may follow any wire substitution of the pair. -/
+instance of a reduced net, has no cut"). It holds when `I'` is well-formed
+(`System.WellFormed.stepE_pair_not_hasCut`, in `Lafont/PairStepE.lean`). -/
 theorem Invertible.compatibleWithin_one {I : System S} {I' : System S'} (hΦ : Φ.Invertible)
     (hI : I.WellFormed) (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
     (hpair : ∀ (γ δ : S'.Sym) (u : Fin (S'.arity γ) → ℕ) (v : Fin (S'.arity δ) → ℕ),
