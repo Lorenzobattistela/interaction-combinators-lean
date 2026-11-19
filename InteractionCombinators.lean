@@ -87,3 +87,4 @@ import InteractionCombinators.Lafont.PlugsNetTrCheck
 import InteractionCombinators.Lafont.Fig7EndReview
 import InteractionCombinators.Lafont.PlugsExpand
 import InteractionCombinators.Lafont.PlugsReview
+import InteractionCombinators.Lafont.RecursionFreeCompatible
