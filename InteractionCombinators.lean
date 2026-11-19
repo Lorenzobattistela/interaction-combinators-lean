@@ -46,6 +46,7 @@ import InteractionCombinators.Lafont.CodeCheck
 import InteractionCombinators.Lafont.Decode
 import InteractionCombinators.Lafont.DecodeCheck
 import InteractionCombinators.Lafont.DecodeReview
+import InteractionCombinators.Lafont.DecodeCopy
 import InteractionCombinators.Lafont.BasicCheck
 import InteractionCombinators.Lafont.Universality
 import InteractionCombinators.Lafont.DecompositionTools
