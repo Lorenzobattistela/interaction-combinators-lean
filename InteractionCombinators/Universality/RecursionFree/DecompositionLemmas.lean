@@ -17,7 +17,22 @@ by library files. They keep their names, including the namespaces `Comb.Decompos
 * `Comb.DecompositionReview.pl`, `pr`, `pw` — the names of a rule written as trees.
 * `Comb.DecompositionReview.equiv_wire_of_eq` — one wire substitution between two nets given as
   texts.
+
+Contents, in the order of the file:
+
+1. Definitions: decidable equality of trees: `termDecEq`, and the instances `DecidableEq sig.Sym`
+   and `DecidableEq (Term sig ν)`.
+2. Definitions and a lemma on the names of a rule: `pl`, `pr`, `pw`, the ports of the two cells
+   and the internal wires; `equiv_wire_of_eq`, one wire substitution between two texts.
+3. Solutions of a net: the definitions `Net.Solves` and `Net.Sol`, and the auxiliary lemmas
+   `Net.solves_cons` and `Term.bind_subst_update`.
+4. Main results: `Wire.sol_iff` and `Equiv.sol_iff`, nets that are the same graph have the same
+   solutions on their free ports.
 -/
+
+-- ============================================================================================
+-- 1. Definitions: decidable equality of trees
+-- ============================================================================================
 
 namespace INet.Comb.DecompositionCheck
 
@@ -25,7 +40,13 @@ open Term Rule
 
 /-- Equality of trees is decidable when equality of symbols and of names is: compare the
 symbols, then the subtrees. Only used to let `decide` compare nets in this file. -/
-def termDecEq {S : Signature} [DecidableEq S.Sym] {ν : Type} [DecidableEq ν] :
+def termDecEq
+    -- the symbols, with decidable equality
+    {S : Signature}
+    [DecidableEq S.Sym]
+    -- the names, with decidable equality
+    {ν : Type}
+    [DecidableEq ν] :
     (t u : Term S ν) → Decidable (t = u)
   | .var x, .var y =>
     if h : x = y then isTrue (h ▸ rfl) else isFalse fun e => h (by cases e; rfl)
@@ -40,11 +61,75 @@ def termDecEq {S : Signature} [DecidableEq S.Sym] {ν : Type} [DecidableEq ν] :
         else isFalse fun e => by cases e; exact h' fun _ => rfl
     else isFalse fun e => by cases e; exact h rfl
 
+-- the symbols of the combinators (`con`, `dup`, `era`) have decidable equality
 instance : DecidableEq sig.Sym := inferInstanceAs (DecidableEq Comb)
 
+-- the trees of the combinators over names with decidable equality have decidable equality
 instance {ν : Type} [DecidableEq ν] : DecidableEq (Term sig ν) := termDecEq
 
 end INet.Comb.DecompositionCheck
+
+-- ============================================================================================
+-- 2. Definitions and a lemma: the names of a rule, and one wire substitution
+-- ============================================================================================
+
+namespace INet.Comb.DecompositionReview
+
+open Term Rule
+
+/-- A port of the first cell. -/
+abbrev pl
+    -- the numbers of ports of the two cells, and of internal wires
+    {a b m : ℕ}
+    -- the port
+    (i : Fin a) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inl i)
+
+/-- A port of the second cell (in a side: a middle wire). -/
+abbrev pr
+    -- the numbers of ports of the two cells, and of internal wires
+    {a b m : ℕ}
+    -- the port
+    (j : Fin b) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inl j))
+
+/-- An internal wire. -/
+abbrev pw
+    -- the numbers of ports of the two cells, and of internal wires
+    {a b m : ℕ}
+    -- the wire
+    (w : Fin m) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inr w))
+
+/-- One wire substitution between two nets given as texts. -/
+theorem equiv_wire_of_eq
+    -- the names, with decidable equality, and the two nets
+    {ν : Type}
+    [DecidableEq ν]
+    {N M : Net sig ν}
+    -- the wire `x = t`, the equation `a = b` in which `x` occurs, and the rest of the net
+    (x : ν)
+    (t a b : Term sig ν)
+    (Δ : Net sig ν)
+    -- the net `x = t, a = b, Δ` is linear, and `x` occurs in `a = b`
+    (hlin : Net.Linear (s(var x, t) ::ₘ s(a, b) ::ₘ Δ))
+    (hx : x ∈ a.vars + b.vars)
+    -- `N` is the net before the substitution, `M` the net after it
+    (hN : N = s(var x, t) ::ₘ s(a, b) ::ₘ Δ)
+    (hM : M = s(a.subst x t, b.subst x t) ::ₘ Δ) :
+    -- the two nets are the same graph
+    Equiv N M := by
+  rw [hN, hM]
+  exact (Wire.mk x t a b Δ hlin hx).equiv
+
+end INet.Comb.DecompositionReview
+
+-- ============================================================================================
+-- 3. Solutions of a net
+-- ============================================================================================
 
 namespace INet
 
@@ -52,23 +137,38 @@ variable {S : Signature} {ν μ : Type}
 
 open Term
 
-/-! ### Solutions of a net -/
-
 /-- `s` solves the net `N`: the two sides of every equation become the same tree when each name
 `x` is replaced by `s x`. -/
-def Net.Solves (s : ν → Term S μ) (N : Net S ν) : Prop :=
+def Net.Solves
+    -- the values of the names
+    (s : ν → Term S μ)
+    -- the net
+    (N : Net S ν) :
+    Prop :=
   ∀ e ∈ N, Sym2.lift ⟨fun u v => u.bind s = v.bind s, fun _ _ => propext eq_comm⟩ e
 
 /-- A solution of `u = v` and of `N` is a solution of the net `u = v, N`. -/
-theorem Net.solves_cons {s : ν → Term S μ} {u v : Term S ν} {N : Net S ν} :
-    Net.Solves s (s(u, v) ::ₘ N) ↔ u.bind s = v.bind s ∧ Net.Solves s N := by
+theorem Net.solves_cons
+    -- the values of the names, the equation `u = v` and the rest of the net
+    {s : ν → Term S μ}
+    {u v : Term S ν}
+    {N : Net S ν} :
+    -- `s` solves `u = v, N` exactly when it solves `u = v` and `N`
+    Net.Solves s (s(u, v) ::ₘ N)
+      ↔ u.bind s = v.bind s ∧ Net.Solves s N := by
   simp [Net.Solves]
 
 variable [DecidableEq ν]
 
 /-- Plugging into a substituted tree is plugging into the tree, with `x` sent to the image of the
 tree substituted for it. -/
-theorem Term.bind_subst_update (s : ν → Term S μ) (a : Term S ν) (x : ν) (t : Term S ν) :
+theorem Term.bind_subst_update
+    -- the values of the names
+    (s : ν → Term S μ)
+    -- the tree `a`, in which the tree `t` is substituted for the name `x`
+    (a : Term S ν)
+    (x : ν)
+    (t : Term S ν) :
     (a.subst x t).bind s = a.bind (Function.update s x (t.bind s)) := by
   unfold Term.subst
   rw [Term.bind_bind]
@@ -78,12 +178,27 @@ theorem Term.bind_subst_update (s : ν → Term S μ) (a : Term S ν) (x : ν) (
   · simp [h]
 
 /-- The values on the free ports of `N` that extend to a solution of `N`. -/
-def Net.Sol (N : Net S ν) (s : ν → Term S μ) : Prop :=
+def Net.Sol
+    -- the net
+    (N : Net S ν)
+    -- the values of the names
+    (s : ν → Term S μ) :
+    Prop :=
   ∃ s', Net.Solves s' N ∧ ∀ p, N.vars.count p = 1 → s' p = s p
+
+-- ============================================================================================
+-- 4. Main results: the solutions are an invariant of `Equiv`
+-- ============================================================================================
 
 /-- A wire substitution does not change the values on the free ports that extend to a solution:
 the eliminated wire `x` takes the value of the tree plugged into it. -/
-theorem Wire.sol_iff {N M : Net S ν} (h : Wire N M) (s : ν → Term S μ) :
+theorem Wire.sol_iff
+    -- two nets, one obtained from the other by a wire substitution
+    {N M : Net S ν}
+    (h : Wire N M)
+    -- the values on the free ports
+    (s : ν → Term S μ) :
+    -- they extend to a solution of `N` exactly when they extend to a solution of `M`
     N.Sol s ↔ M.Sol s := by
   obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := h
   have hfree := (Wire.mk x t a b Δ hlin hx).free_iff
@@ -135,7 +250,13 @@ theorem Wire.sol_iff {N M : Net S ν} (h : Wire N M) (s : ν → Term S μ) :
       exact hp p ((hfree p).1 hp1)
 
 /-- Nets that are the same graph have the same solutions on their free ports. -/
-theorem Equiv.sol_iff {N M : Net S ν} (h : Equiv N M) (s : ν → Term S μ) :
+theorem Equiv.sol_iff
+    -- two nets that are the same graph
+    {N M : Net S ν}
+    (h : Equiv N M)
+    -- the values on the free ports
+    (s : ν → Term S μ) :
+    -- they extend to a solution of `N` exactly when they extend to a solution of `M`
     N.Sol s ↔ M.Sol s := by
   induction h with
   | rel _ _ h => exact h.sol_iff s
@@ -144,24 +265,3 @@ theorem Equiv.sol_iff {N M : Net S ν} (h : Equiv N M) (s : ν → Term S μ) :
   | trans _ _ _ _ _ ih₁ ih₂ => exact ih₁.trans ih₂
 
 end INet
-
-namespace INet.Comb.DecompositionReview
-
-open Term Rule
-
-/-- A port of the first cell. -/
-abbrev pl {a b m : ℕ} (i : Fin a) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inl i)
-/-- A port of the second cell (in a side: a middle wire). -/
-abbrev pr {a b m : ℕ} (j : Fin b) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inl j))
-/-- An internal wire. -/
-abbrev pw {a b m : ℕ} (w : Fin m) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inr w))
-
-/-- One wire substitution between two nets given as texts. -/
-theorem equiv_wire_of_eq {ν : Type} [DecidableEq ν] {N M : Net sig ν} (x : ν) (t a b : Term sig ν)
-    (Δ : Net sig ν) (hlin : Net.Linear (s(var x, t) ::ₘ s(a, b) ::ₘ Δ)) (hx : x ∈ a.vars + b.vars)
-    (hN : N = s(var x, t) ::ₘ s(a, b) ::ₘ Δ) (hM : M = s(a.subst x t, b.subst x t) ::ₘ Δ) :
-    Equiv N M := by
-  rw [hN, hM]
-  exact (Wire.mk x t a b Δ hlin hx).equiv
-
-end INet.Comb.DecompositionReview
