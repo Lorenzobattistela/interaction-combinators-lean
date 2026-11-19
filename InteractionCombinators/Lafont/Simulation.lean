@@ -375,17 +375,46 @@ end Translation
 
 /-! ## Proposition 4 -/
 
-/-- **One interaction is simulated** (Lafont 1997, Proposition 4, page 81, the case of one step).
-If `Φ` is a translation of interaction systems from `I` to `I'`, `N` reduces to `M` by one
-interaction, and `N'` is a translation of `N`, then `N'` reduces up to wires to a net that is the
-same graph as a translation of `M`. The rules of `I` and of `I'` are linear, as Lafont's rules are
-(page 72). -/
-theorem Translation.Compatible.step {I : System S} {I' : System S'}
+/-- `Translation.Compatible`, with the reduction of each rule taken in a relation `R` on the nets
+of the target instead of `StepsE I'`. `Compatible` is the case `R = StepsE I'`
+(`Translation.compatible_iff_compatibleBy`); a reduction counted and bounded is another case
+(Lafont 1997, page 81, the lengths `L` and `M`). -/
+def Translation.CompatibleBy (Φ : Translation S S') (I : System S)
+    (R : Net S' ℕ → Net S' ℕ → Prop) : Prop :=
+  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
+    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
+      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
+        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
+      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
+        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
+          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
+        Equiv M N' ∧
+        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
+
+/-- A translation of interaction systems (Lafont 1997, Section 1.7, page 80) is one compatible by
+the reduction up to wires of the target. -/
+theorem Translation.compatible_iff_compatibleBy {Φ : Translation S S'} {I : System S}
+    {I' : System S'} : Φ.Compatible I I' ↔ Φ.CompatibleBy I (StepsE I') := Iff.rfl
+
+/-- **One interaction is simulated, for any reduction of the target** (Lafont 1997,
+Proposition 4, page 81, the case of one step). `R` is a reduction of the target nets that can be
+done beside a context (`hadd`), that can start from an equivalent net (`heq`), and that is a
+reduction up to wires (`hR`). If the translations of the two cells of every rule reduce by `R` to
+a translation of its right-hand side, `N` reduces to `M` by one interaction, and `N'` is a
+translation of `N`, then `N'` reduces by `R` to a net that is the same graph as a translation of
+`M`. The rules of `I` and of `I'` are linear, as Lafont's rules are (page 72). -/
+theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
+    {R : Net S' ℕ → Net S' ℕ → Prop}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    {Φ : Translation S S'} (hΦ : Φ.Compatible I I')
+    (hadd : ∀ {N M : Net S' ℕ} (Γ : Net S' ℕ), R N M → (N + Γ).Linear →
+      ∃ M', R (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear)
+    (heq : ∀ {N K M : Net S' ℕ}, Equiv N K → R K M → ∃ M', R N M' ∧ Equiv M' M)
+    (hR : ∀ {N M : Net S' ℕ}, R N M → StepsE I' N M)
+    {Φ : Translation S S'} (hΦ : Φ.CompatibleBy I R)
     {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
-    ∃ M₁ M', StepsE I' N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' := by
+    ∃ M₁ M', R N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' := by
   obtain ⟨α, β, r, hr, as, bs, Δ, hh, hhinj, hhfresh⟩ := h
   have hN := hT.linear_source
   have hrl := hI _ _ _ hr
@@ -424,7 +453,7 @@ theorem Translation.Compatible.step {I : System S} {I' : System S'}
   obtain ⟨M₁, R', h₁, hS₁, E₁, hR'⟩ :=
     hΦ α β r hr (fun i => B + i) (fun j => B + S.arity α + j) f g hPl
   have hPΓ : ({P} : Net S' ℕ) + Γ' = P ::ₘ Γ' := Multiset.singleton_add _ _
-  obtain ⟨M₂, hS₂, E₂, hl₂⟩ := StepsE.add_right hI' Γ' hS₁ (hPΓ ▸ hlin')
+  obtain ⟨M₂, hS₂, E₂, hl₂⟩ := hadd Γ' hS₁ (hPΓ ▸ hlin')
   -- the fresh names are free ports of the active pair, hence of `R'` and of `M₂`
   have hfreeP : ∀ p ∈ Simulation.ports B (S.arity α) (S.arity β),
       (Net.vars ({P} : Net S' ℕ)).count p = 1 := by
@@ -446,7 +475,7 @@ theorem Translation.Compatible.step {I : System S} {I' : System S'}
   have hfreeMR : ∀ y, R'.vars.count y = 1 ↔ M₂.vars.count y = 1 := fun y =>
     ((E₂.trans E₁).free_iff y).symm
   have hfreeR : ∀ p ∈ Simulation.ports B (S.arity α) (S.arity β), R'.vars.count p = 1 :=
-    fun p hp => (E₁.free_iff p).1 ((StepsE.free_iff hI' hS₁ p).2 (hfreeP p hp))
+    fun p hp => (E₁.free_iff p).1 ((StepsE.free_iff hI' (hR hS₁) p).2 (hfreeP p hp))
   -- rename the internal wires of `R'` away from `Γ'`, fixing the names of `M₂`
   set C := (M₂.vars + Net.vars Γ').sup + 1 with hC
   have hltM : ∀ x ∈ M₂.vars, x < C := fun x hx =>
@@ -513,13 +542,27 @@ theorem Translation.Compatible.step {I : System S} {I' : System S'}
       omega
   obtain ⟨M'', hM'', E₆⟩ := hT₂.of_equiv (E₃.trans (E₄.trans E₅.symm))
   -- the reduction of `N'`
-  have hS₃ : StepsE I' N₀' (M₂ + Γ') := by
+  have hS₃ : R N₀' (M₂ + Γ') := by
     rw [hN₀', ← hPΓ]
     exact hS₂
-  obtain ⟨X, hX, EX⟩ := StepsE.of_equiv E₀' hS₃
+  obtain ⟨X, hX, EX⟩ := heq E₀' hS₃
   have E₇ : Equiv (M₂ + Γ') ((R'.bind fun y => var (ι y)) + Γ') :=
     Equiv.add_right Γ' ((E₂.trans E₁).trans ER) hl₂ hTl
   exact ⟨X, M'', hX, EX.trans (E₇.trans E₆), hM''⟩
+
+/-- **One interaction is simulated** (Lafont 1997, Proposition 4, page 81, the case of one step).
+If `Φ` is a translation of interaction systems from `I` to `I'`, `N` reduces to `M` by one
+interaction, and `N'` is a translation of `N`, then `N'` reduces up to wires to a net that is the
+same graph as a translation of `M`. The rules of `I` and of `I'` are linear, as Lafont's rules are
+(page 72). -/
+theorem Translation.Compatible.step {I : System S} {I' : System S'}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
+    {Φ : Translation S S'} (hΦ : Φ.Compatible I I')
+    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
+    ∃ M₁ M', StepsE I' N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' :=
+  Translation.CompatibleBy.step hI hI' (fun Γ h hl => StepsE.add_right hI' Γ h hl)
+    (fun hE h => StepsE.of_equiv hE h) id hΦ h hT
 
 /-- **Any number of interactions are simulated** (Lafont 1997, Proposition 4, page 81: "If N
 reduces in n steps to M, then Φ(N) reduces in n′ steps to Φ(M)"). If `Φ` is a translation of

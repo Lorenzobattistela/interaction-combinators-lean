@@ -104,3 +104,5 @@ import InteractionCombinators.Lafont.RecursionFreeCompatible
 import InteractionCombinators.Lafont.RecursionFreeCompatibleReview
 import InteractionCombinators.Lafont.Simulation
 import InteractionCombinators.Lafont.SimulationCheck
+import InteractionCombinators.Lafont.SimulationCount
+import InteractionCombinators.Lafont.SimulationCountCheck
