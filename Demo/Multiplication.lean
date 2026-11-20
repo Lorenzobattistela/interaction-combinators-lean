@@ -56,12 +56,12 @@ Contents, in the order of the file:
 3. One interaction for each rule: `step_add_zero`, `step_add_succ`, `step_mul_zero`,
    `step_mul_succ`, `step_dup_zero`, `step_dup_succ`, `step_era_zero`, `step_era_succ`.
 4. Reduction up to wires: the relation `Reduces` and its closure lemmas (`Reduces.trans`, …),
-   the wire lemma `wire`, and the simp lemmas on substitution and bounds (`subst_num`,
-   `below_num`, …).
+   the wire lemma `wire`, the simp lemmas on substitution and bounds (`subst_num`,
+   `below_num`, …), and `notMem_of_below`.
 5. Erasing, duplicating, adding and multiplying numerals: `era_num`, `dup_num`, `add_num`,
    `mul_num`.
-6. `2 × 2 = 4`: the nets `times`, `numNet`, `twoTimesTwo`, `four`, and the result
-   `two_times_two`.
+6. `2 × 2 = 4`: the nets `times` and `numNet`, the lemmas `times_linear`, `times_below`,
+   `times_reduces`, the nets `twoTimesTwo` and `four`, and the result `two_times_two`.
 7. Into the combinators: `exists_translation`, `two_times_two_in_combinators`, and the
    non-vacuity check `twoTimesTwo_has_translation`.
 -/
@@ -694,90 +694,232 @@ theorem step_era_succ :
 
 end Steps
 
-/-! ## Reduction up to wires -/
+-- ============================================================================================
+-- 4. Reduction up to wires
+-- ============================================================================================
 
 /-- `N` reduces, by interactions up to wires, to a net that is the same graph as `P`. -/
-def Reduces (N P : Net sig ℕ) : Prop := ∃ M, StepsE system N M ∧ Equiv M P
+def Reduces
+    -- the net one starts from and the net one reaches, up to wires
+    (N P : Net sig ℕ) :
+    Prop :=
+  ∃ M, StepsE system N M ∧ Equiv M P
 
 namespace Reduces
 
+-- the nets in a chain of reductions
 variable {N P Q : Net sig ℕ}
 
-theorem of_equiv (h : Equiv N P) : Reduces N P := ⟨N, Relation.ReflTransGen.refl, h⟩
+/-- A net reduces, in no interaction, to every net that is the same graph. -/
+theorem of_equiv
+    -- the two nets are the same graph
+    (h : Equiv N P) :
+    Reduces N P :=
+  ⟨N, Relation.ReflTransGen.refl, h⟩
 
-theorem of_step (h : Step system N P) : Reduces N P :=
+/-- One literal interaction is a reduction up to wires. -/
+theorem of_step
+    -- the interaction
+    (h : Step system N P) :
+    Reduces N P :=
   ⟨P, Relation.ReflTransGen.single h.stepE, Equiv.refl P⟩
 
-theorem of_step_eq (h : Step system N P) (e : P = Q) : Reduces N Q := e ▸ of_step h
+/-- One literal interaction, whose result is given by an equation, is a reduction up to wires. -/
+theorem of_step_eq
+    -- the interaction, and its result written as `Q`
+    (h : Step system N P)
+    (e : P = Q) :
+    Reduces N Q :=
+  e ▸ of_step h
 
-theorem trans_equiv (h : Reduces N P) (e : Equiv P Q) : Reduces N Q := by
+/-- A reduction up to wires may be followed by a change of the text of the same graph. -/
+theorem trans_equiv
+    -- the reduction, then the change of text
+    (h : Reduces N P)
+    (e : Equiv P Q) :
+    Reduces N Q := by
   obtain ⟨M, hs, he⟩ := h
   exact ⟨M, hs, he.trans e⟩
 
 /-- An equivalence in front of a reduction up to wires is absorbed by its first interaction. -/
-private theorem absorb {M₁ P M₂ : Net sig ℕ} (h : StepsE system P M₂) (e : Equiv M₁ P) :
+private theorem absorb
+    -- the three nets
+    {M₁ P M₂ : Net sig ℕ}
+    -- the reduction from `P`, and `M₁` the same graph as `P`
+    (h : StepsE system P M₂)
+    (e : Equiv M₁ P) :
+    -- `M₁` reduces to a net that is the same graph as `M₂`
     ∃ M, StepsE system M₁ M ∧ Equiv M M₂ := by
   rcases Relation.ReflTransGen.cases_head h with rfl | ⟨X, ⟨P', eP, s⟩, hX⟩
   · exact ⟨M₁, Relation.ReflTransGen.refl, e⟩
   · exact ⟨M₂, Relation.ReflTransGen.head ⟨P', e.trans eP, s⟩ hX, Equiv.refl M₂⟩
 
-theorem trans (h : Reduces N P) (h' : Reduces P Q) : Reduces N Q := by
+/-- Reduction up to wires is transitive. -/
+theorem trans
+    -- the two reductions
+    (h : Reduces N P)
+    (h' : Reduces P Q) :
+    Reduces N Q := by
   obtain ⟨M₁, h1, e1⟩ := h
   obtain ⟨M₂, h2, e2⟩ := h'
   obtain ⟨M, hM, eM⟩ := absorb h2 e1
   exact ⟨M, h1.trans hM, eM.trans e2⟩
 
-theorem linear (h : Reduces N P) (hN : N.Linear) : P.Linear := by
+/-- Reduction up to wires preserves linearity (Section 1.2, page 73: the rules are linear). -/
+theorem linear
+    -- the reduction, from a linear net
+    (h : Reduces N P)
+    (hN : N.Linear) :
+    P.Linear := by
   obtain ⟨M, hs, he⟩ := h
   exact he.linear (hs.linear system_wellFormed.linear hN)
 
 end Reduces
 
 /-- One wire substitution, with the net and its result given up to reordering. -/
-private theorem wire {N M : Net sig ℕ} (k : ℕ) (t u v : Term sig ℕ) (Δ : Net sig ℕ)
-    (hN : N = s(.var k, t) ::ₘ s(u, v) ::ₘ Δ) (hM : s(u.subst k t, v.subst k t) ::ₘ Δ = M)
-    (hlin : N.Linear) (hx : k ∈ u.vars + v.vars) : Equiv N M := by
+private theorem wire
+    -- the net before and after the substitution
+    {N M : Net sig ℕ}
+    -- the wire `k ~ t`, and the equation `u ~ v` that holds the other end of `k`
+    (k : ℕ)
+    (t u v : Term sig ℕ)
+    -- the rest of the net
+    (Δ : Net sig ℕ)
+    -- `N` is the wire, the equation and the rest; `M` is the result of the substitution
+    (hN : N = s(.var k, t) ::ₘ s(u, v) ::ₘ Δ)
+    (hM : s(u.subst k t, v.subst k t) ::ₘ Δ = M)
+    -- `N` is linear, and `k` occurs in the equation `u ~ v`
+    (hlin : N.Linear)
+    (hx : k ∈ u.vars + v.vars) :
+    Equiv N M := by
   subst hN hM
   exact (Wire.mk k t u v Δ hlin hx).equiv
 
-@[simp] theorem subst_mkSucc (t : Term sig ℕ) (z : ℕ) (q : Term sig ℕ) :
+/-- A substitution goes through the successor. -/
+@[simp] theorem subst_mkSucc
+    -- the predecessor
+    (t : Term sig ℕ)
+    -- the substitution of `q` for the name `z`
+    (z : ℕ)
+    (q : Term sig ℕ) :
     (mkSucc t).subst z q = mkSucc (t.subst z q) := by simp [Term.subst]
-@[simp] theorem subst_mkAdd (y r : Term sig ℕ) (z : ℕ) (q : Term sig ℕ) :
+
+/-- A substitution goes through an `add` cell. -/
+@[simp] theorem subst_mkAdd
+    -- the second argument and the result
+    (y r : Term sig ℕ)
+    -- the substitution of `q` for the name `z`
+    (z : ℕ)
+    (q : Term sig ℕ) :
     (mkAdd y r).subst z q = mkAdd (y.subst z q) (r.subst z q) := by simp [Term.subst]
-@[simp] theorem subst_mkMul (y r : Term sig ℕ) (z : ℕ) (q : Term sig ℕ) :
+
+/-- A substitution goes through a `mul` cell. -/
+@[simp] theorem subst_mkMul
+    -- the second argument and the result
+    (y r : Term sig ℕ)
+    -- the substitution of `q` for the name `z`
+    (z : ℕ)
+    (q : Term sig ℕ) :
     (mkMul y r).subst z q = mkMul (y.subst z q) (r.subst z q) := by simp [Term.subst]
-@[simp] theorem subst_num (n z : ℕ) (q : Term sig ℕ) : (num n).subst z q = num n :=
+
+/-- A substitution leaves a numeral unchanged. -/
+@[simp] theorem subst_num
+    -- the numeral, and the substitution of `q` for the name `z`
+    (n z : ℕ)
+    (q : Term sig ℕ) :
+    (num n).subst z q = num n :=
   subst_of_notMem (by simp)
-private theorem subst_var_eq (z : ℕ) (q : Term sig ℕ) : (Term.var z).subst z q = q := by
+
+/-- Substituting `q` for `z` turns the name `z` into `q`. -/
+private theorem subst_var_eq
+    -- the substitution of `q` for the name `z`
+    (z : ℕ)
+    (q : Term sig ℕ) :
+    (Term.var z).subst z q = q := by
   simp [Term.subst]
-private theorem subst_var_ne {z x : ℕ} (q : Term sig ℕ) (h : x ≠ z) :
+
+/-- Substituting for `z` leaves another name `x` unchanged. -/
+private theorem subst_var_ne
+    -- the names `z` and `x`, distinct
+    {z x : ℕ}
+    -- the tree substituted for `z`
+    (q : Term sig ℕ)
+    (h : x ≠ z) :
     (Term.var x).subst z q = Term.var x := by
   simp [Term.subst, h]
 
-@[simp] theorem below_mkZero {k : ℕ} : (mkZero : Term sig ℕ).Below k := by simp [Term.Below]
-@[simp] theorem below_mkEra {k : ℕ} : (mkEra : Term sig ℕ).Below k := by simp [Term.Below]
-@[simp] theorem below_mkSucc {k : ℕ} {t : Term sig ℕ} : (mkSucc t).Below k ↔ t.Below k := by
+/-- The numeral `0` has its names below every bound. -/
+@[simp] theorem below_mkZero
+    -- the bound
+    {k : ℕ} :
+    (mkZero : Term sig ℕ).Below k := by simp [Term.Below]
+
+/-- An eraser has its names below every bound. -/
+@[simp] theorem below_mkEra
+    -- the bound
+    {k : ℕ} :
+    (mkEra : Term sig ℕ).Below k := by simp [Term.Below]
+
+/-- The names of `s(t)` are below `k` exactly when those of `t` are. -/
+@[simp] theorem below_mkSucc
+    -- the bound and the predecessor
+    {k : ℕ}
+    {t : Term sig ℕ} :
+    (mkSucc t).Below k ↔ t.Below k := by
   simp [Term.Below]
-@[simp] theorem below_mkAdd {k : ℕ} {y r : Term sig ℕ} :
+
+/-- The names of `add(y, r)` are below `k` exactly when those of `y` and of `r` are. -/
+@[simp] theorem below_mkAdd
+    -- the bound, the second argument and the result
+    {k : ℕ}
+    {y r : Term sig ℕ} :
     (mkAdd y r).Below k ↔ y.Below k ∧ r.Below k := by
   simp [Term.Below, or_imp, forall_and]
-@[simp] theorem below_mkMul {k : ℕ} {y r : Term sig ℕ} :
+
+/-- The names of `mul(y, r)` are below `k` exactly when those of `y` and of `r` are. -/
+@[simp] theorem below_mkMul
+    -- the bound, the second argument and the result
+    {k : ℕ}
+    {y r : Term sig ℕ} :
     (mkMul y r).Below k ↔ y.Below k ∧ r.Below k := by
   simp [Term.Below, or_imp, forall_and]
-@[simp] theorem below_mkDup {k : ℕ} {a b : Term sig ℕ} :
+
+/-- The names of `δ(a, b)` are below `k` exactly when those of `a` and of `b` are. -/
+@[simp] theorem below_mkDup
+    -- the bound and the two copies
+    {k : ℕ}
+    {a b : Term sig ℕ} :
     (mkDup a b).Below k ↔ a.Below k ∧ b.Below k := by
   simp [Term.Below, or_imp, forall_and]
-@[simp] theorem below_num {k n : ℕ} : (num n : Term sig ℕ).Below k := by simp [Term.Below]
 
-private theorem notMem_of_below {k x : ℕ} {t : Term sig ℕ} (h : t.Below k) (hx : k ≤ x) :
+/-- A numeral has its names below every bound. -/
+@[simp] theorem below_num
+    -- the bound and the numeral
+    {k n : ℕ} :
+    (num n : Term sig ℕ).Below k := by simp [Term.Below]
+
+/-- A name at or above a bound of a tree does not occur in it. -/
+private theorem notMem_of_below
+    -- the bound `k` and a name `x ≥ k`
+    {k x : ℕ}
+    -- a tree whose names are below `k`
+    {t : Term sig ℕ}
+    (h : t.Below k)
+    (hx : k ≤ x) :
     x ∉ t.vars :=
   fun hm => absurd (h x hm) (by omega)
 
-/-! ## Erasing, duplicating, adding and multiplying numerals -/
+-- ============================================================================================
+-- 5. Erasing, duplicating, adding and multiplying numerals
+-- ============================================================================================
 
 /-- **An eraser erases a numeral** (rules `0ε` and `sε`, page 77): `ε ~ n` reduces to the empty
 net, in any context `Δ`. -/
-theorem era_num (n : ℕ) : ∀ Δ : Net sig ℕ, Reduces (s(mkEra, num n) ::ₘ Δ) Δ := by
+theorem era_num
+    -- the numeral
+    (n : ℕ) :
+    -- in every context `Δ`, `era ~ n` reduces to `Δ`
+    ∀ Δ : Net sig ℕ, Reduces (s(mkEra, num n) ::ₘ Δ) Δ := by
   induction n with
   | zero => intro Δ; exact Reduces.of_step (step_era_zero Δ)
   | succ n ih =>
@@ -787,9 +929,17 @@ theorem era_num (n : ℕ) : ∀ Δ : Net sig ℕ, Reduces (s(mkEra, num n) ::ₘ
 
 /-- **A duplicator copies a numeral** (rules `0δ` and `sδ`, page 77): `δ(a, b) ~ n` reduces, up
 to wires, to `a ~ n`, `b ~ n`, in any linear context `Δ` whose names are below `k`. -/
-theorem dup_num (n : ℕ) : ∀ (a b : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
-    Net.Linear (s(mkDup a b, num n) ::ₘ Δ) → Net.Below k (s(mkDup a b, num n) ::ₘ Δ) →
-    Reduces (s(mkDup a b, num n) ::ₘ Δ) (s(a, num n) ::ₘ s(b, num n) ::ₘ Δ) := by
+theorem dup_num
+    -- the numeral
+    (n : ℕ) :
+    -- for the two copies `a`, `b`, the rest of the net `Δ` and a bound `k`
+    ∀ (a b : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
+      -- if the net is linear
+      Net.Linear (s(mkDup a b, num n) ::ₘ Δ) →
+      -- and its names are below `k`
+      Net.Below k (s(mkDup a b, num n) ::ₘ Δ) →
+      -- then `dup(a, b) ~ n` reduces, up to wires, to `a ~ n`, `b ~ n`
+      Reduces (s(mkDup a b, num n) ::ₘ Δ) (s(a, num n) ::ₘ s(b, num n) ::ₘ Δ) := by
   induction n with
   | zero => intro a b Δ k _ _; exact Reduces.of_step (step_dup_zero a b Δ)
   | succ n ih =>
@@ -823,9 +973,17 @@ theorem dup_num (n : ℕ) : ∀ (a b : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ
 
 /-- **Addition of numerals** (rules of `+`, page 76): `add(y, r) ~ n` reduces, up to wires, to
 `r ~ sⁿ(y)`, in any linear context `Δ` whose names are below `k`. -/
-theorem add_num (n : ℕ) : ∀ (y r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
-    Net.Linear (s(mkAdd y r, num n) ::ₘ Δ) → Net.Below k (s(mkAdd y r, num n) ::ₘ Δ) →
-    Reduces (s(mkAdd y r, num n) ::ₘ Δ) (s(r, succs n y) ::ₘ Δ) := by
+theorem add_num
+    -- the numeral
+    (n : ℕ) :
+    -- for the second argument `y`, the result `r`, the rest of the net `Δ` and a bound `k`
+    ∀ (y r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
+      -- if the net is linear
+      Net.Linear (s(mkAdd y r, num n) ::ₘ Δ) →
+      -- and its names are below `k`
+      Net.Below k (s(mkAdd y r, num n) ::ₘ Δ) →
+      -- then `add(y, r) ~ n` reduces, up to wires, to `r ~ sⁿ(y)`
+      Reduces (s(mkAdd y r, num n) ::ₘ Δ) (s(r, succs n y) ::ₘ Δ) := by
   induction n with
   | zero =>
     intro y r Δ k _ _
@@ -852,10 +1010,17 @@ theorem add_num (n : ℕ) : ∀ (y r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ
 /-- **Multiplication of numerals** (rules `0×` and `s×`, page 77, with those of `+`, `δ` and
 `ε`): `mul(m, r) ~ n` reduces, up to wires, to `r ~ n × m`, in any linear context `Δ` whose names
 are below `k`. -/
-theorem mul_num (n m : ℕ) : ∀ (r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
-    Net.Linear (s(mkMul (num m) r, num n) ::ₘ Δ) →
-    Net.Below k (s(mkMul (num m) r, num n) ::ₘ Δ) →
-    Reduces (s(mkMul (num m) r, num n) ::ₘ Δ) (s(r, num (n * m)) ::ₘ Δ) := by
+theorem mul_num
+    -- the first argument `n` and the second argument `m`
+    (n m : ℕ) :
+    -- for the result `r`, the rest of the net `Δ` and a bound `k`
+    ∀ (r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ),
+      -- if the net is linear
+      Net.Linear (s(mkMul (num m) r, num n) ::ₘ Δ) →
+      -- and its names are below `k`
+      Net.Below k (s(mkMul (num m) r, num n) ::ₘ Δ) →
+      -- then `mul(m, r) ~ n` reduces, up to wires, to `r ~ n × m`
+      Reduces (s(mkMul (num m) r, num n) ::ₘ Δ) (s(r, num (n * m)) ::ₘ Δ) := by
   induction n with
   | zero =>
     intro r Δ k _ _
@@ -902,27 +1067,48 @@ theorem mul_num (n m : ℕ) : ∀ (r : Term sig ℕ) (Δ : Net sig ℕ) (k : ℕ
     have h5 := h4.trans (add_num (n * m) (num m) r Δ k (h4.linear hlin) hk4)
     rwa [succs_num, ← Nat.succ_mul] at h5
 
-/-! ## `2 × 2 = 4` -/
+-- ============================================================================================
+-- 6. `2 × 2 = 4`
+-- ============================================================================================
 
 /-- The net of `n × m`: a `mul` cell whose first argument is `n`, second argument `m`, and whose
 result is the free port `0`. -/
-def times (n m : ℕ) : Net sig ℕ := s(mkMul (num m) (.var 0), num n) ::ₘ 0
+def times
+    -- the first and the second argument
+    (n m : ℕ) :
+    Net sig ℕ :=
+  s(mkMul (num m) (.var 0), num n) ::ₘ 0
 
 /-- The net of the numeral `n` on the free port `0`. -/
-def numNet (n : ℕ) : Net sig ℕ := s(.var 0, num n) ::ₘ 0
+def numNet
+    -- the numeral
+    (n : ℕ) :
+    Net sig ℕ :=
+  s(.var 0, num n) ::ₘ 0
 
-theorem times_linear (n m : ℕ) : (times n m).Linear := by
+/-- The net of `n × m` is linear: its only name, the free port `0`, occurs once. -/
+theorem times_linear
+    -- the first and the second argument
+    (n m : ℕ) :
+    (times n m).Linear := by
   intro z
   simp only [times, Net.vars_cons, Net.vars_zero, eqVars_mk, vars_var, vars_num, vars_mkMul,
     Multiset.count_add, Multiset.count_singleton, Multiset.count_zero]
   split_ifs <;> omega
 
-theorem times_below (n m : ℕ) : (times n m).Below 1 := by
+/-- The names of the net of `n × m` are below `1`. -/
+theorem times_below
+    -- the first and the second argument
+    (n m : ℕ) :
+    (times n m).Below 1 := by
   simp [times]
 
 /-- **Multiplication is correct** (Lafont 1997, pages 76-77): the net of `n × m` reduces, up to
 wires, to the net of the numeral `n * m`. -/
-theorem times_reduces (n m : ℕ) :
+theorem times_reduces
+    -- the first and the second argument
+    (n m : ℕ) :
+    -- the net of `n × m` reduces to a net that is the same graph as the net of `n * m`
     ∃ M, StepsE system (times n m) M ∧ Equiv M (numNet (n * m)) :=
   mul_num n m (.var 0) 0 1 (times_linear n m) (times_below n m)
 
@@ -934,24 +1120,44 @@ def four : Net sig ℕ := numNet 4
 
 /-- **`2 × 2 = 4`** (Lafont 1997, pages 76-77): the net of `2 × 2` reduces, by interactions up to
 wires, to a net that is the same graph as the net of `4`. -/
-theorem two_times_two : ∃ M, StepsE system twoTimesTwo M ∧ Equiv M four :=
+theorem two_times_two :
+    -- the net of `2 × 2` reduces to a net that is the same graph as the net of `4`
+    ∃ M, StepsE system twoTimesTwo M ∧ Equiv M four :=
   times_reduces 2 2
 
-/-! ## Into the combinators -/
+-- ============================================================================================
+-- 7. Into the combinators
+-- ============================================================================================
 
 /-- **Unary multiplication translates into the interaction combinators** (Theorem 1 of Lafont
 1997, applied to this system): there is a strict translation compatible with the eight rules. -/
 theorem exists_translation :
-    ∃ Φ : Translation sig Comb.sig, Φ.Strict ∧ Φ.Compatible system Comb.system :=
+    -- a translation into the combinators
+    ∃ Φ : Translation sig Comb.sig,
+      -- which is strict
+      Φ.Strict
+      -- and compatible with the rules of the two systems
+      ∧ Φ.Compatible system Comb.system :=
   Comb.universal_strict sig system system_wellFormed
 
 /-- **`2 × 2 = 4` in the combinators.** For the translation of Theorem 1, every translation `N'`
 of the net of `2 × 2` reduces, by the rules of `con`, `dup` and `era` and up to wires, to a net
 that is the same graph as a translation of the net of `4`. -/
 theorem two_times_two_in_combinators :
-    ∃ Φ : Translation sig Comb.sig, Φ.Strict ∧ Φ.Compatible system Comb.system ∧
-      ∀ N' : Net Comb.sig ℕ, Φ.NetTr twoTimesTwo N' →
-        ∃ M₁ M' : Net Comb.sig ℕ, StepsE Comb.system N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr four M' := by
+    -- a translation into the combinators
+    ∃ Φ : Translation sig Comb.sig,
+      -- which is strict
+      Φ.Strict
+      -- and compatible with the rules of the two systems
+      ∧ Φ.Compatible system Comb.system
+      -- such that every translation `N'` of the net of `2 × 2`
+      ∧ ∀ N' : Net Comb.sig ℕ, Φ.NetTr twoTimesTwo N' →
+        -- reduces in the combinators to a net `M₁`, the same graph as a translation `M'` of
+        -- the net of `4`
+        ∃ M₁ M' : Net Comb.sig ℕ,
+          StepsE Comb.system N' M₁
+          ∧ Equiv M₁ M'
+          ∧ Φ.NetTr four M' := by
   obtain ⟨Φ, hs, hc⟩ := exists_translation
   refine ⟨Φ, hs, hc, fun N' hN' => ?_⟩
   obtain ⟨M, hM, eM⟩ := two_times_two
@@ -961,7 +1167,9 @@ theorem two_times_two_in_combinators :
   exact ⟨M₁, M', h1, e1.trans e', t'⟩
 
 /-- The statement above is not empty: the net of `2 × 2` has a translation. -/
-theorem twoTimesTwo_has_translation (Φ : Translation sig Comb.sig) :
+theorem twoTimesTwo_has_translation
+    -- any translation into the combinators
+    (Φ : Translation sig Comb.sig) :
     ∃ N' : Net Comb.sig ℕ, Φ.NetTr twoTimesTwo N' := by
   obtain ⟨N', _, h, _⟩ := Φ.exists_netTr (times_linear 2 2) (times_below 2 2)
   exact ⟨N', h⟩
