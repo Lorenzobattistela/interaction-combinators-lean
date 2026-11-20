@@ -1,4 +1,4 @@
-% Compile with:  tectonic --keep-logs paper.tex
+% Compile with XeLaTeX (xelatex, bibtex, xelatex, xelatex) or:  tectonic --keep-logs paper.tex
 % The Lean code in boxes is read from snip/*.lean, written by extract.py from snippets.txt.
 \documentclass[11pt,a4paper]{article}
 
@@ -19,10 +19,9 @@
 \usepackage[hidelinks]{hyperref}
 
 % ---- Fonts: a monospace font with the Unicode glyphs of the Lean sources -------------------
-\IfFontExistsTF{Menlo}{\setmonofont{Menlo}[Scale=0.84]}{%
-  \IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}[Scale=0.84]}{}}
-\IfFontExistsTF{STIX Two Math}{\newfontfamily\fallbackfont{STIX Two Math}[Scale=0.9]}{%
-  \newfontfamily\fallbackfont{Latin Modern Math}}
+\setmonofont{DejaVuSansMono.ttf}[Scale=0.84,BoldFont=DejaVuSansMono-Bold.ttf,
+  ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf]
+\newfontfamily\fallbackfont{STIXTwoMath-Regular.otf}[Scale=0.9]
 \input{glyphs.tex}
 
 % ---- Notes to the author -------------------------------------------------------------------
@@ -97,9 +96,10 @@
 
 \title{A Machine-Checked Proof of the Universality of Interaction Combinators}
 
-\author{Lorenzo Battistela\\[0.3em]\small Independent researcher}
+\author{Lorenzo Battistela\\[0.3em]\small Independent researcher\\
+  \small\texttt{lorenzobattistela@gmail.com}}
 
-\date{Draft of 20 November 2026}
+\date{20 November 2026}
 
 \begin{document}
 \maketitle
