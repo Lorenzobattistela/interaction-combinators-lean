@@ -3,9 +3,10 @@ import InteractionCombinators
 /-!
 # Demo: unary arithmetic, translated into the interaction combinators
 
-Lafont's first example of an interaction system (*Interaction Nets*, POPL 1990): the numerals
-`0` and `S`, and addition. A cell `add` has its principal port on its first argument; its two
-auxiliary ports are the second argument `y` and the result `r`:
+Lafont's first example of an interaction system (*Interaction Nets*, POPL 1990; also Section 1.5
+of Lafont 1997, page 76): the numerals `0` and `S`, and addition. A cell `add` has its principal
+port on its first argument; its two auxiliary ports are the second argument `y` and the result
+`r`:
 
 * `add(y, r) ~ 0`      reduces to   `y ~ r`
 * `add(y, r) ~ S(x)`   reduces to   `r ~ S(w)`, `x ~ add(y, w)`
@@ -24,11 +25,30 @@ This file shows:
 The translation is the one built in the proof of Theorem 1. It is not computed here: its
 construction uses choice (an enumeration of the symbols and the decomposition of the rules), so
 the combinator net itself is not displayed.
+
+The file is a sequence of examples, each using the previous one, so its sections follow the
+narrative rather than the order definitions, lemmas, main result.
+
+Contents, in the order of the file:
+
+1. The signature and its terms: `Sym`, `sig`, `mkZero`, `mkSucc`, `mkAdd`, `num`, and the simp
+   lemmas on their names and substitutions (`vars_num`, `bind_num`, …).
+2. The two rules: `ruleAddZero`, `ruleAddSucc`, `system`, their linearity and reducedness, and
+   `system_wellFormed`.
+3. Computing with the system: the two interactions `step_add_zero`, `step_add_succ`; the nets
+   `twoPlusTwo`, `four`, `fourUnfolded`; `twoPlusTwo_steps`, `fourUnfolded_equiv`, and the
+   result `two_plus_two`.
+4. Into the combinators: `exists_translation`, `two_plus_two_in_combinators`, and the
+   non-vacuity check `twoPlusTwo_has_translation`.
 -/
 
 namespace INet.Demo.Arith
 
 open Term
+
+-- ============================================================================================
+-- 1. The signature and its terms
+-- ============================================================================================
 
 /-- The symbols: `0`, successor and addition. -/
 inductive Sym : Type
@@ -44,70 +64,147 @@ def sig : Signature where
     | .add => 2
 
 instance : Finite sig.Sym :=
-  Finite.of_injective (fun α : Sym => (match α with | .zero => 0 | .succ => 1 | .add => 2 : Fin 3))
+  Finite.of_injective
+    (fun α : Sym => (match α with | .zero => 0 | .succ => 1 | .add => 2 : Fin 3))
     (by intro α β h; cases α <;> cases β <;> first | rfl | exact absurd h (by decide))
 
+-- the type of the names of the wires
 variable {ν : Type}
 
 /-- The numeral `0`. -/
 def mkZero : Term sig ν := .app Sym.zero ![]
+
 /-- The successor of `t`. -/
-def mkSucc (t : Term sig ν) : Term sig ν := .app Sym.succ ![t]
+def mkSucc
+    -- the predecessor
+    (t : Term sig ν) :
+    Term sig ν :=
+  .app Sym.succ ![t]
+
 /-- An `add` cell seen from its principal port (the first argument), with second argument `y` and
 result `r`. -/
-def mkAdd (y r : Term sig ν) : Term sig ν := .app Sym.add ![y, r]
+def mkAdd
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    Term sig ν :=
+  .app Sym.add ![y, r]
 
 /-- The numeral `n`. -/
 def num : ℕ → Term sig ν
   | 0 => mkZero
   | n + 1 => mkSucc (num n)
 
-@[simp] theorem vars_mkZero : (mkZero : Term sig ν).vars = 0 := by simp [mkZero, sig]
-@[simp] theorem vars_mkSucc (t : Term sig ν) : (mkSucc t).vars = t.vars := by simp [mkSucc, sig]
-@[simp] theorem vars_mkAdd (y r : Term sig ν) : (mkAdd y r).vars = y.vars + r.vars := by
+/-- The numeral `0` has no name. -/
+@[simp] theorem vars_mkZero :
+    (mkZero : Term sig ν).vars = 0 := by
+  simp [mkZero, sig]
+
+/-- The names of `S(t)` are those of `t`. -/
+@[simp] theorem vars_mkSucc
+    -- the predecessor
+    (t : Term sig ν) :
+    (mkSucc t).vars = t.vars := by
+  simp [mkSucc, sig]
+
+/-- The names of `add(y, r)` are those of `y` and those of `r`. -/
+@[simp] theorem vars_mkAdd
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    (mkAdd y r).vars = y.vars + r.vars := by
   simp [mkAdd, sig, Fin.sum_univ_two]
 
-@[simp] theorem bind_mkZero {μ : Type} (f : ν → Term sig μ) :
+/-- A substitution leaves `0` unchanged. -/
+@[simp] theorem bind_mkZero
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ) :
     (mkZero : Term sig ν).bind f = mkZero := by
   show Term.app (S := sig) Sym.zero _ = Term.app (S := sig) Sym.zero _
   congr 1; funext (i : Fin 0); exact i.elim0
-@[simp] theorem bind_mkSucc {μ : Type} (f : ν → Term sig μ) (t : Term sig ν) :
+
+/-- A substitution goes through the successor. -/
+@[simp] theorem bind_mkSucc
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the predecessor
+    (t : Term sig ν) :
     (mkSucc t).bind f = mkSucc (t.bind f) := by
   show Term.app Sym.succ (fun i => (![t] i).bind f) = Term.app Sym.succ _
   congr 1; funext (i : Fin 1); fin_cases i; rfl
-@[simp] theorem bind_mkAdd {μ : Type} (f : ν → Term sig μ) (y r : Term sig ν) :
+
+/-- A substitution goes through an `add` cell. -/
+@[simp] theorem bind_mkAdd
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the second argument and the result
+    (y r : Term sig ν) :
     (mkAdd y r).bind f = mkAdd (y.bind f) (r.bind f) := by
   show Term.app Sym.add (fun i => (![y, r] i).bind f) = Term.app Sym.add _
   congr 1; funext (i : Fin 2); fin_cases i <;> rfl
 
-@[simp] theorem vars_num (n : ℕ) : (num n : Term sig ν).vars = 0 := by
+/-- A numeral has no name. -/
+@[simp] theorem vars_num
+    -- the number
+    (n : ℕ) :
+    (num n : Term sig ν).vars = 0 := by
   induction n with
   | zero => simp [num]
   | succ n ih => simp [num, ih]
 
-@[simp] theorem bind_num {μ : Type} (f : ν → Term sig μ) (n : ℕ) :
+/-- A substitution leaves a numeral unchanged. -/
+@[simp] theorem bind_num
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the number
+    (n : ℕ) :
     (num n : Term sig ν).bind f = num n := by
   induction n with
   | zero => simp [num]
   | succ n ih => simp [num, ih]
 
-/-! ## The two rules -/
+-- ============================================================================================
+-- 2. The two rules
+-- ============================================================================================
 
 section Rules
 
 /-- The `i`-th auxiliary port of the first cell. -/
-private def l {a b m : ℕ} (i : Fin a) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inl i)
-/-- The `i`-th auxiliary port of the second cell. -/
-private def r {a b m : ℕ} (i : Fin b) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inl i))
-/-- The `i`-th wire created by the rule. -/
-private def w {a b m : ℕ} (i : Fin m) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inr i))
+private def l
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the port
+    (i : Fin a) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inl i)
 
-/-- `add(y, r) ~ 0`: the second argument is the result. -/
+/-- The `i`-th auxiliary port of the second cell. -/
+private def r
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the port
+    (i : Fin b) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inl i))
+
+/-- The `i`-th wire created by the rule. -/
+private def w
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the wire
+    (i : Fin m) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inr i))
+
+/-- `add(y, r) ~ 0`: the second argument is the result (Lafont 1997, Section 1.5, page 76). -/
 def ruleAddZero : Rule sig 2 0 := ⟨0, {s(l 0, l 1)}⟩
 
 /-- `add(y, r) ~ S(x)`: the result is the successor of a new wire `w`, and `add(y, w)` goes on
-with `x`. -/
-def ruleAddSucc : Rule sig 2 1 := ⟨1, s(l 1, mkSucc (w 0)) ::ₘ {s(r 0, mkAdd (l 0) (w 0))}⟩
+with `x` (Lafont 1997, Section 1.5, page 76). -/
+def ruleAddSucc : Rule sig 2 1 :=
+  ⟨1, s(l 1, mkSucc (w 0)) ::ₘ {s(r 0, mkAdd (l 0) (w 0))}⟩
 
 /-- The interaction system of unary addition. -/
 def system : System sig where
@@ -116,26 +213,38 @@ def system : System sig where
     | .add, .succ => some ruleAddSucc
     | _, _ => none
 
-theorem ruleAddZero_linear : ruleAddZero.Linear := by
+/-- The rule for `add` and `0` is linear (Section 1.2, page 73): in its right member each auxiliary
+port occurs once and each new wire twice. -/
+theorem ruleAddZero_linear :
+    ruleAddZero.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleAddZero, l]
   · intro j; exact j.elim0
   · intro i; exact i.elim0
 
-theorem ruleAddSucc_linear : ruleAddSucc.Linear := by
+/-- The rule for `add` and `S` is linear (Section 1.2, page 73): in its right member each auxiliary
+port occurs once and each new wire twice. -/
+theorem ruleAddSucc_linear :
+    ruleAddSucc.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleAddSucc, l, r, w]
   · intro j; fin_cases j; simp [ruleAddSucc, l, r, w]
   · intro i; fin_cases i; simp [ruleAddSucc, l, r, w]
 
-theorem ruleAddZero_reduced : ruleAddZero.Reduced := by
+/-- The rule for `add` and `0` is reduced (Section 1.2, page 73): every equation of its right
+member has an auxiliary port of the two cells on one side. -/
+theorem ruleAddZero_reduced :
+    ruleAddZero.Reduced := by
   intro e he
   unfold ruleAddZero at he
   dsimp only at he
   obtain rfl := Multiset.mem_singleton.1 he
   exact ⟨.inl 0, _, rfl, by simp⟩
 
-theorem ruleAddSucc_reduced : ruleAddSucc.Reduced := by
+/-- The rule for `add` and `S` is reduced (Section 1.2, page 73): every equation of its right
+member has an auxiliary port of the two cells on one side. -/
+theorem ruleAddSucc_reduced :
+    ruleAddSucc.Reduced := by
   intro e he
   unfold ruleAddSucc at he
   dsimp only at he
@@ -146,7 +255,8 @@ theorem ruleAddSucc_reduced : ruleAddSucc.Reduced := by
 
 /-- Unary addition is an interaction system: its rules are linear and reduced, no pair of symbols
 has two rules, and no symbol interacts with itself. -/
-theorem system_wellFormed : system.WellFormed where
+theorem system_wellFormed :
+    system.WellFormed where
   linear := by
     intro α β r h
     cases α <;> cases β <;> cases h <;>
@@ -164,11 +274,17 @@ theorem system_wellFormed : system.WellFormed where
 
 end Rules
 
-/-! ## Computing with the system -/
+-- ============================================================================================
+-- 3. Computing with the system
+-- ============================================================================================
 
 section Steps
 
-variable (y res x : Term sig ℕ) (Δ : Net sig ℕ)
+variable
+    -- the second argument and the result of the `add` cell, and the predecessor of `S(x)`
+    (y res x : Term sig ℕ)
+    -- the rest of the net
+    (Δ : Net sig ℕ)
 
 /-- `add(y, r) ~ 0` rewrites to `y ~ r`. -/
 theorem step_add_zero :
@@ -185,7 +301,9 @@ theorem step_add_zero :
 
 /-- `add(y, r) ~ S(x)` rewrites to `r ~ S(w)`, `x ~ add(y, w)`, for a name `w` not used in the
 net. -/
-theorem step_add_succ (k : ℕ)
+theorem step_add_succ
+    -- the name of the new wire `w`, not used in the net
+    (k : ℕ)
     (hk : k ∉ Net.vars (s(mkAdd y res, mkSucc x) ::ₘ Δ)) :
     Step system (s(mkAdd y res, mkSucc x) ::ₘ Δ)
       (s(res, mkSucc (.var k)) ::ₘ s(x, mkAdd y (.var k)) ::ₘ Δ) := by
@@ -214,7 +332,8 @@ def fourUnfolded : Net sig ℕ :=
   s(num 2, .var 2) ::ₘ s(.var 1, mkSucc (.var 2)) ::ₘ {s(.var 0, mkSucc (.var 1))}
 
 /-- `2 + 2` reduces in three interactions: two for the successors, one for the zero. -/
-theorem twoPlusTwo_steps : Steps system twoPlusTwo fourUnfolded := by
+theorem twoPlusTwo_steps :
+    Steps system twoPlusTwo fourUnfolded := by
   have s1 : Step system twoPlusTwo
       (s(.var 0, mkSucc (.var 1)) ::ₘ s(num 1, mkAdd (num 2) (.var 1)) ::ₘ 0) :=
     step_add_succ (num 2) (.var 0) (num 1) 0 1 (by simp [Net.vars, num])
@@ -249,7 +368,9 @@ theorem twoPlusTwo_steps : Steps system twoPlusTwo fourUnfolded := by
 /-- The net after the wire `w₂` has been substituted. -/
 private def fourHalf : Net sig ℕ := s(.var 1, num 3) ::ₘ {s(.var 0, mkSucc (.var 1))}
 
-private theorem wire1 : Equiv fourUnfolded fourHalf := by
+/-- Substituting the wire `w₂` (the name `2`) of `fourUnfolded` gives `fourHalf`. -/
+private theorem wire1 :
+    Equiv fourUnfolded fourHalf := by
   have L : Net.Linear (s(.var 2, num 2) ::ₘ s(.var 1, mkSucc (.var 2)) ::ₘ
       ({s(.var 0, mkSucc (.var 1))} : Net sig ℕ)) := by
     intro z
@@ -269,7 +390,9 @@ private theorem wire1 : Equiv fourUnfolded fourHalf := by
   exact (Equiv.of_eq e.symm).trans
     ((Wire.mk 2 (num 2) (.var 1) (mkSucc (.var 2)) _ L hx).equiv.trans (Equiv.of_eq r))
 
-private theorem wire2 : Equiv fourHalf four := by
+/-- Substituting the wire `w₁` (the name `1`) of `fourHalf` gives `four`. -/
+private theorem wire2 :
+    Equiv fourHalf four := by
   have L : Net.Linear (s(.var 1, num 3) ::ₘ s(.var 0, mkSucc (.var 1)) ::ₘ (0 : Net sig ℕ)) := by
     intro z
     simp only [Net.vars_cons, Net.vars_zero, eqVars_mk, vars_var, vars_num, vars_mkSucc,
@@ -283,30 +406,56 @@ private theorem wire2 : Equiv fourHalf four := by
   exact (Wire.mk 1 (num 3) (.var 0) (mkSucc (.var 1)) _ L hx).equiv.trans (Equiv.of_eq r)
 
 /-- The wires of `fourUnfolded` can be substituted: it is the same graph as `4`. -/
-theorem fourUnfolded_equiv : Equiv fourUnfolded four :=
+theorem fourUnfolded_equiv :
+    Equiv fourUnfolded four :=
   wire1.trans wire2
 
 /-- **`2 + 2 = 4`**: the net of `2 + 2` reduces to a net that is the same graph as the net of
 `4`. -/
-theorem two_plus_two : ∃ M, Steps system twoPlusTwo M ∧ Equiv M four :=
+theorem two_plus_two :
+    -- there is a net `M` such that
+    ∃ M,
+      -- the net of `2 + 2` reduces to `M`,
+      Steps system twoPlusTwo M ∧
+      -- and `M` is the same graph as the net of `4`
+      Equiv M four :=
   ⟨fourUnfolded, twoPlusTwo_steps, fourUnfolded_equiv⟩
 
-/-! ## Into the combinators -/
+-- ============================================================================================
+-- 4. Into the combinators
+-- ============================================================================================
 
 /-- **Unary addition translates into the interaction combinators** (Theorem 1 of Lafont 1997,
 applied to this system): there is a strict translation, that is, one whose principal nets all
 start with a cell, that is compatible with the two rules. -/
 theorem exists_translation :
-    ∃ Φ : Translation sig Comb.sig, Φ.Strict ∧ Φ.Compatible system Comb.system :=
+    -- there is a translation `Φ` of the symbols into the combinators
+    ∃ Φ : Translation sig Comb.sig,
+      -- that is strict,
+      Φ.Strict ∧
+      -- and compatible with the rules of unary addition and those of the combinators
+      Φ.Compatible system Comb.system :=
   Comb.universal_strict sig system system_wellFormed
 
 /-- **`2 + 2 = 4` in the combinators.** For the translation of Theorem 1, every translation `N'`
 of the net of `2 + 2` reduces, by the rules of `con`, `dup` and `era` and up to wires, to a net
 that is the same graph as a translation of the net of `4`. -/
 theorem two_plus_two_in_combinators :
-    ∃ Φ : Translation sig Comb.sig, Φ.Strict ∧ Φ.Compatible system Comb.system ∧
+    -- there is a translation `Φ` of the symbols into the combinators
+    ∃ Φ : Translation sig Comb.sig,
+      -- that is strict,
+      Φ.Strict ∧
+      -- compatible with the rules of unary addition and those of the combinators,
+      Φ.Compatible system Comb.system ∧
+      -- and such that every translation `N'` of the net of `2 + 2`
       ∀ N' : Net Comb.sig ℕ, Φ.NetTr twoPlusTwo N' →
-        ∃ M₁ M' : Net Comb.sig ℕ, StepsE Comb.system N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr four M' := by
+        -- reduces, up to wires, to a net `M₁`
+        ∃ M₁ M' : Net Comb.sig ℕ,
+          StepsE Comb.system N' M₁ ∧
+          -- that is the same graph as a net `M'`
+          Equiv M₁ M' ∧
+          -- which is a translation of the net of `4`
+          Φ.NetTr four M' := by
   obtain ⟨Φ, hs, hc⟩ := exists_translation
   refine ⟨Φ, hs, hc, fun N' hN' => ?_⟩
   obtain ⟨M₁, M₂, h1, e1, t2⟩ := Translation.Compatible.stepsE system_wellFormed.linear
@@ -315,7 +464,10 @@ theorem two_plus_two_in_combinators :
   exact ⟨M₁, M', h1, e1.trans e', t'⟩
 
 /-- The statement above is not empty: the net of `2 + 2` has a translation. -/
-theorem twoPlusTwo_has_translation (Φ : Translation sig Comb.sig) :
+theorem twoPlusTwo_has_translation
+    -- a translation of the symbols into the combinators
+    (Φ : Translation sig Comb.sig) :
+    -- there is a translation of the net of `2 + 2`
     ∃ N' : Net Comb.sig ℕ, Φ.NetTr twoPlusTwo N' := by
   have hlin : twoPlusTwo.Linear := by
     intro z
