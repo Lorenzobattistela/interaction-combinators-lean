@@ -4,9 +4,8 @@ import InteractionCombinators.Graphs.GraphIsoEquiv
 # Every well-formed graph is the graph of a linear net
 
 Lafont 1997, Section 1.1, page 71: a net is a graph, and every graph can be written down as a
-text. This file proves PLAN.md Stage C, statement 4: a well-formed graph `G` is, up to `Iso`, the
-graph of a linear net, the flat text of `G` (`Graph.flat`), whose free ports are the free ports
-of `G`.
+text. This file proves that a well-formed graph `G` is, up to `Iso`, the graph of a linear net,
+the flat text of `G` (`Graph.flat`), whose free ports are the free ports of `G`.
 
 The ports of the cells are named `pn c i = B + 2 ⟨c, i⟩` and the cyclic wires `ln j = B + 2 j + 1`,
 where `B` bounds the free ports of `G`. The raw graph of the flat text is isomorphic to the graph
@@ -14,13 +13,24 @@ with the cells of `G`, a *stub* `pn c i — port c i` for each port, a wire betw
 wire of `G` and a wire `ln j — ln j` for each cyclic wire. Erasing each `pn c i` joins its stub
 to its wire, and gives back the wires of `G`; erasing each `ln j` gives back its cyclic wires.
 
-* `Graph.contracts_stubs` — erasing the names of stubs plugs their ports into the other wires.
-* `Graph.contracts_loops` — erasing the names of wires `z — z` makes cyclic wires.
-* `Graph.cellGraph_iso` — the raw graph of the equations of some cells is isomorphic to their
-  stubs.
-* `Graph.WF.hasGraph_flatB` — the flat text of `G` has a graph isomorphic to `G`.
-* `Graph.WF.exists_net_free` — the theorem, with the free ports.
-* `Graph.WF.exists_net` — the theorem as stated in PLAN.md.
+Contents, in the order of the file:
+
+1. Erasing many names: `Graph.bind_wireEnds_map`, `Graph.substName_eq_name`,
+   `Graph.count_map_substName`; `Graph.contracts_stubs` (erasing the names of stubs plugs their
+   ports into the other wires), `Graph.contracts_loops` (erasing the names of wires `z — z` makes
+   cyclic wires).
+2. The stubs of some cells: `Graph.mem_bind_cellPorts`, `Graph.name_notMem_bind_cellPorts`,
+   `Graph.nodup_bind_cellPorts`; the definitions `Graph.cellGraph` (the stubs) and
+   `Graph.cellPair` (the equation of a cell); `Graph.cellGraph_portsIn`, the private
+   `range_succ_map''`, `Graph.cellGraph_single_iso`, `Graph.cellGraph_iso` (the raw graph of the
+   equations of some cells is isomorphic to their stubs).
+3. Equations between names: `Graph.raw_names`, the private `exists_list_sym2`.
+4. Fresh names for the ports and the cyclic wires: `Graph.freeBound`, `Graph.realPn`,
+   `Graph.realLn`, `Graph.unflat` and their lemmas.
+5. The names of the flat text of a well-formed graph: `Graph.count_vars_flatB`,
+   `Graph.linear_flatB`, `Graph.count_vars_flatB_eq_one`.
+6. Main results: `Graph.WF.hasGraph_flatB` (the flat text of `G` has a graph isomorphic to `G`),
+   `Graph.WF.exists_net_free` (the theorem, with the free ports), `Graph.WF.exists_net`.
 -/
 
 namespace INet
@@ -31,10 +41,15 @@ open Term
 
 namespace Graph
 
-/-! ## Erasing many names -/
+-- ============================================================================================
+-- 1. Erasing many names
+-- ============================================================================================
 
 /-- The ends of renamed wires are the renamed ends. -/
-theorem bind_wireEnds_map (f : End ℕ → End ℕ) (W : Multiset (Sym2 (End ℕ))) :
+theorem bind_wireEnds_map
+    -- the renaming of the ends, and the wires
+    (f : End ℕ → End ℕ)
+    (W : Multiset (Sym2 (End ℕ))) :
     (W.map (Sym2.map f)).bind wireEnds = (W.bind wireEnds).map f := by
   rw [Multiset.bind_map, Multiset.map_bind]
   congr 1
@@ -44,8 +59,19 @@ theorem bind_wireEnds_map (f : End ℕ → End ℕ) (W : Multiset (Sym2 (End ℕ
 
 /-- If replacing the name `x` by a port gives the name `y`, the end was already `y`, and `y` is not
 `x` (Lafont 1997, page 71). -/
-theorem substName_eq_name {x y : ℕ} {r : End ℕ} (hr : ∀ w, r ≠ .name w) {z : End ℕ}
-    (h : End.substName x r z = .name y) : z = .name y ∧ y ≠ x := by
+theorem substName_eq_name
+    -- the erased name `x`, and the name `y` obtained
+    {x y : ℕ}
+    -- what replaces `x`: an end that is not a name
+    {r : End ℕ}
+    (hr : ∀ w, r ≠ .name w)
+    -- an end that becomes `y` once `x` is replaced by `r`
+    {z : End ℕ}
+    (h : End.substName x r z = .name y) :
+    -- the end was `y`
+    z = .name y ∧
+    -- and `y` is not `x`
+    y ≠ x := by
   cases z with
   | port c i => cases h
   | name w =>
@@ -57,8 +83,16 @@ theorem substName_eq_name {x y : ℕ} {r : End ℕ} (hr : ∀ w, r ≠ .name w) 
       exact ⟨h, fun e => hw (End.name.inj (h.trans (e ▸ rfl)))⟩
 
 /-- Replacing the name `x` by a port keeps the number of occurrences of the other names. -/
-theorem count_map_substName {x y : ℕ} (hxy : y ≠ x) {r : End ℕ} (hr : ∀ w, r ≠ .name w)
-    (M : Multiset (End ℕ)) : (M.map (End.substName x r)).count (.name y) = M.count (.name y) := by
+theorem count_map_substName
+    -- the erased name `x`, and another name `y`
+    {x y : ℕ}
+    (hxy : y ≠ x)
+    -- what replaces `x`: an end that is not a name
+    {r : End ℕ}
+    (hr : ∀ w, r ≠ .name w)
+    -- the ends
+    (M : Multiset (End ℕ)) :
+    (M.map (End.substName x r)).count (.name y) = M.count (.name y) := by
   rw [Multiset.count_map, Multiset.count_eq_card_filter_eq]
   congr 1
   apply Multiset.filter_congr
@@ -74,13 +108,29 @@ to a port `e`. If each name `h e` of a stub ends exactly one other wire of `W`, 
 names plugs the ports `e` into the wires of `W`: the result is `W` with each `h e` replaced by
 `e`, which is `W` renamed by any `g` that undoes `h` on the ports of the stubs and keeps every
 other end of `W`. -/
-theorem contracts_stubs (C : Multiset (ℕ × S.Sym)) (n : ℕ) (h : End ℕ → ℕ)
-    (g : End ℕ → End ℕ) (hgp : ∀ c i, g (.port c i) = .port c i) :
+theorem contracts_stubs
+    -- the cells, and the number of cyclic wires
+    (C : Multiset (ℕ × S.Sym))
+    (n : ℕ)
+    -- the names `h e` of the stubs
+    (h : End ℕ → ℕ)
+    -- the renaming `g`, which keeps every port
+    (g : End ℕ → End ℕ)
+    (hgp : ∀ c i, g (.port c i) = .port c i) :
     ∀ (P : Multiset (End ℕ)) (W : Multiset (Sym2 (End ℕ))),
-      (∀ e ∈ P, ∃ c i, e = .port c i) → (P.map h).Nodup → (∀ e ∈ P, g (.name (h e)) = e) →
+      -- for ports `P`, the ends of the stubs
+      (∀ e ∈ P, ∃ c i, e = .port c i) →
+      -- whose stubs have distinct names
+      (P.map h).Nodup →
+      -- `g` undoes `h` on these ports
+      (∀ e ∈ P, g (.name (h e)) = e) →
+      -- the name of each stub ends exactly one wire of `W`
       (∀ e ∈ P, (W.bind wireEnds).count (.name (h e)) = 1) →
+      -- `g` keeps every other name at an end of `W`
       (∀ y, .name y ∈ W.bind wireEnds → g (.name y) ≠ .name y → ∃ e ∈ P, h e = y) →
-      Relation.ReflTransGen Contract ⟨C, P.map (fun e => s(.name (h e), e)) + W, n⟩
+      -- the stubs with the wires `W` contract to the wires `W` renamed by `g`
+      Relation.ReflTransGen Contract
+        ⟨C, P.map (fun e => s(.name (h e), e)) + W, n⟩
         ⟨C, W.map (Sym2.map g), n⟩ := by
   intro P
   induction P using Multiset.induction_on with
@@ -156,7 +206,12 @@ theorem contracts_stubs (C : Multiset (ℕ × S.Sym)) (n : ℕ) (h : End ℕ →
       · exact ⟨e, he, rfl⟩
 
 /-- **Erasing the names of wires `z — z`** (Lafont 1997, page 71): each becomes a cyclic wire. -/
-theorem contracts_loops (C : Multiset (ℕ × S.Sym)) (ln : ℕ → ℕ) :
+theorem contracts_loops
+    -- the cells, and the names `ln j` of the wires `z — z`
+    (C : Multiset (ℕ × S.Sym))
+    (ln : ℕ → ℕ) :
+    -- for `m` wires `ln j — ln j`, `n` cyclic wires and other wires `W`,
+    -- erasing the `m` names leaves `W` and `n + m` cyclic wires
     ∀ (m n : ℕ) (W : Multiset (Sym2 (End ℕ))),
       Relation.ReflTransGen Contract
         ⟨C, (Multiset.range m).map (fun j => s(.name (ln j), .name (ln j))) + W, n⟩
@@ -168,10 +223,16 @@ theorem contracts_loops (C : Multiset (ℕ × S.Sym)) (ln : ℕ → ℕ) :
     rw [show n + 1 + m = n + (m + 1) by omega] at this
     exact Relation.ReflTransGen.head (Contract.loop _ C _ n) this
 
-/-! ## The stubs of some cells -/
+-- ============================================================================================
+-- 2. The stubs of some cells
+-- ============================================================================================
 
 /-- The ports of some cells. -/
-theorem mem_bind_cellPorts {C : Multiset (ℕ × S.Sym)} {c i : ℕ} :
+theorem mem_bind_cellPorts
+    -- the cells, and a port `i` of the cell numbered `c`
+    {C : Multiset (ℕ × S.Sym)}
+    {c i : ℕ} :
+    -- it is a port of the cells iff `c` is a cell of symbol `α` and `i ≤ arity α`
     (End.port c i : End ℕ) ∈ C.bind cellPorts ↔ ∃ α, (c, α) ∈ C ∧ i ≤ S.arity α := by
   constructor
   · intro hm
@@ -185,7 +246,10 @@ theorem mem_bind_cellPorts {C : Multiset (ℕ × S.Sym)} {c i : ℕ} :
     exact ⟨i, by omega, rfl⟩
 
 /-- A name is not a port of a cell (Lafont 1997, page 71). -/
-theorem name_notMem_bind_cellPorts (C : Multiset (ℕ × S.Sym)) (x : ℕ) :
+theorem name_notMem_bind_cellPorts
+    -- the cells, and a name
+    (C : Multiset (ℕ × S.Sym))
+    (x : ℕ) :
     (End.name x : End ℕ) ∉ C.bind cellPorts := by
   intro hm
   obtain ⟨p, -, hm⟩ := Multiset.mem_bind.1 hm
@@ -193,7 +257,10 @@ theorem name_notMem_bind_cellPorts (C : Multiset (ℕ × S.Sym)) (x : ℕ) :
   cases e
 
 /-- The ports of cells with distinct numbers are distinct. -/
-theorem nodup_bind_cellPorts {C : Multiset (ℕ × S.Sym)} (h : (C.map Prod.fst).Nodup) :
+theorem nodup_bind_cellPorts
+    -- the cells, with distinct numbers
+    {C : Multiset (ℕ × S.Sym)}
+    (h : (C.map Prod.fst).Nodup) :
     (C.bind cellPorts : Multiset (End ℕ)).Nodup := by
   induction C using Multiset.induction_on with
   | empty => simp
@@ -208,17 +275,32 @@ theorem nodup_bind_cellPorts {C : Multiset (ℕ × S.Sym)} (h : (C.map Prod.fst)
 
 /-- The graph of the stubs of some cells: the cells, and a wire `pn c i — port c i` for each
 port of each cell. -/
-def cellGraph (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym)) : Graph S ℕ :=
+def cellGraph
+    -- the names of the ports, and the cells
+    (pn : ℕ → ℕ → ℕ)
+    (C : Multiset (ℕ × S.Sym)) :
+    Graph S ℕ :=
   ⟨C, (C.bind cellPorts).map (fun e => s(.name (e.flatName pn), e)), 0⟩
 
 /-- The equation of a cell in the flat text, as a pair of trees. -/
-def cellPair (pn : ℕ → ℕ → ℕ) (p : ℕ × S.Sym) : Term S ℕ × Term S ℕ :=
+def cellPair
+    -- the names of the ports, and a cell: its number and its symbol
+    (pn : ℕ → ℕ → ℕ)
+    (p : ℕ × S.Sym) :
+    Term S ℕ × Term S ℕ :=
   (var (pn p.1 0), app p.2 fun i => var (pn p.1 ((i : ℕ) + 1)))
 
 /-- Every port at an end of a wire of the stubs of some cells is a port of one of these cells
 (Lafont 1997, page 71). -/
-theorem cellGraph_portsIn (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym)) (c i : ℕ)
-    (hm : End.port c i ∈ (cellGraph pn C).ends) : c ∈ (cellGraph pn C).cells.map Prod.fst := by
+theorem cellGraph_portsIn
+    -- the names of the ports, and the cells
+    (pn : ℕ → ℕ → ℕ)
+    (C : Multiset (ℕ × S.Sym))
+    -- a port at an end of a wire of the stubs
+    (c i : ℕ)
+    (hm : End.port c i ∈ (cellGraph pn C).ends) :
+    -- its cell is one of the cells
+    c ∈ (cellGraph pn C).cells.map Prod.fst := by
   rw [ends_eq_bind] at hm
   obtain ⟨w, hw, hm⟩ := Multiset.mem_bind.1 hm
   obtain ⟨e, he, rfl⟩ := Multiset.mem_map.1 hw
@@ -230,7 +312,10 @@ theorem cellGraph_portsIn (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym
     exact Multiset.mem_map.2 ⟨_, hα, rfl⟩
 
 /-- The values of `f` on `0, …, n`: `f 0`, then the others as a sum over `Fin n`. -/
-private theorem range_succ_map'' {β : Type} (f : ℕ → β) (n : ℕ) :
+private theorem range_succ_map''
+    {β : Type}
+    (f : ℕ → β)
+    (n : ℕ) :
     (Multiset.range (n + 1)).map f = f 0 ::ₘ ∑ i : Fin n, {f ((i : ℕ) + 1)} := by
   induction n with
   | zero => simp
@@ -242,7 +327,11 @@ private theorem range_succ_map'' {β : Type} (f : ℕ → β) (n : ℕ) :
     abel
 
 /-- The raw graph of the equation of one cell is isomorphic to its stubs. -/
-theorem cellGraph_single_iso (pn : ℕ → ℕ → ℕ) (p : ℕ × S.Sym) (k : ℕ) :
+theorem cellGraph_single_iso
+    -- the names of the ports, a cell, and the number given to the cell in the raw graph
+    (pn : ℕ → ℕ → ℕ)
+    (p : ℕ × S.Sym)
+    (k : ℕ) :
     (cellGraph pn {p}).Iso (raw k [cellPair pn p]) := by
   refine ⟨fun _ => k, ?_, ?_, ?_, rfl⟩
   · intro a ha b hb _
@@ -256,9 +345,15 @@ theorem cellGraph_single_iso (pn : ℕ → ℕ → ℕ) (p : ℕ × S.Sym) (k : 
 
 /-- **The raw graph of the equations of some cells is isomorphic to their stubs** (Lafont 1997,
 page 71), when the cells have distinct numbers. -/
-theorem cellGraph_iso (pn : ℕ → ℕ → ℕ) : ∀ (cl : List (ℕ × S.Sym)) (k : ℕ),
-    (cl.map Prod.fst).Nodup → (cellGraph pn (cl : Multiset (ℕ × S.Sym))).Iso
-      (raw k (cl.map (cellPair pn)))
+theorem cellGraph_iso
+    -- the names of the ports
+    (pn : ℕ → ℕ → ℕ) :
+    -- for a list of cells with distinct numbers, and the first number `k` of the raw graph,
+    ∀ (cl : List (ℕ × S.Sym)) (k : ℕ),
+      (cl.map Prod.fst).Nodup →
+      -- the stubs of the cells are isomorphic to the raw graph of their equations
+      (cellGraph pn (cl : Multiset (ℕ × S.Sym))).Iso
+        (raw k (cl.map (cellPair pn)))
   | [], k, _ => by
     have : cellGraph pn ((([] : List (ℕ × S.Sym)) : Multiset (ℕ × S.Sym))) = raw k [] := by
       simp [cellGraph, raw]
@@ -286,13 +381,21 @@ theorem cellGraph_iso (pn : ℕ → ℕ → ℕ) : ∀ (cl : List (ℕ × S.Sym)
       rw [mem_raw_fst] at hc'
       omega
 
-/-! ## Equations between names -/
+-- ============================================================================================
+-- 3. Equations between names
+-- ============================================================================================
 
 /-- The raw graph of equations between names: one wire between names for each equation. -/
-theorem raw_names : ∀ (k : ℕ) (l : List (ℕ × ℕ)),
-    raw k (l.map fun q => ((var q.1 : Term S ℕ), (var q.2 : Term S ℕ))) =
-      ⟨0, ((l.map fun q => s(End.name q.1, End.name q.2) : List (Sym2 (End ℕ))) :
-        Multiset (Sym2 (End ℕ))), 0⟩
+theorem raw_names :
+    -- for the first number `k` of the raw graph and a list `l` of pairs of names,
+    -- the raw graph of the equations `x = y` has no cell, a wire `x — y` for each pair,
+    -- and no cyclic wire
+    ∀ (k : ℕ) (l : List (ℕ × ℕ)),
+      raw k (l.map fun q => ((var q.1 : Term S ℕ), (var q.2 : Term S ℕ))) =
+        ⟨0,
+          ((l.map fun q => s(End.name q.1, End.name q.2) : List (Sym2 (End ℕ))) :
+            Multiset (Sym2 (End ℕ))),
+          0⟩
   | _, [] => rfl
   | k, q :: l => by
     have ih : raw k (l.map fun q => ((var q.1 : Term S ℕ), (var q.2 : Term S ℕ))) = _ :=
@@ -301,8 +404,13 @@ theorem raw_names : ∀ (k : ℕ) (l : List (ℕ × ℕ)),
     simp
 
 /-- Every multiset of unordered pairs is a list of ordered pairs. -/
-private theorem exists_list_sym2 {α : Type} (M : Multiset (Sym2 α)) :
-    ∃ l : List (α × α), ((l.map fun q => s(q.1, q.2) : List (Sym2 α)) : Multiset (Sym2 α)) = M := by
+private theorem exists_list_sym2
+    -- a multiset of unordered pairs
+    {α : Type}
+    (M : Multiset (Sym2 α)) :
+    -- it is the image of a list of ordered pairs
+    ∃ l : List (α × α),
+      ((l.map fun q => s(q.1, q.2) : List (Sym2 α)) : Multiset (Sym2 α)) = M := by
   induction M using Multiset.induction_on with
   | empty => exact ⟨[], rfl⟩
   | cons e M ih =>
