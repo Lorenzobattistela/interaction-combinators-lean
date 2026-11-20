@@ -276,7 +276,8 @@ type of the numbers below $n$). An equation $t = u$, written \cod{s(t, u)}, is a
 the root of $t$ and the root of $u$. A name is a wire as well: a name that occurs twice joins its
 two occurrences, and a name that occurs once is a free port. A net is \emph{linear} when no
 name occurs more than twice (\cod{N.vars} is the multiset of the occurrences of names in $N$).
-Only linear texts are nets, and every theorem assumes linearity. A cyclic wire is the equation
+Only linear texts stand for nets of the paper. Most theorems assume linearity, and \cod{Wire},
+hence \Equiv{}, relates only linear texts. A cyclic wire is the equation
 $x = x$.
 
 \begin{figure}[H]
@@ -316,7 +317,8 @@ is unordered, a rule given for $\alpha$, $\beta$ also applies to $\beta$, $\alph
 \lean{step}
 
 \cod{Step} is literal: the cut must be written as one equation between two cells, and
-the new wires receive distinct names that do not occur in the net. It preserves linearity. \cod{StepE} first allows the
+the new wires receive distinct names that do not occur in the net. When the rules are linear it
+preserves linearity. \cod{StepE} first allows the
 net to be rewritten into an equivalent text. It is needed because a cut of the graph
 may be hidden behind a wire, as in $x = \alpha(\ldots)$, $x = \beta(\ldots)$. \cod{StepE} is
 the reduction of graphs (Section~\ref{sec:graphs}, item~5), and Theorem~1 is stated with it.
@@ -332,7 +334,8 @@ directions. A rule for $\alpha$, $\beta$ with $\alpha \neq \beta$ excludes one f
 $\alpha$. A rule of a symbol with itself is symmetric: the paper asks that the right member
 read from the other cell (\cod{r.swap}) be the same net, and the field \cod{symm} asks this up
 to \Equiv{} and a permutation $\pi$ of the internal wires. The permutation is needed because
-internal wires are named by \cod{Fin internal} and a wire substitution never renames a wire: a
+the internal wires of a rule are named by \cod{Fin internal}. When every name is in use there
+is no spare name through which \Equiv{} could exchange two of them: a
 right member such as $a = \beta(w_0, w_1)$, $b = \beta(w_1, w_0)$ is the same graph as its
 swap, but the two texts are not \Equiv{}. (\cod{\_root\_.Equiv.Perm} is Mathlib's type of
 permutations. The prefix is there because our \Equiv{} shadows Mathlib's.)
@@ -396,8 +399,9 @@ Five statements are proved.
 
 \begin{enumerate}
 \item Every net has a graph, and that graph is well formed (\cod{graph\_exists}).
-\item Two graphs of a linear net are isomorphic (\cod{graph\_unique}). They can differ by the
-  identities of the cells and by the order of the contractions.
+\item Two graphs of a linear net are isomorphic (\cod{graph\_unique}). They may come from
+  different listings of the equations and different orders of contraction, and they differ only
+  by the identities of the cells.
 \item Two linear nets are \Equiv{} if and only if their graphs are isomorphic:
   \lean{graph_equiv}
 \item Every well-formed graph is, up to isomorphism, the graph of a linear net with the same
@@ -528,7 +532,7 @@ $\sigma$), but the order of the middle wires, on which the uniqueness of $\sigma
 not specified. Mazza's thesis~\cite{mazza2006} repeats the argument, referring to Lafont for the
 canonical decomposition, and we know of no source that defines it.
 
-The obvious decomposition of a text, \cod{Rule.decompose},
+The decomposition read directly from a text, \cod{Rule.decompose},
 sends the equations rooted at a port of the first cell to $\varphi$ and the others to $\psi$,
 and numbers the middle wires by their names in the text. It is correct for every linear rule.
 But for the rule of a ternary symbol with itself
@@ -547,7 +551,7 @@ has an expanded form, and expanded nets are rigid: two linear expanded nets with
 number of internal wires that are \Equiv{} differ by a permutation of those wires. For the rule
 of a symbol with itself, the symmetry condition then becomes a permutation of the internal
 wires of the expanded rule, from which a symmetric decomposition is read. For two different
-symbols, the obvious decomposition is used and $\sigma$ is moved into $\varphi$, so that
+symbols, this decomposition is used and $\sigma$ is moved into $\varphi$, so that
 $\sigma$ is the identity. The outcome is \cod{System.exists\_decData}: every well-formed
 system has, for each rule, two linear reduced sides and an involution that plug back into the
 rule, with $\varphi = \psi$ for a symbol with itself. The sides are then put in expanded form,
@@ -600,8 +604,8 @@ packages. Compare \pp{Fig.~10, top left}.}
 \label{sec:reader}
 
 Fix a rule for $\alpha$, $\beta$ with sides $\varphi$ and $\psi$ sharing $k$ middle wires and
-the involution $\sigma$ (the identity when $\alpha \neq \beta$, in which case $T_\sigma$ is an
-autodual multiplexor), names $\vec x$, $\vec y$ on the ports of the two cells, and a context
+the involution $\sigma$ (for the sides of \cod{System.exists\_decData} it is the identity when
+$\alpha \neq \beta$, and $T_\sigma$ is then an autodual multiplexor), names $\vec x$, $\vec y$ on the ports of the two cells, and a context
 $\Delta$ such that the whole net is linear. The starting net is $[\alpha](\vec x) =
 [\beta](\vec y)$ beside $\Delta$. The lemmas carry the context $\Delta$, and the final
 statement takes it empty. The proof has four reductions, their composition, and a conclusion
@@ -639,8 +643,8 @@ middle port $\sigma(l)$ of $\psi$. The last net is the translation of the right 
   turns one copy back into $\Gamma$, and the selector extracts $\Gamma_k$. The result is a
   renamed copy of the tree of $[\alpha_k]$, and a separate lemma shows that it is an instance
   of the principal net $[\alpha_k]$.
-\item \emph{The result is the end of Lafont's Fig.~7}: the net of the equations $x_p =
-  t_\varphi(p)$, $y_q = t_\psi(q)$ and $t_\varphi(l) = t_\psi(\sigma(l))$, where $t_\varphi$,
+\item \emph{The result is the end of Lafont's Fig.~7}: the net of the equations $x_i =
+  t_\varphi(i)$, $y_j = t_\psi(j)$ and $t_\varphi(l) = t_\psi(\sigma(l))$, where $t_\varphi$,
   $t_\psi$ are translations of the trees of the two sides. In Lean, with \cod{codeNetE e side α}
   for $[\alpha]$, \cod{plugTermTarget} for that net and \cod{gammaTree φ k₀ p} for the tree of
   $\varphi$ at $p$:
@@ -657,9 +661,9 @@ middle port $\sigma(l)$ of $\psi$. The last net is the translation of the right 
 Step & Lemma & Interactions performed \\
 \midrule
 1 & \cod{codeCells\_meetE} & $T_{1,1}$ against $T_{1,1}$, two menus against two selectors \\
-2 & \cod{codeCells\_meet\_endE} & $M_{a+2}$, $M_{b+2}$ against their duals, $T_\sigma$ against
+2 & \cod{codeGamma\_meet} & $M_{a+2}$, $M_{b+2}$ against their duals, $T_\sigma$ against
   $T_\sigma$ \\
-3 & \cod{codeGamma\_extractE} & $C_p$ against $!\Gamma$, on each side \\
+3 & \cod{copier\_package} & $C_p$ against $!\Gamma$, on each side \\
 4 & \cod{codeTerm\_extractE} & at each cell: $C_2$ against a copy of $!\Gamma$, the code
   against $D$, a menu against $S^k_m$ \\
 5 & \cod{codeCells\_plugE} & (composition of steps 1 to 4) \\
@@ -668,7 +672,9 @@ Step & Lemma & Interactions performed \\
 \end{tabular}
 \caption{The analogue of \pp{Fig.~7} for the translation of \pp{Fig.~10}: the steps of the
 proof, the Lean lemma for each, and the interactions it performs. The suffix \texttt{E} marks
-statements for the translation given by data (Section~\ref{sec:thm}).}
+the versions in which the numbering $e$ of the symbols is an argument. Steps~3 and~4 are
+composed, for one side, by \cod{codeGamma\_extractE}, so the net after step~3 is an
+intermediate state of its proof.}
 \label{tab:reader}
 \end{table}
 
@@ -692,9 +698,11 @@ to be simulated in zero steps. The bounded form is \cod{theorem\_1\_bounds}: the
 and $U$ such that every rule is simulated in at least $L$ and at most $U$ interactions. The
 bounds are shown to exist and are not computed.
 
-The statement depends on the definitions of trees, nets, linearity, \cod{Wire} and \Equiv{},
-rules and their instances, systems and \cod{WellFormed}, \cod{Step} and \cod{StepsE}, principal
-nets, translations, \cod{NetTr} and \cod{Compatible}, and on the six rules of the combinators.
+The statement depends on the definitions of signatures, trees and substitution, nets,
+linearity, \cod{Wire} and \Equiv{}, rules with their instances and their linear, reduced and
+swapped forms, systems and \cod{WellFormed}, \cod{Step}, \cod{StepE} and \cod{StepsE},
+principal nets and their instances, translations and strictness, \cod{NetTr} and
+\cod{Compatible}, and on the signature and the six rules of the combinators.
 These are what a reader has to check in order to trust it. The development uses Lean
 \cod{v4.36.0} and Mathlib \cod{v4.36.0}, no axiom beyond the three standard ones of Lean
 (\cod{propext}, \cod{Classical.choice}, \cod{Quot.sound}), and no \cod{native\_decide}.
@@ -706,8 +714,8 @@ system serve to produce such sides:
 
 \lean{thm1_explicit}
 
-In this form nothing is chosen by the axiom of choice, and the translation is a Lean function
-that can be evaluated. For unary addition (symbols $0$, $S$ and \cod{add}, two rules, one of
+In this form the numbering and the sides are arguments, so the translation is defined without
+choosing them, and it is a Lean function that can be evaluated. For unary addition (symbols $0$, $S$ and \cod{add}, two rules, one of
 them recursive), with sides written by hand, evaluating the principal nets $[0]$, $[S]$ and
 $[\mathtt{add}]$ gives 93, 128 and 95 cells. Each carries the code of the menus of all three
 symbols. The development also proves, for unary addition and for the multiplication of
@@ -720,12 +728,13 @@ Proposition~4. No reduction of a translated net was run.
 \label{sec:method}
 
 The definitions of Section~\ref{sec:text} and the statement of Theorem~1 were written by the
-author, with an AI assistant, before any proof existed, and were then fixed: no agent could
+author, with an AI assistant, before the swarm was started, and were then fixed: no agent could
 change them. The graph definitions of Section~\ref{sec:graphs} were written by the author in the
 same way, after Theorem~1 had been proved, except the definition of interaction on graphs, which
 was written by an agent. The file \cod{Results.lean}, from which the boxed statements of this
-paper are quoted, was written by the author and restates theorems of the library that were
-stated and proved by agents. After Theorem~1 had been proved, every definition taken from a
+paper are quoted, was written by the author and restates theorems of the library. Apart from
+Theorem~1, the multiplexor property and the well-formedness of the combinators, which are the
+author's, these were stated and proved by agents. After Theorem~1 had been proved, every definition taken from a
 figure of \pp{Sections~2.1 to~2.7} was compared with its figure, wire by wire, under the port
 convention of Section~\ref{sec:background}. Finally the author reviewed again the statements of
 the main results, and the definitions they depend on, against the paper.
@@ -759,19 +768,21 @@ Lean, worked examples (addition, multiplication) & $2\,202$ lines \\
 \label{tab:numbers}
 \end{table}
 
-Two definitions were corrected after Theorem~1 had been proved. The symmetry condition on the
+Two definitions of the library were corrected after Theorem~1 had been proved. The symmetry condition on the
 rule of a symbol with itself was at first stated as \Equiv{} between the right member and its
 swap. A reviewing agent exhibited an interaction system that this excludes (the rule shown in
 Section~\ref{sec:text}), and the condition was weakened to its present form. In the code
 $!\pi$ and the decoder $D$, the two auxiliary ports of every $\delta$ were exchanged with
 respect to \pp{Fig.~8}. This was found by the comparison with the figures and put back.
-Exchanging the auxiliary ports of every $\delta$ is a symmetry of the combinators, so the
-theorem held under both definitions.
+The exchange was made in both the code and the decoder, so the decoder still recovered the
+package and the theorem held under both definitions. No proof could distinguish the two, since
+exchanging the auxiliary ports of every $\delta$ is a symmetry of the rules of the combinators.
 
 \paragraph{Use of AI.}
 The Lean proofs, the examples and the reviews were written by language-model agents run as
-headless Claude Code sessions (Claude Opus~5.5 for the swarm, Claude Fable~5.2 for the
-comparison with the figures and for the AI assistant). The text of this paper was first
+headless Claude Code sessions (Claude Opus~5.5 for the swarm, except its first six
+sessions, which ran on Claude Fable~5.2, and Claude Fable~5.2 for the comparison with the
+figures and for the AI assistant). The text of this paper was first
 drafted with an AI assistant and reviewed and finalized by the author.
 
 %=================================================================================================
