@@ -5,7 +5,7 @@ import InteractionCombinators.Core.Combinators
 /-!
 # Equivalence inside a larger net
 
-A net is a graph whose wires are written as names (Lafont 1997, Section 1.2, page 71). Two nets
+A net is a graph whose wires are written as names (Lafont 1997, Section 1.1, page 71). Two nets
 that are the same graph stay the same graph when a context `Γ` is added beside them
 (`Equiv.add_right`), as long as both larger nets are linear.
 
@@ -13,6 +13,14 @@ The derivation of `Equiv N M` may pass through nets whose internal wires carry n
 in `Γ`. Those intermediate nets are renamed first, by an injective `f` that fixes the names of
 `N` and of `M` and sends every other name above all the names of `N`, `M` and `Γ`
 (`Equiv.bind_var_add_right`). After the renaming, every intermediate net fits beside `Γ`.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemma: `Equiv.bind_var_add_right`, a derivation of equivalence, renamed
+   injectively, done beside a context.
+2. Main result: `Equiv.add_right`, equivalent nets stay equivalent beside a context `Γ` when both
+   larger nets are linear.
+3. An example: a wire substituted away beside an `era` cell.
 -/
 
 namespace INet
@@ -21,15 +29,31 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemma: a renamed derivation beside a context
+-- ============================================================================================
+
 /-- A derivation of equivalence, renamed by an injective `f`, can be done beside a context `Γ`,
 provided every renamed net that is linear and has the free ports of `N₀` fits linearly beside
 `Γ`. Every net of the derivation from such a `K` is linear and has the free ports of `N₀`
-(Lafont 1997, Section 1.2, page 71: wires and free ports are properties of the graph). -/
-theorem Equiv.bind_var_add_right {N₀ K L : Net S ℕ} (f : ℕ → ℕ) (hf : Function.Injective f)
+(Lafont 1997, Section 1.1, page 71: wires and free ports are properties of the graph). -/
+theorem Equiv.bind_var_add_right
+    -- the reference net `N₀`, whose free ports every net of the derivation has, and the two ends
+    -- of the derivation
+    {N₀ K L : Net S ℕ}
+    -- the renaming, injective
+    (f : ℕ → ℕ)
+    (hf : Function.Injective f)
+    -- the context, and the hypothesis that every linear net with the free ports of `N₀`, once
+    -- renamed, fits linearly beside it
     (Γ : Net S ℕ)
     (hgood : ∀ K : Net S ℕ, K.Linear → (∀ y, K.vars.count y = 1 ↔ N₀.vars.count y = 1) →
       ((K.bind fun y => var (f y)) + Γ).Linear)
-    (h : Equiv K L) (hK : K.Linear) (hfree : ∀ y, K.vars.count y = 1 ↔ N₀.vars.count y = 1) :
+    -- the derivation, from a linear net `K` with the free ports of `N₀`
+    (h : Equiv K L)
+    (hK : K.Linear)
+    (hfree : ∀ y, K.vars.count y = 1 ↔ N₀.vars.count y = 1) :
+    -- the renamed ends are equivalent beside `Γ`
     Equiv ((K.bind fun y => var (f y)) + Γ) ((L.bind fun y => var (f y)) + Γ) := by
   revert hK hfree
   induction h with
@@ -43,12 +67,26 @@ theorem Equiv.bind_var_add_right {N₀ K L : Net S ℕ} (f : ℕ → ℕ) (hf : 
     exact (ih₁ hK hfree).trans
       (ih₂ (Equiv.linear h₁ hK) fun y => (Equiv.free_iff h₁ y).symm.trans (hfree y))
 
+-- ============================================================================================
+-- 2. Main result: equivalence beside a context
+-- ============================================================================================
+
 /-- Equivalent nets stay equivalent inside a larger net, when both larger nets are linear.
 Linearity of `N + Γ` and of `M + Γ` says that `Γ` uses no internal wire of `N` or of `M`: the
-context is plugged only into free ports, which `N` and `M` share (Lafont 1997, Section 1.2,
+context is plugged only into free ports, which `N` and `M` share (Lafont 1997, Section 1.1,
 page 71: a net is a graph, and its wires may be named arbitrarily). -/
-theorem Equiv.add_right {N M : Net S ℕ} (Γ : Net S ℕ) (h : Equiv N M)
-    (hN : (N + Γ).Linear) (hM : (M + Γ).Linear) : Equiv (N + Γ) (M + Γ) := by
+theorem Equiv.add_right
+    -- the two equivalent nets
+    {N M : Net S ℕ}
+    -- the context
+    (Γ : Net S ℕ)
+    -- the equivalence
+    (h : Equiv N M)
+    -- both larger nets are linear
+    (hN : (N + Γ).Linear)
+    (hM : (M + Γ).Linear) :
+    -- the larger nets are equivalent
+    Equiv (N + Γ) (M + Γ) := by
   -- a bound on every name of `N`, `M` and `Γ`
   set B := (N.vars + M.vars + Γ.vars).sup + 1 with hB
   have hlt : ∀ x ∈ N.vars + M.vars + Γ.vars, x < B := fun x hx =>
@@ -125,6 +163,9 @@ theorem Equiv.add_right {N M : Net S ℕ} (Γ : Net S ℕ) (h : Equiv N M)
   have := Equiv.bind_var_add_right f hf Γ hgood h hNl fun _ => Iff.rfl
   rwa [hfixN, hfixM] at this
 
+-- ============================================================================================
+-- 3. Example
+-- ============================================================================================
 
 section Example
 
@@ -132,9 +173,10 @@ open Comb
 
 /-- Non-vacuity: the wire `2` between a `con` cell and the free port `3` is substituted away,
 beside a context `Γ` that plugs an `era` cell into the free port `3`. -/
-example : Equiv
-    (({s(var 2, mkCon (var 0) (var 1)), s(var 3, var 2)} : Net sig ℕ) + {s(var 3, mkEra)})
-    (({s(var 3, mkCon (var 0) (var 1))} : Net sig ℕ) + {s(var 3, mkEra)}) := by
+example :
+    Equiv
+      (({s(var 2, mkCon (var 0) (var 1)), s(var 3, var 2)} : Net sig ℕ) + {s(var 3, mkEra)})
+      (({s(var 3, mkCon (var 0) (var 1))} : Net sig ℕ) + {s(var 3, mkEra)}) := by
   have hW : Wire ({s(var 2, mkCon (var 0) (var 1)), s(var 3, var 2)} : Net sig ℕ)
       {s(var 3, mkCon (var 0) (var 1))} := by
     refine (Wire.mk 2 (mkCon (var 0) (var 1)) (var 3) (var 2) 0 ?_ (by simp)).cast rfl ?_
