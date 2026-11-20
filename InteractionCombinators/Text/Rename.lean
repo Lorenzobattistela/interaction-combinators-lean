@@ -9,17 +9,85 @@ renamed to an unused name are the same graph (`Net.equiv_rename`).
 The proof introduces the new name next to one end of the wire by a wire substitution read
 backwards, then removes the old name by a wire substitution read forwards. When both ends of the
 wire are in the same tree, one of the subtrees is first pulled out into its own equation.
+
+Contents, in the order of the file:
+
+1. Definition: `Net.rename`, the net with one name replaced by another everywhere, with
+   `Net.rename_cons` and `Net.rename_of_notMem`.
+2. Auxiliary lemmas on trees: `Term.subst_subst_back`, `Term.count_rename`,
+   `Term.subst_var_of_ne`, `Term.subst_update`, `Term.count_vars_update`. Renaming in a tree, and
+   pulling a subtree out of a tree.
+3. Auxiliary lemmas: the cases of the renaming. `equiv_rename_two` (the two ends of the wire in
+   two equations), `equiv_rename_sides` (on the two sides of one equation), `Net.exists_fresh`,
+   `equiv_rename_tree` (both in one tree).
+4. Main result: `Net.equiv_rename`, renaming an internal wire gives the same graph.
 -/
 
 namespace INet
 
 variable {S : Signature}
 
+open Term
+
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
+
+/-- Rename the name `x` to `y` everywhere in the net. -/
+def Net.rename
+    -- the net
+    (N : Net S ℕ)
+    -- the old name and the new name
+    (x y : ℕ) :
+    Net S ℕ :=
+  N.map (Sym2.map fun r => r.subst x (var y))
+
+/-- Renaming in a net renames in each of its equations. -/
+@[simp] theorem Net.rename_cons
+    -- the first equation `a = b`
+    (a b : Term S ℕ)
+    -- the rest of the net
+    (N : Net S ℕ)
+    -- the old name and the new name
+    (x y : ℕ) :
+    Net.rename (s(a, b) ::ₘ N) x y =
+      s(a.subst x (var y), b.subst x (var y)) ::ₘ N.rename x y := by
+  simp [Net.rename]
+
+/-- Renaming a name that does not occur in the net leaves the net unchanged. -/
+theorem Net.rename_of_notMem
+    -- the net, and the old name, which does not occur in it
+    {N : Net S ℕ}
+    {x : ℕ}
+    -- the new name
+    (y : ℕ)
+    (h : x ∉ N.vars) :
+    N.rename x y = N := by
+  unfold Net.rename
+  conv_rhs => rw [← Multiset.map_id N]
+  refine Multiset.map_congr rfl fun e he => ?_
+  induction e using Sym2.ind with
+  | _ a b =>
+    have hab : x ∉ a.vars + b.vars := fun hm =>
+      h (Multiset.mem_bind.2 ⟨s(a, b), he, by simpa using hm⟩)
+    simp only [Multiset.mem_add, not_or] at hab
+    simp [subst_of_notMem hab.1, subst_of_notMem hab.2]
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas on trees
+-- ============================================================================================
+
 namespace Term
 
 /-- Renaming `x` to the unused name `y` and back is the identity. -/
-theorem subst_subst_back {x y : ℕ} : ∀ {r : Term S ℕ}, y ∉ r.vars →
-    (r.subst x (var y)).subst y (var x) = r
+theorem subst_subst_back
+    -- the old name `x` and the new name `y`
+    {x y : ℕ} :
+    -- for every tree `r` in which `y` does not occur,
+    ∀ {r : Term S ℕ},
+      y ∉ r.vars →
+      -- renaming `x` to `y` and then `y` to `x` gives `r` back
+      (r.subst x (var y)).subst y (var x) = r
   | var z, h => by
     have hzy : z ≠ y := by simpa [eq_comm] using h
     by_cases hzx : z = x
@@ -33,7 +101,16 @@ theorem subst_subst_back {x y : ℕ} : ∀ {r : Term S ℕ}, y ∉ r.vars →
     exact subst_subst_back (h i)
 
 /-- The names of a tree after renaming `x` to the unused name `y`. -/
-theorem count_rename (r : Term S ℕ) {x y : ℕ} (hxy : x ≠ y) (hy : y ∉ r.vars) (z : ℕ) :
+theorem count_rename
+    -- the tree
+    (r : Term S ℕ)
+    -- the old name `x` and the new name `y`, which is different and does not occur in `r`
+    {x y : ℕ}
+    (hxy : x ≠ y)
+    (hy : y ∉ r.vars)
+    -- the name whose occurrences are counted
+    (z : ℕ) :
+    -- `y` occurs as often as `x` did, `x` no longer occurs, and the other names are unchanged
     (r.subst x (var y)).vars.count z =
       if z = y then r.vars.count x else if z = x then 0 else r.vars.count z := by
   rw [count_vars_subst, vars_var, Multiset.count_singleton]
@@ -46,12 +123,25 @@ theorem count_rename (r : Term S ℕ) {x y : ℕ} (hxy : x ≠ y) (hy : y ∉ r.
     · simp [hzy, hzx]
     · simp [hzy, hzx]
 
-theorem subst_var_of_ne {z x : ℕ} (t : Term S ℕ) (h : z ≠ x) :
+/-- Substituting for `x` leaves a leaf named by another name `z` unchanged. -/
+theorem subst_var_of_ne
+    -- the two different names
+    {z x : ℕ}
+    -- the tree substituted for `x`
+    (t : Term S ℕ)
+    (h : z ≠ x) :
     (var z : Term S ℕ).subst x t = var z := by simp [subst, h]
 
 /-- Plugging a subtree back into the place it was pulled out of. -/
-theorem subst_update {α : S.Sym} (ts : Fin (S.arity α) → Term S ℕ) (i : Fin (S.arity α)) {w : ℕ}
+theorem subst_update
+    -- the tree `α ts` and the place `i` of the subtree
+    {α : S.Sym}
+    (ts : Fin (S.arity α) → Term S ℕ)
+    (i : Fin (S.arity α))
+    -- the name `w` put in place of the subtree, which does not occur in the tree
+    {w : ℕ}
     (hw : w ∉ (app α ts).vars) :
+    -- substituting the subtree for `w` gives the tree back
     (app α (Function.update ts i (var w))).subst w (ts i) = app α ts := by
   simp only [vars_app, Multiset.mem_sum, Finset.mem_univ, true_and, not_exists] at hw
   show app α _ = app α ts
@@ -64,8 +154,15 @@ theorem subst_update {α : S.Sym} (ts : Fin (S.arity α) → Term S ℕ) (i : Fi
     exact subst_of_notMem (hw j)
 
 /-- The names of a tree with a subtree pulled out and replaced by the name `w`. -/
-theorem count_vars_update {α : S.Sym} (ts : Fin (S.arity α) → Term S ℕ) (i : Fin (S.arity α))
+theorem count_vars_update
+    -- the tree `α ts` and the place `i` of the subtree
+    {α : S.Sym}
+    (ts : Fin (S.arity α) → Term S ℕ)
+    (i : Fin (S.arity α))
+    -- the name `w` put in place of the subtree, and the name whose occurrences are counted
     (w z : ℕ) :
+    -- the tree with `w` in place of the subtree, together with the subtree, has the names of
+    -- the tree and one more `w`
     (app α (Function.update ts i (var w))).vars.count z + (ts i).vars.count z =
       (app α ts).vars.count z + if z = w then 1 else 0 := by
   simp only [vars_app, Multiset.count_sum']
@@ -88,37 +185,24 @@ theorem count_vars_update {α : S.Sym} (ts : Fin (S.arity α) → Term S ℕ) (i
 
 end Term
 
-open Term
-
-/-- Rename the name `x` to `y` everywhere in the net. -/
-def Net.rename (N : Net S ℕ) (x y : ℕ) : Net S ℕ :=
-  N.map (Sym2.map fun r => r.subst x (var y))
-
-@[simp] theorem Net.rename_cons (a b : Term S ℕ) (N : Net S ℕ) (x y : ℕ) :
-    Net.rename (s(a, b) ::ₘ N) x y =
-      s(a.subst x (var y), b.subst x (var y)) ::ₘ N.rename x y := by
-  simp [Net.rename]
-
-theorem Net.rename_of_notMem {N : Net S ℕ} {x : ℕ} (y : ℕ) (h : x ∉ N.vars) :
-    N.rename x y = N := by
-  unfold Net.rename
-  conv_rhs => rw [← Multiset.map_id N]
-  refine Multiset.map_congr rfl fun e he => ?_
-  induction e using Sym2.ind with
-  | _ a b =>
-    have hab : x ∉ a.vars + b.vars := fun hm =>
-      h (Multiset.mem_bind.2 ⟨s(a, b), he, by simpa using hm⟩)
-    simp only [Multiset.mem_add, not_or] at hab
-    simp [subst_of_notMem hab.1, subst_of_notMem hab.2]
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the cases of the renaming
+-- ============================================================================================
 
 section Cases
 
 variable {a b c d r : Term S ℕ} {Δ : Net S ℕ} {x y : ℕ}
 
 /-- Renaming a wire whose two ends are in different equations. -/
-theorem equiv_rename_two (hlin : Net.Linear (s(a, b) ::ₘ s(c, d) ::ₘ Δ))
-    (hx1 : x ∈ a.vars + b.vars) (hx2 : x ∈ c.vars + d.vars)
+theorem equiv_rename_two
+    -- the net `a = b, c = d, Δ` is linear
+    (hlin : Net.Linear (s(a, b) ::ₘ s(c, d) ::ₘ Δ))
+    -- the name `x` occurs in `a = b` and in `c = d`
+    (hx1 : x ∈ a.vars + b.vars)
+    (hx2 : x ∈ c.vars + d.vars)
+    -- the new name `y` does not occur in the net
     (hy : y ∉ Net.vars (s(a, b) ::ₘ s(c, d) ::ₘ Δ)) :
+    -- renaming `x` to `y` in the two equations gives the same graph
     Equiv (s(a, b) ::ₘ s(c, d) ::ₘ Δ)
       (s(a.subst x (var y), b.subst x (var y)) ::ₘ
         s(c.subst x (var y), d.subst x (var y)) ::ₘ Δ) := by
@@ -176,9 +260,15 @@ theorem equiv_rename_two (hlin : Net.Linear (s(a, b) ::ₘ s(c, d) ::ₘ Δ))
   exact Multiset.cons_swap _ _ _
 
 /-- Renaming a wire whose two ends are on the two sides of one equation. -/
-theorem equiv_rename_sides (hlin : Net.Linear (s(a, b) ::ₘ Δ))
-    (hxa : a.vars.count x = 1) (hxb : b.vars.count x = 1)
+theorem equiv_rename_sides
+    -- the net `a = b, Δ` is linear
+    (hlin : Net.Linear (s(a, b) ::ₘ Δ))
+    -- the name `x` occurs once in `a` and once in `b`
+    (hxa : a.vars.count x = 1)
+    (hxb : b.vars.count x = 1)
+    -- the new name `y` does not occur in the net
     (hy : y ∉ Net.vars (s(a, b) ::ₘ Δ)) :
+    -- renaming `x` to `y` in the equation gives the same graph
     Equiv (s(a, b) ::ₘ Δ) (s(a.subst x (var y), b.subst x (var y)) ::ₘ Δ) := by
   have hxl := hlin x
   simp only [Net.vars_cons, eqVars_mk, Multiset.count_add] at hxl
@@ -229,15 +319,30 @@ theorem equiv_rename_sides (hlin : Net.Linear (s(a, b) ::ₘ Δ))
 end Cases
 
 /-- A name that is not used in the net and is different from `y`. -/
-theorem Net.exists_fresh (N : Net S ℕ) (y : ℕ) : ∃ w, w ∉ N.vars ∧ w ≠ y :=
+theorem Net.exists_fresh
+    -- the net
+    (N : Net S ℕ)
+    -- the name to avoid besides those of the net
+    (y : ℕ) :
+    ∃ w, w ∉ N.vars ∧ w ≠ y :=
   ⟨max N.vars.sup y + 1, fun h => by have := Multiset.le_sup h; omega, by omega⟩
 
 /-- Renaming a wire whose two ends are in the same tree. One of the subtrees holding an end is
 pulled out into its own equation, named by a new wire `w`; the wire is renamed there; and the
 subtree is plugged back. -/
-theorem equiv_rename_tree (a : Term S ℕ) : ∀ (r : Term S ℕ) (Δ : Net S ℕ) (x y : ℕ),
-    Net.Linear (s(r, a) ::ₘ Δ) → a.vars.count x = 2 → y ∉ Net.vars (s(r, a) ::ₘ Δ) →
-    Equiv (s(r, a) ::ₘ Δ) (s(r, a.subst x (var y)) ::ₘ Δ) := by
+theorem equiv_rename_tree
+    -- the tree that holds both ends of the wire
+    (a : Term S ℕ) :
+    -- for every other side `r`, rest of the net `Δ`, old name `x` and new name `y`,
+    ∀ (r : Term S ℕ) (Δ : Net S ℕ) (x y : ℕ),
+      -- if the net `r = a, Δ` is linear,
+      Net.Linear (s(r, a) ::ₘ Δ) →
+      -- `x` occurs twice in `a`,
+      a.vars.count x = 2 →
+      -- and `y` does not occur in the net,
+      y ∉ Net.vars (s(r, a) ::ₘ Δ) →
+      -- then renaming `x` to `y` in `a` gives the same graph
+      Equiv (s(r, a) ::ₘ Δ) (s(r, a.subst x (var y)) ::ₘ Δ) := by
   induction a with
   | var z =>
     intro r Δ x y _ hx
@@ -288,7 +393,8 @@ theorem equiv_rename_tree (a : Term S ℕ) : ∀ (r : Term S ℕ) (Δ : Net S �
     have hxw : ¬ x = w := fun h => hwx h.symm
     simp only [hxw, ite_false] at hUx
     -- pull the subtree out
-    have L1 : Net.Linear (s(var w, ts i) ::ₘ s(r, app α (Function.update ts i (var w))) ::ₘ Δ) := by
+    have L1 : Net.Linear
+        (s(var w, ts i) ::ₘ s(r, app α (Function.update ts i (var w))) ::ₘ Δ) := by
       intro z
       have hz := hlin z
       have hUz := hU z
@@ -358,10 +464,23 @@ theorem equiv_rename_tree (a : Term S ℕ) : ∀ (r : Term S ℕ) (Δ : Net S �
     rw [subst_of_notMem hwr, hres] at W3
     exact P1.equiv.symm.trans (E12.trans W3.equiv)
 
+-- ============================================================================================
+-- 4. Main result: renaming an internal wire
+-- ============================================================================================
+
 /-- **Renaming an internal wire.** In a linear net, renaming a name that occurs twice to a name
 that does not occur gives the same graph. -/
-theorem Net.equiv_rename {N : Net S ℕ} (hlin : N.Linear) {x y : ℕ} (hx : N.vars.count x = 2)
-    (hy : y ∉ N.vars) : Equiv N (N.rename x y) := by
+theorem Net.equiv_rename
+    -- the linear net
+    {N : Net S ℕ}
+    (hlin : N.Linear)
+    -- the old name `x`, which occurs twice in the net: an internal wire
+    {x y : ℕ}
+    (hx : N.vars.count x = 2)
+    -- the new name `y`, which does not occur in the net
+    (hy : y ∉ N.vars) :
+    -- the net with `x` renamed to `y` is the same graph
+    Equiv N (N.rename x y) := by
   have hxm : x ∈ Multiset.bind N eqVars := Multiset.one_le_count_iff_mem.1 (by
     show 1 ≤ N.vars.count x; omega)
   obtain ⟨e, he, hxe⟩ := Multiset.mem_bind.1 hxm
