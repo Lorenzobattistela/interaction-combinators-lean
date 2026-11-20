@@ -10,6 +10,21 @@ same graph (`PNet.equiv_inst`).
 
 The proof renames the internal wires one at a time, first to a block of unused names and from
 there to the names of the other instance.
+
+A net is a graph whose wires have no names (p. 72). A principal net (p. 79) is written here as a
+tree over its auxiliary ports and some internal wires (`PNet`); an instance gives names to those
+wires and plugs trees into the auxiliary ports.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas on plugging: `Term.bind_bind` and `Net.bind_bind`, plugging twice is
+   plugging the composite once.
+2. Auxiliary lemmas on the names of an instance: `PNet.count_vars_inst`,
+   `PNet.facts_of_linear` (in a linear net, the internal wires of an instance have distinct
+   names used nowhere else), `PNet.facts_of_notMem`.
+3. Auxiliary lemma: `PNet.equiv_inst_fresh`, renaming the internal wires to unused names.
+4. Main result: `PNet.equiv_inst`, two instances of the same principal net with the same
+   plugged trees are the same graph.
 -/
 
 namespace INet
@@ -18,7 +33,19 @@ variable {S : Signature} {n : ℕ}
 
 open Term
 
-theorem Term.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term S κ) (t : Term S ν) :
+-- ============================================================================================
+-- 1. Auxiliary lemmas on plugging
+-- ============================================================================================
+
+/-- Plugging trees into the names of a tree twice is plugging the composite once. -/
+theorem Term.bind_bind
+    -- the names of the three trees
+    {ν μ κ : Type}
+    -- what is plugged first, then second
+    (f : ν → Term S μ)
+    (g : μ → Term S κ)
+    -- the tree
+    (t : Term S ν) :
     (t.bind f).bind g = t.bind fun x => (f x).bind g := by
   induction t with
   | var x => rfl
@@ -29,7 +56,14 @@ theorem Term.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term
     exact ih i
 
 /-- Plugging trees into the names of a net twice is plugging the composite once. -/
-theorem Net.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term S κ) (N : Net S ν) :
+theorem Net.bind_bind
+    -- the names of the three nets
+    {ν μ κ : Type}
+    -- what is plugged first, then second
+    (f : ν → Term S μ)
+    (g : μ → Term S κ)
+    -- the net
+    (N : Net S ν) :
     (N.bind f).bind g = N.bind fun x => (f x).bind g := by
   unfold Net.bind
   rw [Multiset.map_map]
@@ -37,25 +71,46 @@ theorem Net.bind_bind {ν μ κ : Type} (f : ν → Term S μ) (g : μ → Term 
   induction e using Sym2.ind with
   | _ a b => simp [Term.bind_bind]
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas on the names of an instance
+-- ============================================================================================
+
 namespace PNet
 
 /-- The names of an instance: those of the trees plugged into the ports, and both ends of each
 internal wire. -/
-theorem count_vars_inst (p : PNet S n) (args : Fin n → Term S ℕ) (F : Fin p.internal → ℕ)
+theorem count_vars_inst
+    -- the principal net
+    (p : PNet S n)
+    -- the trees plugged into its auxiliary ports, and the names of its internal wires
+    (args : Fin n → Term S ℕ)
+    (F : Fin p.internal → ℕ)
+    -- the name whose occurrences are counted
     (z : ℕ) :
+    -- the occurrences in the plugged trees, and two for each internal wire named `z`
     (p.inst args F).vars.count z =
       ∑ i, (args i).vars.count z + 2 * ∑ w, if z = F w then 1 else 0 := by
   rw [inst, Term.vars_bind, Multiset.count_bind_fintype, Fintype.sum_sum_type]
   simp only [p.port_count, p.internal_count, one_mul, Sum.elim_inl, Sum.elim_inr, Term.vars_var,
     Multiset.count_singleton, Finset.mul_sum, mul_ite, mul_one, mul_zero]
 
-variable {p : PNet S n} {args : Fin n → Term S ℕ} {f h : Fin p.internal → ℕ} {r : Term S ℕ}
+variable
+  -- the principal net, the trees plugged into its auxiliary ports, and two namings of its
+  -- internal wires
+  {p : PNet S n} {args : Fin n → Term S ℕ} {f h : Fin p.internal → ℕ}
+  -- the tree on the other side of the equation of the instance, and the rest of the net
+  {r : Term S ℕ}
   {Δ : Net S ℕ}
 
 /-- In a linear net, the internal wires of an instance have pairwise distinct names, used nowhere
 else. -/
-theorem facts_of_linear (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ)) :
-    Function.Injective f ∧ ∀ w, f w ∉ r.vars ∧ (∀ i, f w ∉ (args i).vars) ∧ f w ∉ Δ.vars := by
+theorem facts_of_linear
+    -- the net `r = p.inst args f, Δ` is linear
+    (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ)) :
+    -- the internal wires have pairwise distinct names
+    Function.Injective f
+      -- and the name of each of them occurs neither in `r`, nor in the plugged trees, nor in `Δ`
+      ∧ ∀ w, f w ∉ r.vars ∧ (∀ i, f w ∉ (args i).vars) ∧ f w ∉ Δ.vars := by
   have key : ∀ w, r.vars.count (f w) + (∑ i, (args i).vars.count (f w) +
       2 * ∑ w', if f w = f w' then 1 else 0) + Δ.vars.count (f w) ≤ 2 := by
     intro w
@@ -86,7 +141,12 @@ theorem facts_of_linear (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ)) :
   · exact Multiset.count_eq_zero.1 (by have := key w; have := one w; omega)
 
 /-- A name that does not occur in the net is not a name of the instance. -/
-theorem facts_of_notMem {y : ℕ} (hy : y ∉ Net.vars (s(r, p.inst args f) ::ₘ Δ)) :
+theorem facts_of_notMem
+    -- a name that does not occur in the net `r = p.inst args f, Δ`
+    {y : ℕ}
+    (hy : y ∉ Net.vars (s(r, p.inst args f) ::ₘ Δ)) :
+    -- it occurs neither in `r`, nor in the plugged trees, it names no internal wire, and it
+    -- does not occur in `Δ`
     y ∉ r.vars ∧ (∀ i, y ∉ (args i).vars) ∧ (∀ w, y ≠ f w) ∧ y ∉ Δ.vars := by
   have h0 := Multiset.count_eq_zero_of_notMem hy
   simp only [Net.vars_cons, eqVars_mk, Multiset.count_add, count_vars_inst] at h0
@@ -103,9 +163,18 @@ theorem facts_of_notMem {y : ℕ} (hy : y ∉ Net.vars (s(r, p.inst args f) ::�
     rw [if_pos hw] at hle
     omega
 
+-- ============================================================================================
+-- 3. Auxiliary lemma: renaming to unused names
+-- ============================================================================================
+
 /-- Renaming the internal wires of an instance to a family of unused names, one wire at a time. -/
-theorem equiv_inst_fresh (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ))
-    (hh : Function.Injective h) (hfresh : ∀ w, h w ∉ Net.vars (s(r, p.inst args f) ::ₘ Δ)) :
+theorem equiv_inst_fresh
+    -- the net `r = p.inst args f, Δ` is linear
+    (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ))
+    -- the new names are pairwise distinct and do not occur in the net
+    (hh : Function.Injective h)
+    (hfresh : ∀ w, h w ∉ Net.vars (s(r, p.inst args f) ::ₘ Δ)) :
+    -- the instance with the new names is the same graph
     Equiv (s(r, p.inst args f) ::ₘ Δ) (s(r, p.inst args h) ::ₘ Δ) := by
   obtain ⟨hf, hff⟩ := facts_of_linear hlin
   have hhf := fun w => facts_of_notMem (hfresh w)
@@ -195,10 +264,19 @@ theorem equiv_inst_fresh (hlin : Net.Linear (s(r, p.inst args f) ::ₘ Δ))
   have := main p.internal le_rfl
   rwa [hend] at this
 
+-- ============================================================================================
+-- 4. Main result
+-- ============================================================================================
+
 /-- **Instances of a principal net are the same graph.** In linear nets, the names of the internal
-wires of an instance do not matter. -/
-theorem equiv_inst {g : Fin p.internal → ℕ} (hf : Net.Linear (s(r, p.inst args f) ::ₘ Δ))
+wires of an instance do not matter: a net is a graph, its wires have no names (p. 72). -/
+theorem equiv_inst
+    -- a second naming of the internal wires
+    {g : Fin p.internal → ℕ}
+    -- the two nets `r = p.inst args f, Δ` and `r = p.inst args g, Δ` are linear
+    (hf : Net.Linear (s(r, p.inst args f) ::ₘ Δ))
     (hg : Net.Linear (s(r, p.inst args g) ::ₘ Δ)) :
+    -- they are the same graph
     Equiv (s(r, p.inst args f) ::ₘ Δ) (s(r, p.inst args g) ::ₘ Δ) := by
   -- a block of names above every name of both nets
   let K : ℕ := max (Net.vars (s(r, p.inst args f) ::ₘ Δ)).sup
