@@ -7,8 +7,8 @@ import InteractionCombinators.Graphs.GraphRealize
 Lafont 1997, Section 1.2, page 73: an interaction rule replaces two cells joined by their
 principal ports by the right-hand side of the rule. On texts this is `StepE`, on graphs
 `Graph.Interact`. `GraphStepE.lean` proves that a `StepE` of a linear net is an interaction of its
-graph; this file proves the converse (PLAN.md, Stage C, item 5): every interaction of the graph of
-a linear net is, up to `Graph.Iso`, the graph of a `StepE` of that net.
+graph; this file proves the converse: every interaction of the graph of a linear net is, up to
+`Graph.Iso`, the graph of a `StepE` of that net.
 
 The proof writes the graph `G` as its flat text (`Graph.flatB`), one equation for each cell and
 each wire. Two wire substitutions along the principal ports of the two cells make the active pair
@@ -19,12 +19,20 @@ the flat text as fresh names: erasing the names of the ports of the other cells 
 them back into the wires, and the auxiliary ports of the two cells stay as names, which is the
 cut. The uniqueness of the result of an interaction (`Graph.interact_unique`) gives the theorem.
 
-* `Graph.stubGraph`, `Graph.stubGraph_iso_raw` — the raw graph of the flat text of any graph
-  whose cells have distinct numbers is isomorphic to its stubs.
-* `Graph.unflat_eq_port` — a name that `unflat` reads as a port is the name of that port.
-* `Net.Linear.interact_stepE` — the theorem.
-
 The example on the combinators is in `Checks/GraphStepEConverseCheck.lean`.
+
+Contents, in the order of the file:
+
+1. Definitions: `Graph.stubGraph`, the stubs of a graph (its cells, a wire from each port to its
+   name, the wires between names); `Graph.stubBack`, reading the names of the stubs back as
+   their ports.
+2. Auxiliary lemmas: the stubs, `exists_list_sym2'`, `Graph.stubGraph_portsIn`,
+   `Graph.stubGraph_iso_raw` (the raw graph of the flat text of a graph whose cells have distinct
+   numbers is isomorphic to its stubs); the names of the flat text, `Graph.realPn_inj`,
+   `Graph.le_realPn`, `Graph.realPn_ne_realLn`, `Graph.unflat_eq_port` (a name that `unflat`
+   reads as a port is the name of that port).
+3. Main result: `Net.Linear.interact_stepE`, every interaction of the graph of a linear net is,
+   up to isomorphism, the graph of a `StepE` of the net.
 -/
 
 namespace INet
@@ -35,11 +43,48 @@ open Term
 
 namespace Graph
 
-/-! ## The stubs of a flat text -/
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
+/-- **The stubs of a graph** (Lafont 1997, page 71): its cells, a wire `pn c i — port c i` for each
+port of each cell, a wire between the names of the two ends of each wire, and a wire
+`ln j — ln j` for each cyclic wire. This is the raw graph of the flat text, up to the numbering
+of the cells. -/
+def stubGraph
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- the graph
+    (G : Graph S ℕ) :
+    Graph S ℕ :=
+  ⟨G.cells, (G.cells.bind cellPorts).map (fun e => s(.name (e.flatName pn), e)) +
+    (G.wires.map (Sym2.map fun e => .name (e.flatName pn)) +
+      (Multiset.range G.loops).map fun j => s(End.name (ln j), End.name (ln j))), 0⟩
+
+/-- Reading back the names of the stubs `P` as their ports, and keeping every other end. -/
+def stubBack
+    -- the bound of the free names of the graph
+    (B : ℕ)
+    -- the ports of the stubs
+    (P : Multiset (End ℕ)) :
+    End ℕ → End ℕ
+  | .port c i => .port c i
+  | .name y => if unflat B (.name y) ∈ P then unflat B (.name y) else .name y
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: the stubs and the names of a flat text
+-- ============================================================================================
 
 /-- Every multiset of unordered pairs is a list of ordered pairs. -/
-private theorem exists_list_sym2' {α : Type} (M : Multiset (Sym2 α)) :
-    ∃ l : List (α × α), ((l.map fun q => s(q.1, q.2) : List (Sym2 α)) : Multiset (Sym2 α)) = M := by
+private theorem exists_list_sym2'
+    -- the type of the elements
+    {α : Type}
+    -- the multiset of unordered pairs
+    (M : Multiset (Sym2 α)) :
+    -- some list of ordered pairs gives `M` when its pairs are unordered
+    ∃ l : List (α × α),
+      ((l.map fun q => s(q.1, q.2) : List (Sym2 α)) : Multiset (Sym2 α)) = M := by
   induction M using Multiset.induction_on with
   | empty => exact ⟨[], rfl⟩
   | cons e M ih =>
@@ -47,18 +92,16 @@ private theorem exists_list_sym2' {α : Type} (M : Multiset (Sym2 α)) :
     induction e using Sym2.ind with
     | _ a b => exact ⟨(a, b) :: l, rfl⟩
 
-/-- **The stubs of a graph** (Lafont 1997, page 71): its cells, a wire `pn c i — port c i` for each
-port of each cell, a wire between the names of the two ends of each wire, and a wire
-`ln j — ln j` for each cyclic wire. This is the raw graph of the flat text, up to the numbering
-of the cells. -/
-def stubGraph (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Graph S ℕ) : Graph S ℕ :=
-  ⟨G.cells, (G.cells.bind cellPorts).map (fun e => s(.name (e.flatName pn), e)) +
-    (G.wires.map (Sym2.map fun e => .name (e.flatName pn)) +
-      (Multiset.range G.loops).map fun j => s(End.name (ln j), End.name (ln j))), 0⟩
-
 /-- Every port at an end of a wire of the stubs of a graph is a port of one of its cells. -/
-theorem stubGraph_portsIn (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Graph S ℕ) (c i : ℕ)
+theorem stubGraph_portsIn
+    -- the names of the ports and of the cyclic wires, and the graph
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    (G : Graph S ℕ)
+    -- the port `i` of `c`, at an end of a wire of the stubs
+    (c i : ℕ)
     (hm : End.port c i ∈ (stubGraph pn ln G).ends) :
+    -- `c` is a cell of the stubs
     c ∈ (stubGraph pn ln G).cells.map Prod.fst := by
   rw [ends_eq_bind] at hm
   simp only [stubGraph, Multiset.add_bind, Multiset.mem_add] at hm
@@ -74,9 +117,20 @@ theorem stubGraph_portsIn (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Gra
 /-- **The raw graph of the flat text of a graph is isomorphic to its stubs** (Lafont 1997,
 page 71), for any graph whose cells have distinct numbers and any numbering of the cells of the
 text. -/
-theorem stubGraph_iso_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Graph S ℕ)
-    (hnd : (G.cells.map Prod.fst).Nodup) (k : ℕ) :
-    ∃ L : List (Term S ℕ × Term S ℕ), Net.ofList L = flat pn ln G ∧
+theorem stubGraph_iso_raw
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- the graph, whose cells have distinct numbers
+    (G : Graph S ℕ)
+    (hnd : (G.cells.map Prod.fst).Nodup)
+    -- the first number of the cells of the raw graph
+    (k : ℕ) :
+    -- there is a list of equations `L` such that
+    ∃ L : List (Term S ℕ × Term S ℕ),
+      -- `L` is the flat text of `G`,
+      Net.ofList L = flat pn ln G ∧
+      -- and the stubs of `G` are isomorphic to the raw graph of `L`
       (stubGraph pn ln G).Iso (raw k L) := by
   obtain ⟨lw, hlw⟩ := exists_list_sym2' G.wires
   let cl := G.cells.toList
@@ -120,45 +174,75 @@ theorem stubGraph_iso_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Gra
       obtain ⟨j, -, rfl⟩ := Multiset.mem_map.1 hw
       simp at hm
 
-/-! ## The names of the flat text -/
-
 /-- Distinct ports get distinct names (Lafont 1997, page 71). -/
-theorem realPn_inj {B c i d j : ℕ} (h : realPn B c i = realPn B d j) : c = d ∧ i = j := by
+theorem realPn_inj
+    -- the bound, and the two ports `i` of `c` and `j` of `d`
+    {B c i d j : ℕ}
+    -- with the same name
+    (h : realPn B c i = realPn B d j) :
+    -- are the same port
+    c = d ∧ i = j := by
   simp only [realPn] at h
   exact Nat.pair_eq_pair.1 (by omega)
 
-theorem le_realPn (B c i : ℕ) : B ≤ realPn B c i := by
+/-- The name of a port is at least the bound `B`. -/
+theorem le_realPn
+    -- the bound, and the port `i` of `c`
+    (B c i : ℕ) :
+    B ≤ realPn B c i := by
   simp [realPn]
 
-theorem realPn_ne_realLn (B c i j : ℕ) : realPn B c i ≠ realLn B j := by
+/-- The name of a port is not the name of a cyclic wire. -/
+theorem realPn_ne_realLn
+    -- the bound, the port `i` of `c`, and the cyclic wire `j`
+    (B c i j : ℕ) :
+    realPn B c i ≠ realLn B j := by
   simp only [realPn, realLn]
   omega
 
 /-- **A name that `unflat` reads as a port is the name of that port** (Lafont 1997, page 71). -/
-theorem unflat_eq_port {B y c i : ℕ} (h : unflat B (.name y) = .port c i) : y = realPn B c i := by
+theorem unflat_eq_port
+    -- the bound, the name `y`, and the port `i` of `c`
+    {B y c i : ℕ}
+    -- `unflat` reads `y` as that port
+    (h : unflat B (.name y) = .port c i) :
+    -- `y` is the name of the port
+    y = realPn B c i := by
   simp only [unflat] at h
   split_ifs at h with hy
   · obtain ⟨rfl, rfl⟩ := End.port.inj h
     simp only [realPn, Nat.pair_unpair]
     omega
 
-/-- Reading back the names of the stubs `P` as their ports, and keeping every other end. -/
-def stubBack (B : ℕ) (P : Multiset (End ℕ)) : End ℕ → End ℕ
-  | .port c i => .port c i
-  | .name y => if unflat B (.name y) ∈ P then unflat B (.name y) else .name y
-
 end Graph
 
-/-! ## The theorem -/
+-- ============================================================================================
+-- 3. Main result: an interaction of graphs is an interaction of texts
+-- ============================================================================================
 
 /-- **An interaction of graphs is an interaction of texts** (Lafont 1997, Section 1.2, page 73;
-PLAN.md Stage C, item 5, the converse direction). Let the rules of `I` be linear, `N` a linear
-net with graph `G`, and `Graph.Interact I G H` one interaction of `G`. Then `N` has a step
-`StepE I N M` whose result `M` has a graph `H'` isomorphic to `H`. -/
-theorem Net.Linear.interact_stepE {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N : Net S ℕ} (hN : N.Linear) {G H : Graph S ℕ} (hG : N.HasGraph G)
+the converse of `GraphStepE.lean`). Let the rules of `I` be linear, `N` a linear net with graph
+`G`, and `Graph.Interact I G H` one interaction of `G`. Then `N` has a step `StepE I N M` whose
+result `M` has a graph `H'` isomorphic to `H`. -/
+theorem Net.Linear.interact_stepE
+    -- the interaction system, whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the linear net
+    {N : Net S ℕ}
+    (hN : N.Linear)
+    -- its graph `G`, and an interaction from `G` to `H`
+    {G H : Graph S ℕ}
+    (hG : N.HasGraph G)
     (h : Graph.Interact I G H) :
-    ∃ M H', StepE I N M ∧ M.HasGraph H' ∧ H.Iso H' := by
+    -- there are a net `M` and a graph `H'` such that
+    ∃ M H',
+      -- `N` makes one step, up to wires, to `M`,
+      StepE I N M ∧
+      -- `H'` is a graph of `M`,
+      M.HasGraph H' ∧
+      -- and `H` is isomorphic to `H'`
+      H.Iso H' := by
   classical
   obtain ⟨c, d, α, β, C, W, n, r, hr, R, hR, σ, hσ, hσG, g, hg, hgW, H, hH, hH1⟩ := h
   have hrl := hI _ _ _ hr
