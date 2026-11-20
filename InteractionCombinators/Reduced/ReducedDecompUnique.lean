@@ -516,12 +516,10 @@ theorem IsReduced.exists_treesOnWiringN
 /-- **Proposition 2, uniqueness** (Lafont 1997, page 79: "Any reduced net with `n` free ports can
 be uniquely decomposed as follows"). Two equivalent nets in the normal form
 `Net.IsTreesOnWiringN` differ only by a renaming `ρ` of their internal names, the wires of the
-wiring: `ρ` fixes the free ports and is injective on the names of `N`. Linearity is not used. -/
+wiring: `ρ` fixes the free ports and is injective on the names of `N`. Linearity is not assumed. -/
 theorem IsTreesOnWiringN.unique
-    -- two linear nets, both in normal form
+    -- two nets, both in normal form
     {N M : Net S ℕ}
-    (_hN : N.Linear)
-    (_hM : M.Linear)
     (hn : N.IsTreesOnWiringN)
     (hm : M.IsTreesOnWiringN)
     -- that are the same graph

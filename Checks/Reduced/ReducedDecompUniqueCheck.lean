@@ -91,7 +91,7 @@ nets in normal form, so `Net.IsTreesOnWiringN.unique` gives a renaming `ρ` of t
 fixes the free port `0` and sends the wire `2` to `5`. -/
 theorem renamed_unique : ∃ ρ : ℕ → ℕ, ρ 0 = 0 ∧ ρ 2 = 5 ∧
     renamedB = renamedA.bind (fun x => var (ρ x)) := by
-  obtain ⟨ρ, hfix, -, hb⟩ := Net.IsTreesOnWiringN.unique renamedA_linear renamedB_linear
+  obtain ⟨ρ, hfix, -, hb⟩ := Net.IsTreesOnWiringN.unique
     renamedA_normal renamedB_normal renamedA_equiv_renamedB
   have h0 : ρ 0 = 0 := hfix 0 (by simp [renamedA])
   refine ⟨ρ, h0, ?_, hb⟩

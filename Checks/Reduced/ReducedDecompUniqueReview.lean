@@ -71,7 +71,7 @@ theorem unique_iff {N M : Net sig ℕ} (hN : N.Linear) (hM : M.Linear)
     Equiv N M ↔ ∃ ρ : ℕ → ℕ, (∀ x, N.vars.count x = 1 → ρ x = x) ∧
       Set.InjOn ρ {x | x ∈ N.vars} ∧ M = N.bind (fun x => var (ρ x)) := by
   constructor
-  · exact Net.IsTreesOnWiringN.unique hN hM hn hm
+  · exact Net.IsTreesOnWiringN.unique hn hm
   · rintro ⟨ρ, hfix, hinj, rfl⟩
     exact Net.equiv_bind_var hN ρ hinj hfix
 
@@ -95,7 +95,7 @@ theorem zero_normal : (0 : Net sig ℕ).IsTreesOnWiringN :=
 /-- The empty net has only itself as normal form (page 79). -/
 theorem zero_unique {M : Net sig ℕ} (hM : M.Linear) (hm : M.IsTreesOnWiringN)
     (h : Equiv 0 M) : M = 0 := by
-  obtain ⟨ρ, -, -, rfl⟩ := Net.IsTreesOnWiringN.unique (fun y => by simp) hM zero_normal hm h
+  obtain ⟨ρ, -, -, rfl⟩ := Net.IsTreesOnWiringN.unique zero_normal hm h
   simp [Net.bind]
 
 /-- A wire `0 = 1` between two free ports is in normal form (page 79): two trees with no cell,
@@ -115,7 +115,7 @@ theorem wireNet_swap : (s(var 1, var 0) ::ₘ 0 : Net sig ℕ) = wireNet := by
 theorem wireNet_unique {M : Net sig ℕ} (hM : M.Linear) (hm : M.IsTreesOnWiringN)
     (h : Equiv wireNet M) : M = wireNet := by
   obtain ⟨ρ, hfix, -, rfl⟩ :=
-    Net.IsTreesOnWiringN.unique wireNet_linear hM wireNet_normal hm h
+    Net.IsTreesOnWiringN.unique wireNet_normal hm h
   have h0 : ρ 0 = 0 := hfix 0 (by simp [wireNet])
   have h1 : ρ 1 = 1 := hfix 1 (by simp [wireNet])
   simp [wireNet, Net.bind, h0, h1]
@@ -239,7 +239,7 @@ equivalent normal forms `twoTrees` and `twoTreesR`, the renaming given by
 `Net.IsTreesOnWiringN.unique` sends the wires `2`, `3` to `8`, `9` and fixes the free ports. -/
 theorem twoTrees_unique : ∃ ρ : ℕ → ℕ, ρ 0 = 0 ∧ ρ 1 = 1 ∧ ρ 4 = 4 ∧ ρ 5 = 5 ∧ ρ 2 = 8 ∧
     ρ 3 = 9 ∧ twoTreesR = twoTrees.bind (fun x => var (ρ x)) := by
-  obtain ⟨ρ, hfix, -, hb⟩ := Net.IsTreesOnWiringN.unique twoTrees_linear twoTreesR_linear
+  obtain ⟨ρ, hfix, -, hb⟩ := Net.IsTreesOnWiringN.unique
     twoTrees_normal twoTreesR_normal twoTrees_equiv
   have h0 : ρ 0 = 0 := hfix 0 (by simp [twoTrees])
   have h1 : ρ 1 = 1 := hfix 1 (by simp [twoTrees])

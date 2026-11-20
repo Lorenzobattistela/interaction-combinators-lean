@@ -193,16 +193,13 @@ theorem proposition_2_exists
 /-- **Proposition 2, uniqueness** (Lafont 1997, page 79: "uniquely decomposed"). Two nets in the
 normal form `Net.IsTreesOnWiringN` that are the same graph differ only by the names of the wires
 of the wiring: one is the other renamed by a function that keeps the free ports and is injective
-on the names. The two linearity hypotheses are those of the library theorem, which does not use
-them.
+on the names. Linearity is not assumed.
 
 Library: `INet.Net.IsTreesOnWiringN.unique` in
 `InteractionCombinators/Reduced/ReducedDecompUnique.lean`. -/
 theorem proposition_2_unique
-    -- two linear nets
+    -- two nets
     {N M : Net S ℕ}
-    (hN : N.Linear)
-    (hM : M.Linear)
     -- both made of trees hanging from their free ports
     (hn : N.IsTreesOnWiringN)
     (hm : M.IsTreesOnWiringN)
@@ -216,7 +213,7 @@ theorem proposition_2_unique
       Set.InjOn ρ {x | x ∈ N.vars} ∧
       -- and carries the text of `N` to the text of `M`
       M = N.bind (fun x => var (ρ x)) :=
-  Net.IsTreesOnWiringN.unique hN hM hn hm h
+  Net.IsTreesOnWiringN.unique hn hm h
 
 /-- **Reduced is "trees on a wiring"** (Lafont 1997, Proposition 2, page 79, with its converse). A
 linear net is reduced if and only if it is the same graph as a net each of whose equations is

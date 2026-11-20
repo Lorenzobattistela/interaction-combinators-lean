@@ -315,7 +315,7 @@ arithmetic (Section 1.5, pages 76-77, and Fig. 1 on page 78) is in `Demo/`, see 
 | An instance of a reduced right member has no cut | `Rule.not_hasCut_inst` | `InteractionCombinators/Translations/SimulationStrict.lean` | `Checks/Translations/SimulationStrictCheck.lean` | no | | For distinct names on the ports. |
 | The form "trees on a wiring" | `Net.IsTreesOnWiring`, `Net.IsTreesOnWiring.isReduced` | `InteractionCombinators/Reduced/ReducedDecomp.lean` | `Checks/Reduced/ReducedDecompCheck.lean`, `Checks/Reduced/ReducedDecompReview.lean` | now | | Every equation is `x = t` with `x` a free port. The definition was read. |
 | **Proposition 2**, existence, and the converse | `Net.IsReduced.exists_treesOnWiring`, `Net.isReduced_iff_exists_treesOnWiring` | `InteractionCombinators/Reduced/ReducedDecomp.lean` | `Checks/Reduced/ReducedDecompCheck.lean`, `Checks/Reduced/ReducedDecompReview.lean` | now | | `Results.lean`: `reduced_iff_trees_on_wiring`. |
-| **Proposition 2**, existence in normal form, and uniqueness | `Net.IsTreesOnWiringN`, `Net.IsReduced.exists_treesOnWiringN`, `Net.IsTreesOnWiringN.unique` | `InteractionCombinators/Reduced/ReducedDecompUnique.lean` | `Checks/Reduced/ReducedDecompUniqueCheck.lean`, `Checks/Reduced/ReducedDecompUniqueReview.lean` | now | | `Results.lean`: `proposition_2_exists`, `proposition_2_unique`. Unique up to an injective renaming that keeps the free ports. The two linearity hypotheses of `unique` are not used. |
+| **Proposition 2**, existence in normal form, and uniqueness | `Net.IsTreesOnWiringN`, `Net.IsReduced.exists_treesOnWiringN`, `Net.IsTreesOnWiringN.unique` | `InteractionCombinators/Reduced/ReducedDecompUnique.lean` | `Checks/Reduced/ReducedDecompUniqueCheck.lean`, `Checks/Reduced/ReducedDecompUniqueReview.lean` | now | | `Results.lean`: `proposition_2_exists`, `proposition_2_unique`. Unique up to an injective renaming that keeps the free ports. `unique` does not assume linearity. |
 | Principal net of arity n, root, degenerate case (p. 79-80) | `PNet`, `PNet.inst`, `PNet.Strict`, `PNet.cell` | `InteractionCombinators/Core/Translation.lean` | | map, now | | |
 | Lemma 1 (principal paths of a principal net) | none | | | | | Not needed: a `PNet` is a tree, the path is a branch. |
 | **"A reduced net with no free port is empty"** (p. 80) | `Net.IsReduced.eq_zero_of_closed` | `InteractionCombinators/Reduced/ReducedClosed.lean` | `Checks/Reduced/ReducedClosedCheck.lean` | now | | `Results.lean`: `reduced_closed_empty`. |
@@ -582,8 +582,7 @@ tree on 20 November 2026.
    `Translation.Invertible.compatibleWithin_one_of_wellFormed` asks a well-formed target system;
    linear and reduced rules suffice (`Translation.Invertible.compatibleWithin_one_of_linear_reduced`,
    the one `Results.lean` uses). `code_decoder_package` has an unused package hypothesis, kept in
-   `decoder_property`. `Net.IsTreesOnWiringN.unique` takes two linearity hypotheses it does not
-   use, kept in `proposition_2_unique`. `Step.strong_confluence` and `StepE.strong_confluence` take
+   `decoder_property`. `Step.strong_confluence` and `StepE.strong_confluence` take
    `System.WellFormed` though the reducedness of the right members is not used
    (`StepE.strong_confluence_of`). Proposition 4 asks only linear rules on both sides.
 7. **The old names and the `E` names of the translation.** The translation of Fig. 10 exists

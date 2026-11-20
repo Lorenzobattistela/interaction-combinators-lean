@@ -5097,7 +5097,7 @@ INet.Net.IsTreesOnWiringN.nodup._proof_1_1 theorem 1674327817 -
 INet.Net.IsTreesOnWiringN.nodup._proof_1_2 theorem 2640864303 -
 INet.Net.IsTreesOnWiringN.nodup._proof_1_3 theorem 3628817729 -
 INet.Net.IsTreesOnWiringN.solves_rootTree theorem 60892547 -
-INet.Net.IsTreesOnWiringN.unique theorem 4035855106 -
+INet.Net.IsTreesOnWiringN.unique theorem 2338929727 -
 INet.Net.Linear def 3108753451 4027122896
 INet.Net.Linear.add_fresh theorem 2167857335 -
 INet.Net.Linear.add_fresh._proof_1_1 theorem 4268585699 -
@@ -6083,7 +6083,7 @@ INet.Results.normal_form_reached theorem 4092689206 -
 INet.Results.normal_form_unique theorem 22638863 -
 INet.Results.proposition_1 theorem 1331561322 -
 INet.Results.proposition_2_exists theorem 542026406 -
-INet.Results.proposition_2_unique theorem 4035855106 -
+INet.Results.proposition_2_unique theorem 2338929727 -
 INet.Results.proposition_3 theorem 925784912 -
 INet.Results.proposition_3_converse theorem 4166665538 -
 INet.Results.proposition_4 theorem 2735765071 -
