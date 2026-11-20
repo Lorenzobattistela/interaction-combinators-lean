@@ -257,8 +257,8 @@ expressive power \pp{p.~97}.
 Lafont remarks that a net can be described by sets of cells, wires and ports, and adds: ``In
 this paper, we shall avoid such cumbersome descriptions, but the reader may check that our
 arguments can always be formalized in this way'' \pp{p.~72}. We chose a description in which a
-net is a piece of text, in the style of the interaction calculus of Fern\'andez and
-Mackie~\cite{fernandezmackie1999}. The correspondence with graphs is proved in
+net is a piece of text, in the style of the textual calculi for interaction
+nets~\cite{fernandezmackie1999,mackiesato2008}. The correspondence with graphs is proved in
 Section~\ref{sec:graphs}.
 
 \subsection{Trees, nets and equality}
@@ -807,11 +807,11 @@ objects and for single steps, between a representation by multisets of equations
 
 \paragraph{The textual representation.}
 De Falco~\cite{defalco2010} traces the definition of nets as terms with paired variables to
-Lafont's first paper~\cite{lafont1990} and its refinement to the interaction calculus of
-Fern\'andez and Mackie~\cite{fernandezmackie1999}\todo{the full text of this paper could not be
-obtained. Read it before submission}. Later work gives implementation models based on
-refinements of that calculus~\cite{hassan2015}. Mackie and Sato~\cite{mackiesato2008} give
-another textual calculus, based on the linear chemical abstract machine, and prove on paper one
+Lafont's first paper~\cite{lafont1990}. Fern\'andez and Mackie proposed a calculus of
+interaction nets~\cite{fernandezmackie1999} which, in the words of Mackie and
+Sato~\cite{mackiesato2008}, is ``based in part on the syntax that Lafont gave''. Later work
+gives implementation models based on refinements of that calculus~\cite{hassan2015}. Mackie
+and Sato give another textual calculus, based on the linear chemical abstract machine, and prove on paper one
 direction of a correspondence with graphs: a step of a net without vicious circles is matched
 by one or two steps of its text. De Falco himself gives an explicit framework, based on the
 geometry of interaction, with nets as partial permutations.
