@@ -1176,10 +1176,9 @@ translation of this system was written).
 \label{sec:method}
 
 This section reports how the development was produced. All numbers are from the records of the
-run (launcher log, session reports, GitHub lists, \cod{git log}), taken at a snapshot at 22:13
-on 19 November 2026 while the last phase (reformatting of the sources, no change of
-statements) was still running\todo{refresh every number in this section from a final snapshot;
-the source is \texttt{docs/paper/experiment-data.md}}.
+run (launcher log, session reports, GitHub lists, \cod{git log}), computed on 20 November 2026
+after the pool had stopped; the last phase was a reformatting of the sources, with no change of
+statements.
 
 \paragraph{Roles.}
 The author wrote, with an interactive assistant, the definitions of
@@ -1190,7 +1189,7 @@ time, did the rest. A \emph{planner} session turned the roadmap into issues, eac
 one lemma or one review; a \emph{worker} session took an issue, wrote Lean in its own branch,
 and opened a pull request; a \emph{repair} session fixed a pull request whose check failed.
 Nobody answered questions from agents. The author merged nothing by hand: a pull request was
-merged by the launcher when its check passed. The author made 60 direct commits during the run
+merged by the launcher when its check passed. The author made 62 direct commits before and during the run
 (infrastructure, the protected files, and the reorganization of the library), again with an
 assistant.
 
@@ -1213,26 +1212,29 @@ partial result as partial.
 \begin{center}\small
 \begin{tabular}{@{}lr@{}}
 \toprule
-Sessions started / ended at the snapshot & 416 / 414 \\
-\quad of which planning, work, repair, re-planning (ended) & 150, 250, 10, 4 \\
-Total session time & 45.5 h \\
-Time the pool was running (three phases) & 25.8 h \\
-Pull requests opened / merged & 252 / 249 \\
-Review issues (of 256 issues) & 62 \\
+Sessions & 529 \\
+\quad of which planning, work, repair, re-planning & 214, 301, 10, 4 \\
+Total session time & 51.9 h \\
+Time the pool was running (three phases) & 29.8 h \\
+Pull requests opened / merged & 302 / 301 \\
+Review issues (of 304 issues) & 62 \\
 From the first agent to the merge of Theorem~1 in strict form & 8 h 57 min \\
-Lean, library (\cod{InteractionCombinators/}), at the snapshot & $38\,948$ lines \\
-Lean, checks (\cod{Checks/}) & $22\,064$ lines \\
-Lean, demos (\cod{Demo/}) & $1\,478$ lines \\
-Declarations reported by the axiom audit & $6\,779$ \\
+Lean, library (\cod{InteractionCombinators/}), 116 files & $44\,840$ lines ($30\,369$) \\
+Lean, checks (\cod{Checks/}), 138 files & $22\,067$ lines ($22\,064$) \\
+Lean, demos (\cod{Demo/}), 4 files & $2\,202$ lines ($1\,478$) \\
+Declarations reported by the axiom audit & $6\,774$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-The audit count includes declarations that Lean generates and measures size, not progress. No
+Line counts are those of the final tree; in parentheses, the counts before the third phase,
+which put one binder per line and added section banners to the library and the demos. The two
+are not comparable: the reformatting added lines and no content. The audit count includes
+declarations that Lean generates and measures size, not progress. No
 token counts or costs were recorded. The first phase (14 hours, overnight) ended with Theorem~1
 and Propositions~3 and~4; the second (7 hours) added the graph correspondence, strong
-confluence for graphs, Proposition~2, the computable translation and the demos; the third
-only reformats\todo{the assignment of results to phases is read off the progress records and
+confluence for graphs, Proposition~2, the computable translation and the demos; the third (9 hours)
+only reformatted\todo{the assignment of results to phases is read off the progress records and
 the dates of pull requests; check it}. The development uses Lean \cod{v4.36.0} and Mathlib.
 
 \paragraph{Defects in definitions and statements, and who caught them.}
@@ -1292,7 +1294,7 @@ lack of memory until builds were serialized and the imports of Mathlib narrowed;
 failure raised a false ``main is broken'' alarm and stopped the pool. Five of the ten repair
 sessions were for checks killed in this way, four for conflicts on the file of imports. Some
 sessions finished their work but did not exit, waiting on a build in an unbounded loop. One
-pull request received no check at all and was still open at the snapshot.
+pull request received no check for four and a half hours.
 
 \paragraph{The lesson.}
 The kernel guarantees that the theorems follow from the definitions. It does not guarantee that
@@ -1307,8 +1309,8 @@ are internal to the proof, and an error in them cannot make the theorem false, o
 proof a different proof from Lafont's.
 
 \paragraph{Limits of this report.}
-It is one run on one paper. There is no baseline (a person alone, or a single agent), no
-measure of cost, and the snapshot is partial. The author is not independent of the experiment.
+It is one run on one paper. There is no baseline (a person alone, or a single agent), and
+no measure of cost. The author is not independent of the experiment.
 
 \paragraph{Statement on the use of AI.}
 The Lean proofs, the check files and the reviews were written by large-language-model agents
