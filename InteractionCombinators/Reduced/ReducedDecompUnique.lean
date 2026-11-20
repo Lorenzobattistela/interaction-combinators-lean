@@ -7,7 +7,7 @@ import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 Lafont 1997, Proposition 2, page 79: "Any reduced net with `n` free ports can be uniquely
 decomposed as follows", the picture showing trees `τ₁, …, τₙ` whose roots are the free ports and
 whose leaves are joined by a wiring `ω`. The existence is `Net.IsReduced.exists_treesOnWiring`
-(`Lafont/ReducedDecomp.lean`). This file proves the uniqueness.
+(`InteractionCombinators/Reduced/ReducedDecomp.lean`). This file proves the uniqueness.
 
 ## The normal form
 
@@ -31,10 +31,22 @@ extends to a solution `s₁` of `M`, and `rootTree M` to a solution `s₂` of `N
 `rootTree N p = ((rootTree N p).bind s₂).bind s₁`, so `s₂` sends every leaf of the trees of `N` to
 a name, and `s₁` sends it back. This name is the renaming `ρ`.
 
-* `Net.IsTreesOnWiringN` — the normal form.
-* `Net.IsReduced.exists_treesOnWiringN` — **Proposition 2, existence**, in normal form.
-* `Net.IsTreesOnWiringN.unique` — **Proposition 2, uniqueness**: two equivalent nets in normal form
-  differ by a renaming of the internal names.
+Contents, in the order of the file:
+
+1. Definitions: `Term.nameOr`, the name of a tree that is a name; `Net.IsTreesOnWiringN`, the
+   normal form; `Net.RootTree`, a tree hung from a free port; `Net.rootTree`, the tree hung from
+   a name.
+2. Auxiliary lemmas on terms: `Term.var_of_bind_eq_self`, `Term.exists_var_of_bind_eq_var`,
+   `Term.nameOr_var`.
+3. Auxiliary lemmas on counts and root trees: `Net.count_eqVars_le`, `Net.eq_of_count_one`,
+   `Net.RootTree.unique`, `Net.rootTree_eq`, `Net.IsTreesOnWiringN.exists_rootTree`,
+   `Net.IsTreesOnWiringN.solves_rootTree`, `Net.solves_rootTree_factor`,
+   `Net.rootTree_var_transfer`, `Net.IsTreesOnWiringN.nodup`.
+4. Auxiliary lemmas for the existence: `Net.IsTreesOnWiring.wire`,
+   `Net.exists_treesOnWiringN_card`, the induction on the number of equations.
+5. Main results: `Net.IsReduced.exists_treesOnWiringN`, **Proposition 2, existence**, in normal
+   form; `Net.IsTreesOnWiringN.unique`, **Proposition 2, uniqueness**: two equivalent nets in
+   normal form differ by a renaming of the internal names.
 -/
 
 namespace INet
@@ -43,9 +55,75 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
+/-- The name of a tree that is a name, or `d`. -/
+def Term.nameOr
+    -- the default name
+    {ν : Type}
+    (d : ν) :
+    Term S ν → ν
+  | var w => w
+  | app _ _ => d
+
+namespace Net
+
+/-- **Trees on a wiring, normal form** (Lafont 1997, Proposition 2, page 79): the form
+`Net.IsTreesOnWiring`, and an equation between two names joins two free ports. So no tree with no
+cell hangs from a free port into an internal name; such a free port is written as the leaf it is
+plugged into. -/
+def IsTreesOnWiringN
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  -- every equation is `x = t` with `x` a free port,
+  N.IsTreesOnWiring ∧
+  -- and in an equation `x = y` between two names, `y` is a free port too
+  ∀ x y, s(var x, var y) ∈ N → N.vars.count y = 1
+
+/-- `t` is the tree hung from the free port `x` of `N` (Lafont 1997, page 79): the equation
+`x = t` is in `N`, and if `t` is a name `y`, then `y < x`, so that a wire between two free ports
+is hung from one of its ends only. -/
+def RootTree
+    -- the net, the port and the tree
+    (N : Net S ℕ)
+    (x : ℕ)
+    (t : Term S ℕ) :
+    Prop :=
+  -- the equation `x = t` is in `N`,
+  s(var x, t) ∈ N ∧
+  -- `x` is a free port,
+  N.vars.count x = 1 ∧
+  -- and if `t` is a name, it is smaller than `x`
+  ∀ y, t = var y → y < x
+
+open Classical in
+/-- The tree hung from the name `x` of `N`, or `var x` if there is none. -/
+noncomputable def rootTree
+    -- the net and the name
+    (N : Net S ℕ)
+    (x : ℕ) :
+    Term S ℕ :=
+  if h : ∃ t, N.RootTree x t then h.choose else var x
+
+end Net
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas on terms
+-- ============================================================================================
+
 /-- A tree that plugging does not change: every leaf is plugged into itself. -/
-theorem Term.var_of_bind_eq_self {ν : Type} {f : ν → Term S ν} {t : Term S ν}
-    (h : t.bind f = t) : ∀ v ∈ t.vars, f v = var v := by
+theorem Term.var_of_bind_eq_self
+    -- the plugging and the tree
+    {ν : Type}
+    {f : ν → Term S ν}
+    {t : Term S ν}
+    -- plugging `f` into `t` gives `t` back
+    (h : t.bind f = t) :
+    -- every leaf `v` of `t` is plugged into itself
+    ∀ v ∈ t.vars, f v = var v := by
   induction t with
   | var x =>
     intro v hv
@@ -61,38 +139,65 @@ theorem Term.var_of_bind_eq_self {ν : Type} {f : ν → Term S ν} {t : Term S 
     exact ih i (congrFun h2 i) v hi
 
 /-- A plugged tree that is a name was a name. -/
-theorem Term.exists_var_of_bind_eq_var {ν μ : Type} {f : ν → Term S μ} {t : Term S ν} {v : μ}
-    (h : t.bind f = var v) : ∃ w, t = var w ∧ f w = var v := by
+theorem Term.exists_var_of_bind_eq_var
+    -- the plugging, the tree and the name
+    {ν μ : Type}
+    {f : ν → Term S μ}
+    {t : Term S ν}
+    {v : μ}
+    -- plugging `f` into `t` gives the name `v`
+    (h : t.bind f = var v) :
+    -- there is a name `w` such that
+    ∃ w,
+      -- `t` is the name `w`,
+      t = var w ∧
+      -- and `f` plugs `v` into `w`
+      f w = var v := by
   cases t with
   | var w => exact ⟨w, rfl, h⟩
   | app α ts => simp at h
 
-/-- The name of a tree that is a name, or `d`. -/
-def Term.nameOr {ν : Type} (d : ν) : Term S ν → ν
-  | var w => w
-  | app _ _ => d
-
-@[simp] theorem Term.nameOr_var {ν : Type} (d w : ν) : (var w : Term S ν).nameOr d = w := rfl
+/-- The name of the tree `var w` is `w`. -/
+@[simp] theorem Term.nameOr_var
+    -- the default name and the name
+    {ν : Type}
+    (d w : ν) :
+    (var w : Term S ν).nameOr d = w := rfl
 
 namespace Net
 
-/-- **Trees on a wiring, normal form** (Lafont 1997, Proposition 2, page 79): the form
-`Net.IsTreesOnWiring`, and an equation between two names joins two free ports. So no tree with no
-cell hangs from a free port into an internal name; such a free port is written as the leaf it is
-plugged into. -/
-def IsTreesOnWiringN (N : Net S ℕ) : Prop :=
-  N.IsTreesOnWiring ∧ ∀ x y, s(var x, var y) ∈ N → N.vars.count y = 1
+-- ============================================================================================
+-- 3. Auxiliary lemmas on counts and root trees
+-- ============================================================================================
 
 /-- The names of an equation of a net are names of the net. -/
-theorem count_eqVars_le {N : Net S ℕ} {e : Sym2 (Term S ℕ)} (he : e ∈ N) (x : ℕ) :
+theorem count_eqVars_le
+    -- an equation of the net
+    {N : Net S ℕ}
+    {e : Sym2 (Term S ℕ)}
+    (he : e ∈ N)
+    -- a name
+    (x : ℕ) :
+    -- occurs in `e` at most as often as in `N`
     (eqVars e).count x ≤ N.vars.count x := by
   obtain ⟨R, rfl⟩ := Multiset.exists_cons_of_mem he
   simp only [Net.vars_cons, Multiset.count_add]
   omega
 
 /-- A free port occurs in one equation only. -/
-theorem eq_of_count_one {N : Net S ℕ} {x : ℕ} (h : N.vars.count x = 1) {e e' : Sym2 (Term S ℕ)}
-    (he : e ∈ N) (he' : e' ∈ N) (hx : x ∈ eqVars e) (hx' : x ∈ eqVars e') : e = e' := by
+theorem eq_of_count_one
+    -- a free port of the net
+    {N : Net S ℕ}
+    {x : ℕ}
+    (h : N.vars.count x = 1)
+    -- two equations of the net, both containing `x`
+    {e e' : Sym2 (Term S ℕ)}
+    (he : e ∈ N)
+    (he' : e' ∈ N)
+    (hx : x ∈ eqVars e)
+    (hx' : x ∈ eqVars e') :
+    -- are the same equation
+    e = e' := by
   by_contra hne
   obtain ⟨R, rfl⟩ := Multiset.exists_cons_of_mem he
   have hR : e' ∈ R := (Multiset.mem_cons.1 he').resolve_left (Ne.symm hne)
@@ -102,60 +207,98 @@ theorem eq_of_count_one {N : Net S ℕ} {x : ℕ} (h : N.vars.count x = 1) {e e'
   simp only [Net.vars_cons, Multiset.count_add] at h
   omega
 
-/-- `t` is the tree hung from the free port `x` of `N` (Lafont 1997, page 79): the equation
-`x = t` is in `N`, and if `t` is a name `y`, then `y < x`, so that a wire between two free ports
-is hung from one of its ends only. -/
-def RootTree (N : Net S ℕ) (x : ℕ) (t : Term S ℕ) : Prop :=
-  s(var x, t) ∈ N ∧ N.vars.count x = 1 ∧ ∀ y, t = var y → y < x
-
 /-- The tree hung from a free port is unique. -/
-theorem RootTree.unique {N : Net S ℕ} {x : ℕ} {t t' : Term S ℕ} (h : N.RootTree x t)
-    (h' : N.RootTree x t') : t = t' := by
+theorem RootTree.unique
+    -- two trees hung from the same port `x` of `N`
+    {N : Net S ℕ}
+    {x : ℕ}
+    {t t' : Term S ℕ}
+    (h : N.RootTree x t)
+    (h' : N.RootTree x t') :
+    -- are equal
+    t = t' := by
   have := eq_of_count_one h.2.1 h.1 h'.1 (by simp) (by simp)
   rcases Sym2.eq_iff.1 this with ⟨-, h2⟩ | ⟨h1, h2⟩
   · exact h2
   · exact h2.trans h1
 
 /-- The tree hung from `x` is not `x`. -/
-theorem RootTree.ne_var {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (h : N.RootTree x t) : t ≠ var x :=
+theorem RootTree.ne_var
+    -- a tree hung from the port `x` of `N`
+    {N : Net S ℕ}
+    {x : ℕ}
+    {t : Term S ℕ}
+    (h : N.RootTree x t) :
+    t ≠ var x :=
   fun e => lt_irrefl _ (h.2.2 x e)
 
 /-- An equation is hung from one name only. -/
-theorem RootTree.root_eq {N M : Net S ℕ} {x y : ℕ} {t u : Term S ℕ} (hx : N.RootTree x t)
-    (hy : M.RootTree y u) (he : s(var x, t) = s(var y, u)) : x = y := by
+theorem RootTree.root_eq
+    -- a tree `t` hung from `x` in `N`, and a tree `u` hung from `y` in `M`
+    {N M : Net S ℕ}
+    {x y : ℕ}
+    {t u : Term S ℕ}
+    (hx : N.RootTree x t)
+    (hy : M.RootTree y u)
+    -- the two equations are the same
+    (he : s(var x, t) = s(var y, u)) :
+    -- then the two roots are the same
+    x = y := by
   rcases Sym2.eq_iff.1 he with ⟨h1, -⟩ | ⟨h1, h2⟩
   · injection h1
   · have a := hx.2.2 y h2
     have b := hy.2.2 x h1.symm
     omega
 
-open Classical in
-/-- The tree hung from the name `x` of `N`, or `var x` if there is none. -/
-noncomputable def rootTree (N : Net S ℕ) (x : ℕ) : Term S ℕ :=
-  if h : ∃ t, N.RootTree x t then h.choose else var x
-
-theorem rootTree_eq {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (h : N.RootTree x t) :
+/-- `rootTree N x` is the tree hung from `x`, when there is one. -/
+theorem rootTree_eq
+    -- a tree hung from the port `x` of `N`
+    {N : Net S ℕ}
+    {x : ℕ}
+    {t : Term S ℕ}
+    (h : N.RootTree x t) :
     rootTree N x = t := by
   unfold rootTree
   split_ifs with h'
   · exact h'.choose_spec.unique h
   · exact absurd ⟨t, h⟩ h'
 
-theorem rootTree_of_ne {N : Net S ℕ} {x : ℕ} (h : rootTree N x ≠ var x) :
+/-- If `rootTree N x` is not `var x`, it is hung from `x`. -/
+theorem rootTree_of_ne
+    -- a name `x` whose `rootTree` is not `var x`
+    {N : Net S ℕ}
+    {x : ℕ}
+    (h : rootTree N x ≠ var x) :
     N.RootTree x (rootTree N x) := by
   unfold rootTree at h ⊢
   split_ifs at h ⊢ with h'
   · exact h'.choose_spec
   · exact absurd rfl h
 
-theorem rootTree_of_not_free {N : Net S ℕ} {x : ℕ} (hx : N.vars.count x ≠ 1) :
+/-- Nothing is hung from a name that is not a free port. -/
+theorem rootTree_of_not_free
+    -- a name `x` that does not occur exactly once in `N`
+    {N : Net S ℕ}
+    {x : ℕ}
+    (hx : N.vars.count x ≠ 1) :
     rootTree N x = var x := by
   by_contra h
   exact hx (rootTree_of_ne h).2.1
 
 /-- In normal form, every equation is hung from a free port. -/
-theorem IsTreesOnWiringN.exists_rootTree {N : Net S ℕ} (h : N.IsTreesOnWiringN)
-    {e : Sym2 (Term S ℕ)} (he : e ∈ N) : ∃ x t, N.RootTree x t ∧ e = s(var x, t) := by
+theorem IsTreesOnWiringN.exists_rootTree
+    -- a net in normal form
+    {N : Net S ℕ}
+    (h : N.IsTreesOnWiringN)
+    -- an equation of the net
+    {e : Sym2 (Term S ℕ)}
+    (he : e ∈ N) :
+    -- there are a port `x` and a tree `t` such that
+    ∃ x t,
+      -- `t` is hung from `x`,
+      N.RootTree x t ∧
+      -- and the equation is `x = t`
+      e = s(var x, t) := by
   obtain ⟨x, t, rfl, hx⟩ := h.1 e he
   by_cases hv : ∃ y, t = var y
   · obtain ⟨y, rfl⟩ := hv
@@ -175,8 +318,17 @@ theorem IsTreesOnWiringN.exists_rootTree {N : Net S ℕ} (h : N.IsTreesOnWiringN
   · exact ⟨x, t, ⟨he, hx, fun y hy => absurd ⟨y, hy⟩ hv⟩, rfl⟩
 
 /-- In normal form, the leaves of a tree are not roots. -/
-theorem RootTree.rootTree_leaf {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (hr : N.RootTree x t)
-    {v : ℕ} (hv : v ∈ t.vars) : rootTree N v = var v := by
+theorem RootTree.rootTree_leaf
+    -- a tree hung from the port `x` of `N`
+    {N : Net S ℕ}
+    {x : ℕ}
+    {t : Term S ℕ}
+    (hr : N.RootTree x t)
+    -- a leaf of the tree
+    {v : ℕ}
+    (hv : v ∈ t.vars) :
+    -- nothing is hung from it
+    rootTree N v = var v := by
   by_contra hne
   have hv' := rootTree_of_ne hne
   have heq := eq_of_count_one hv'.2.1 hv'.1 hr.1 (by simp) (by simp [hv])
@@ -192,7 +344,10 @@ theorem RootTree.rootTree_leaf {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (hr : 
     omega
 
 /-- In normal form, the trees hung from the free ports are a solution of the net. -/
-theorem IsTreesOnWiringN.solves_rootTree {N : Net S ℕ} (h : N.IsTreesOnWiringN) :
+theorem IsTreesOnWiringN.solves_rootTree
+    -- a net in normal form
+    {N : Net S ℕ}
+    (h : N.IsTreesOnWiringN) :
     N.Solves (rootTree N) := by
   intro e he
   obtain ⟨x, t, hr, rfl⟩ := h.exists_rootTree he
@@ -203,17 +358,36 @@ theorem IsTreesOnWiringN.solves_rootTree {N : Net S ℕ} (h : N.IsTreesOnWiringN
     _ = t := Term.bind_var_self t
 
 /-- Every solution of a net factors through the trees hung from its free ports. -/
-theorem solves_rootTree_factor {N : Net S ℕ} {μ : Type} {s : ℕ → Term S μ} (hs : N.Solves s)
-    (z : ℕ) : s z = (rootTree N z).bind s := by
+theorem solves_rootTree_factor
+    -- a solution `s` of the net
+    {N : Net S ℕ}
+    {μ : Type}
+    {s : ℕ → Term S μ}
+    (hs : N.Solves s)
+    -- a name
+    (z : ℕ) :
+    -- `s z` is `s` plugged into the tree hung from `z`
+    s z = (rootTree N z).bind s := by
   by_cases h : rootTree N z = var z
   · rw [h, bind_var]
   · simpa using hs _ (rootTree_of_ne h).1
 
 /-- The step of the uniqueness: a free port that is a leaf on one side is a leaf on the other. -/
-theorem rootTree_var_transfer {N M : Net S ℕ} {s₁ : ℕ → Term S ℕ} (hm : M.IsTreesOnWiringN)
+theorem rootTree_var_transfer
+    -- two nets, `M` in normal form, and a substitution `s₁`
+    {N M : Net S ℕ}
+    {s₁ : ℕ → Term S ℕ}
+    (hm : M.IsTreesOnWiringN)
+    -- on the free ports of `N`, the tree of `N` is the tree of `M` plugged with `s₁`
     (A : ∀ p, N.vars.count p = 1 → rootTree N p = (rootTree M p).bind s₁)
+    -- on the free ports of `M`, `s₁` is the tree of `N`
     (hp₁ : ∀ p, M.vars.count p = 1 → s₁ p = rootTree N p)
-    (p : ℕ) (hp : N.vars.count p = 1) (hNp : rootTree N p = var p) : rootTree M p = var p := by
+    -- a free port `p` of `N` from which nothing is hung in `N`
+    (p : ℕ)
+    (hp : N.vars.count p = 1)
+    (hNp : rootTree N p = var p) :
+    -- nothing is hung from `p` in `M` either
+    rootTree M p = var p := by
   by_contra hne
   have hr := rootTree_of_ne hne
   have e1 := A p hp
@@ -234,7 +408,11 @@ theorem rootTree_var_transfer {N M : Net S ℕ} {s₁ : ℕ → Term S ℕ} (hm 
   omega
 
 /-- In normal form, no equation occurs twice. -/
-theorem IsTreesOnWiringN.nodup {N : Net S ℕ} (h : N.IsTreesOnWiringN) : N.Nodup := by
+theorem IsTreesOnWiringN.nodup
+    -- a net in normal form
+    {N : Net S ℕ}
+    (h : N.IsTreesOnWiringN) :
+    N.Nodup := by
   classical
   rw [Multiset.nodup_iff_count_le_one]
   intro e
@@ -249,13 +427,112 @@ theorem IsTreesOnWiringN.nodup {N : Net S ℕ} (h : N.IsTreesOnWiringN) : N.Nodu
     Multiset.count_singleton_self] at this
   omega
 
+-- ============================================================================================
+-- 4. Auxiliary lemmas for the existence: the induction on the number of equations
+-- ============================================================================================
+
+/-- A wire substitution keeps the form `Net.IsTreesOnWiring` (Lafont 1997, page 79). -/
+theorem IsTreesOnWiring.wire
+    -- `M` is `N` after a wire substitution
+    {N M : Net S ℕ}
+    (hW : Wire N M)
+    -- `N` is in the form
+    (h : N.IsTreesOnWiring) :
+    -- then `M` is in the form
+    M.IsTreesOnWiring := by
+  have hfree := hW.free_iff
+  obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := hW
+  have hx2 : 2 ≤ (Net.vars (s(var x, t) ::ₘ s(a, b) ::ₘ Δ)).count x := by
+    have := Multiset.one_le_count_iff_mem.2 hx
+    simp only [Net.vars_cons, eqVars_mk, vars_var, Multiset.count_add,
+      Multiset.count_singleton_self] at this ⊢
+    omega
+  intro e he
+  rcases Multiset.mem_cons.1 he with rfl | he
+  · obtain ⟨z, u, hzu, hz⟩ := h _ (Multiset.mem_cons_of_mem (Multiset.mem_cons_self _ _))
+    have hzx : z ≠ x := by
+      rintro rfl
+      omega
+    refine ⟨z, u.subst x t, ?_, (hfree z).1 hz⟩
+    rcases Sym2.eq_iff.1 hzu with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · rw [Cut.subst_var_ne hzx]
+    · rw [Cut.subst_var_ne hzx, Sym2.eq_swap]
+  · obtain ⟨z, u, hzu, hz⟩ := h e (Multiset.mem_cons_of_mem (Multiset.mem_cons_of_mem he))
+    exact ⟨z, u, hzu, (hfree z).1 hz⟩
+
+/-- The induction on the number of equations behind `Net.IsReduced.exists_treesOnWiringN`: an
+equation `x = y` with `y` internal is contracted by one wire substitution. -/
+theorem exists_treesOnWiringN_card :
+    -- for every number `n` and every net `N` with `n` equations,
+    ∀ (n : ℕ) (N : Net S ℕ), Multiset.card N = n →
+      -- if `N` is linear and in the form,
+      N.Linear → N.IsTreesOnWiring →
+      -- then `N` is the same graph as a net `M` in normal form
+      ∃ M, Equiv N M ∧ M.IsTreesOnWiringN := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro N hn hN hF
+  by_cases hG : ∀ x y, s(var x, var y) ∈ N → N.vars.count y = 1
+  · exact ⟨N, Equiv.refl N, hF, hG⟩
+  push Not at hG
+  obtain ⟨x, y, hm, hy⟩ := hG
+  have hxy : y ∉ (var x : Term S ℕ).vars := by
+    intro hyx
+    rw [vars_var, Multiset.mem_singleton] at hyx
+    subst hyx
+    obtain ⟨z, u, he, hz⟩ := hF _ hm
+    rcases Sym2.eq_iff.1 he with ⟨h1, -⟩ | ⟨-, h1⟩ <;>
+    · injection h1 with h1
+      exact hy (h1 ▸ hz)
+  have hm' : s(var y, var x) ∈ N := by rw [Sym2.eq_swap]; exact hm
+  obtain ⟨R, rfl⟩ := Multiset.exists_cons_of_mem hm'
+  obtain ⟨M, hW, hc⟩ := exists_wire_of_not_free hN hy hxy
+  obtain ⟨M', hE, hM'⟩ := ih _ (hn ▸ hc) M rfl hW.linear_right (hF.wire hW)
+  exact ⟨M', hW.equiv.trans hE, hM'⟩
+
+-- ============================================================================================
+-- 5. Main results: Proposition 2, existence in normal form and uniqueness
+-- ============================================================================================
+
+/-- **Proposition 2, existence, in normal form** (Lafont 1997, page 79): a linear reduced net is
+the same graph as a net in the normal form `Net.IsTreesOnWiringN`, trees hung from the free ports
+with no tree that is an internal name. -/
+theorem IsReduced.exists_treesOnWiringN
+    -- a linear reduced net
+    {N : Net S ℕ}
+    (hN : N.Linear)
+    (hR : N.IsReduced) :
+    -- there is a net `M` such that
+    ∃ M,
+      -- `N` is the same graph as `M`,
+      Equiv N M ∧
+      -- and `M` is in normal form
+      M.IsTreesOnWiringN := by
+  obtain ⟨M, hE, hM⟩ := hR.exists_treesOnWiring hN
+  obtain ⟨M', hE', hM'⟩ := exists_treesOnWiringN_card _ M rfl (hE.linear hN) hM
+  exact ⟨M', hE.trans hE', hM'⟩
+
 /-- **Proposition 2, uniqueness** (Lafont 1997, page 79: "Any reduced net with `n` free ports can
 be uniquely decomposed as follows"). Two equivalent nets in the normal form
 `Net.IsTreesOnWiringN` differ only by a renaming `ρ` of their internal names, the wires of the
 wiring: `ρ` fixes the free ports and is injective on the names of `N`. Linearity is not used. -/
-theorem IsTreesOnWiringN.unique {N M : Net S ℕ} (_hN : N.Linear) (_hM : M.Linear)
-    (hn : N.IsTreesOnWiringN) (hm : M.IsTreesOnWiringN) (h : Equiv N M) :
-    ∃ ρ : ℕ → ℕ, (∀ x, N.vars.count x = 1 → ρ x = x) ∧ Set.InjOn ρ {x | x ∈ N.vars} ∧
+theorem IsTreesOnWiringN.unique
+    -- two linear nets, both in normal form
+    {N M : Net S ℕ}
+    (_hN : N.Linear)
+    (_hM : M.Linear)
+    (hn : N.IsTreesOnWiringN)
+    (hm : M.IsTreesOnWiringN)
+    -- that are the same graph
+    (h : Equiv N M) :
+    -- there is a renaming `ρ` of names such that
+    ∃ ρ : ℕ → ℕ,
+      -- `ρ` fixes the free ports of `N`,
+      (∀ x, N.vars.count x = 1 → ρ x = x) ∧
+      -- `ρ` is injective on the names of `N`,
+      Set.InjOn ρ {x | x ∈ N.vars} ∧
+      -- and renaming the names of `N` by `ρ` gives exactly `M`
       M = N.bind (fun x => var (ρ x)) := by
   classical
   have hfree := h.free_iff
@@ -372,67 +649,6 @@ theorem IsTreesOnWiringN.unique {N M : Net S ℕ} (_hN : N.Linear) (_hM : M.Line
         obtain ⟨x, t, hr, rfl⟩ := hn.exists_rootTree he'
         rw [show Sym2.map (Term.bind fun v => var (ρ v)) s(var x, t) = _ from hg x t hr]
         exact (T x t hr).2.1
-
-/-! ## Existence in normal form -/
-
-/-- A wire substitution keeps the form `Net.IsTreesOnWiring` (Lafont 1997, page 79). -/
-theorem IsTreesOnWiring.wire {N M : Net S ℕ} (hW : Wire N M) (h : N.IsTreesOnWiring) :
-    M.IsTreesOnWiring := by
-  have hfree := hW.free_iff
-  obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := hW
-  have hx2 : 2 ≤ (Net.vars (s(var x, t) ::ₘ s(a, b) ::ₘ Δ)).count x := by
-    have := Multiset.one_le_count_iff_mem.2 hx
-    simp only [Net.vars_cons, eqVars_mk, vars_var, Multiset.count_add,
-      Multiset.count_singleton_self] at this ⊢
-    omega
-  intro e he
-  rcases Multiset.mem_cons.1 he with rfl | he
-  · obtain ⟨z, u, hzu, hz⟩ := h _ (Multiset.mem_cons_of_mem (Multiset.mem_cons_self _ _))
-    have hzx : z ≠ x := by
-      rintro rfl
-      omega
-    refine ⟨z, u.subst x t, ?_, (hfree z).1 hz⟩
-    rcases Sym2.eq_iff.1 hzu with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-    · rw [Cut.subst_var_ne hzx]
-    · rw [Cut.subst_var_ne hzx, Sym2.eq_swap]
-  · obtain ⟨z, u, hzu, hz⟩ := h e (Multiset.mem_cons_of_mem (Multiset.mem_cons_of_mem he))
-    exact ⟨z, u, hzu, (hfree z).1 hz⟩
-
-/-- The induction on the number of equations behind `Net.IsReduced.exists_treesOnWiringN`: an
-equation `x = y` with `y` internal is contracted by one wire substitution. -/
-theorem exists_treesOnWiringN_card :
-    ∀ (n : ℕ) (N : Net S ℕ), Multiset.card N = n → N.Linear → N.IsTreesOnWiring →
-      ∃ M, Equiv N M ∧ M.IsTreesOnWiringN := by
-  intro n
-  induction n using Nat.strong_induction_on with
-  | _ n ih =>
-  intro N hn hN hF
-  by_cases hG : ∀ x y, s(var x, var y) ∈ N → N.vars.count y = 1
-  · exact ⟨N, Equiv.refl N, hF, hG⟩
-  push Not at hG
-  obtain ⟨x, y, hm, hy⟩ := hG
-  have hxy : y ∉ (var x : Term S ℕ).vars := by
-    intro hyx
-    rw [vars_var, Multiset.mem_singleton] at hyx
-    subst hyx
-    obtain ⟨z, u, he, hz⟩ := hF _ hm
-    rcases Sym2.eq_iff.1 he with ⟨h1, -⟩ | ⟨-, h1⟩ <;>
-    · injection h1 with h1
-      exact hy (h1 ▸ hz)
-  have hm' : s(var y, var x) ∈ N := by rw [Sym2.eq_swap]; exact hm
-  obtain ⟨R, rfl⟩ := Multiset.exists_cons_of_mem hm'
-  obtain ⟨M, hW, hc⟩ := exists_wire_of_not_free hN hy hxy
-  obtain ⟨M', hE, hM'⟩ := ih _ (hn ▸ hc) M rfl hW.linear_right (hF.wire hW)
-  exact ⟨M', hW.equiv.trans hE, hM'⟩
-
-/-- **Proposition 2, existence, in normal form** (Lafont 1997, page 79): a linear reduced net is
-the same graph as a net in the normal form `Net.IsTreesOnWiringN`, trees hung from the free ports
-with no tree that is an internal name. -/
-theorem IsReduced.exists_treesOnWiringN {N : Net S ℕ} (hN : N.Linear) (hR : N.IsReduced) :
-    ∃ M, Equiv N M ∧ M.IsTreesOnWiringN := by
-  obtain ⟨M, hE, hM⟩ := hR.exists_treesOnWiring hN
-  obtain ⟨M', hE', hM'⟩ := exists_treesOnWiringN_card _ M rfl (hE.linear hN) hM
-  exact ⟨M', hE.trans hE', hM'⟩
 
 end Net
 
