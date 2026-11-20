@@ -25,9 +25,11 @@ Contents, in the order of the file:
    `range_succ_map''`, `Graph.cellGraph_single_iso`, `Graph.cellGraph_iso` (the raw graph of the
    equations of some cells is isomorphic to their stubs).
 3. Equations between names: `Graph.raw_names`, the private `exists_list_sym2`.
-4. Fresh names for the ports and the cyclic wires: `Graph.freeBound`, `Graph.realPn`,
-   `Graph.realLn`, `Graph.unflat` and their lemmas.
-5. The names of the flat text of a well-formed graph: `Graph.count_vars_flatB`,
+4. Fresh names for the ports and the cyclic wires: `Graph.freeBound`, `Graph.mem_free`,
+   `Graph.lt_freeBound`; the names `Graph.realPn`, `Graph.realLn`; `Graph.unflat` (reading a
+   name back as an end) and its lemmas; the private `count_map_of_leftInv`,
+   `Graph.vars_flatLoops`.
+5. The names of the flat text of a well-formed graph: `Graph.flatB`, `Graph.count_vars_flatB`,
    `Graph.linear_flatB`, `Graph.count_vars_flatB_eq_one`.
 6. Main results: `Graph.WF.hasGraph_flatB` (the flat text of `G` has a graph isomorphic to `G`),
    `Graph.WF.exists_net_free` (the theorem, with the free ports), `Graph.WF.exists_net`.
@@ -418,13 +420,22 @@ private theorem exists_list_sym2
     induction e using Sym2.ind with
     | _ a b => exact ⟨(a, b) :: l, rfl⟩
 
-/-! ## Fresh names for the ports and the cyclic wires -/
+-- ============================================================================================
+-- 4. Fresh names for the ports and the cyclic wires
+-- ============================================================================================
 
 /-- A bound above the free ports of a graph. -/
-def freeBound (G : Graph S ℕ) : ℕ := G.free.sup + 1
+def freeBound
+    (G : Graph S ℕ) :
+    ℕ :=
+  G.free.sup + 1
 
 /-- The free ports are the names at the ends of the wires. -/
-theorem mem_free {G : Graph S ℕ} {x : ℕ} : x ∈ G.free ↔ End.name x ∈ G.ends := by
+theorem mem_free
+    -- a graph, and a name
+    {G : Graph S ℕ}
+    {x : ℕ} :
+    x ∈ G.free ↔ End.name x ∈ G.ends := by
   simp only [free, Multiset.mem_filterMap]
   constructor
   · rintro ⟨e, he, hx⟩
@@ -437,56 +448,101 @@ theorem mem_free {G : Graph S ℕ} {x : ℕ} : x ∈ G.free ↔ End.name x ∈ G
     exact ⟨_, h, rfl⟩
 
 /-- Every free port of a graph is below `freeBound` (Lafont 1997, page 71). -/
-theorem lt_freeBound {G : Graph S ℕ} {x : ℕ} (h : End.name x ∈ G.ends) : x < freeBound G :=
+theorem lt_freeBound
+    -- a graph, and a name at an end of one of its wires
+    {G : Graph S ℕ}
+    {x : ℕ}
+    (h : End.name x ∈ G.ends) :
+    x < freeBound G :=
   Nat.lt_succ_of_le (Multiset.le_sup (mem_free.2 h))
 
 /-- The name of the port `i` of the cell `c` in the flat text: `B + 2 ⟨c, i⟩`. -/
-def realPn (B : ℕ) (c i : ℕ) : ℕ := B + 2 * Nat.pair c i
+def realPn
+    -- the bound, and the port `i` of the cell `c`
+    (B : ℕ)
+    (c i : ℕ) :
+    ℕ :=
+  B + 2 * Nat.pair c i
 
 /-- The name of the `j`-th cyclic wire in the flat text: `B + 2 j + 1`. -/
-def realLn (B : ℕ) (j : ℕ) : ℕ := B + 2 * j + 1
+def realLn
+    -- the bound, and the number of the cyclic wire
+    (B : ℕ)
+    (j : ℕ) :
+    ℕ :=
+  B + 2 * j + 1
 
 /-- Distinct cyclic wires get distinct names (Lafont 1997, page 71). -/
-theorem realLn_injective (B : ℕ) : Function.Injective (realLn B) := fun a b e => by
+theorem realLn_injective
+    (B : ℕ) :
+    Function.Injective (realLn B) := fun a b e => by
   simp only [realLn] at e
   omega
 
 /-- Reading a name of the flat text back as an end: `B + 2 ⟨c, i⟩` is the port `i` of `c`, and
 every other name is itself. -/
-def unflat (B : ℕ) : End ℕ → End ℕ
+def unflat
+    (B : ℕ) :
+    End ℕ → End ℕ
   | .port c i => .port c i
   | .name y => if B ≤ y ∧ (y - B) % 2 = 0 then
       .port (Nat.unpair ((y - B) / 2)).1 (Nat.unpair ((y - B) / 2)).2 else .name y
 
 /-- `unflat` reads the name of a port back as that port (Lafont 1997, page 71). -/
-theorem unflat_pn (B c i : ℕ) : unflat B (.name (realPn B c i)) = .port c i := by
+theorem unflat_pn
+    -- the bound, and the port `i` of the cell `c`
+    (B c i : ℕ) :
+    unflat B (.name (realPn B c i)) = .port c i := by
   have h : B + 2 * Nat.pair c i - B = 2 * Nat.pair c i := by omega
   simp [unflat, realPn, h]
 
 /-- `unflat` keeps a name below the bound (Lafont 1997, page 71). -/
-theorem unflat_low {B y : ℕ} (h : y < B) : unflat B (.name y) = .name y := by
+theorem unflat_low
+    -- the bound, and a name below it
+    {B y : ℕ}
+    (h : y < B) :
+    unflat B (.name y) = .name y := by
   simp only [unflat]
   split_ifs with h'
   · omega
   · rfl
 
 /-- `unflat` keeps the name of a cyclic wire (Lafont 1997, page 71). -/
-theorem unflat_ln (B j : ℕ) : unflat B (.name (realLn B j)) = .name (realLn B j) := by
+theorem unflat_ln
+    -- the bound, and the number of the cyclic wire
+    (B j : ℕ) :
+    unflat B (.name (realLn B j)) = .name (realLn B j) := by
   have h : ¬(B ≤ realLn B j ∧ (realLn B j - B) % 2 = 0) := by
     simp only [realLn]
     omega
   exact ite_eq_right_of_eq_false _ _ (eq_false h)
 
 /-- `unflat` undoes the naming of the flat text on the ends whose names are below `B`. -/
-theorem unflat_flatName {B : ℕ} {e : End ℕ} (he : ∀ x, e = .name x → x < B) :
+theorem unflat_flatName
+    -- the bound, and an end whose name, if it is a name, is below it
+    {B : ℕ}
+    {e : End ℕ}
+    (he : ∀ x, e = .name x → x < B) :
     unflat B (.name (e.flatName (realPn B))) = e := by
   cases e with
   | port c i => exact unflat_pn B c i
   | name x => exact unflat_low (he x rfl)
 
 /-- A map with a left inverse on a multiset keeps the number of occurrences. -/
-private theorem count_map_of_leftInv {α β : Type} [DecidableEq α] [DecidableEq β] {f : α → β}
-    {g : β → α} {E : Multiset α} (hE : ∀ a ∈ E, g (f a) = a) {a : α} (ha : g (f a) = a) :
+private theorem count_map_of_leftInv
+    -- two types with decidable equality
+    {α β : Type}
+    [DecidableEq α]
+    [DecidableEq β]
+    -- a map `f`, and a left inverse `g` of it on the multiset `E`
+    {f : α → β}
+    {g : β → α}
+    {E : Multiset α}
+    (hE : ∀ a ∈ E, g (f a) = a)
+    -- an element on which `g` is also a left inverse of `f`
+    {a : α}
+    (ha : g (f a) = a) :
+    -- `f a` occurs in the image as often as `a` in `E`
     (E.map f).count (f a) = E.count a := by
   rw [Multiset.count_map, Multiset.count_eq_card_filter_eq]
   congr 1
@@ -499,8 +555,12 @@ private theorem count_map_of_leftInv {α β : Type} [DecidableEq α] [DecidableE
     rfl
 
 /-- The names of the cyclic wires of the flat text, each twice. -/
-theorem vars_flatLoops (ln : ℕ → ℕ) (n : ℕ) :
-    (flatLoops (S := S) ln n).vars = (Multiset.range n).map ln + (Multiset.range n).map ln := by
+theorem vars_flatLoops
+    -- the names of the cyclic wires, and their number
+    (ln : ℕ → ℕ)
+    (n : ℕ) :
+    (flatLoops (S := S) ln n).vars
+      = (Multiset.range n).map ln + (Multiset.range n).map ln := by
   induction n with
   | zero => simp [flatLoops]
   | succ n ih =>
@@ -508,22 +568,33 @@ theorem vars_flatLoops (ln : ℕ → ℕ) (n : ℕ) :
     rw [Multiset.range_succ, Multiset.map_cons, Net.vars_cons, ih, Multiset.map_cons]
     simp only [eqVars_mk, vars_var, Multiset.cons_add, Multiset.add_cons, Multiset.singleton_add]
 
-/-! ## The names of the flat text of a well-formed graph -/
+-- ============================================================================================
+-- 5. The names of the flat text of a well-formed graph
+-- ============================================================================================
 
 section flat
 
+-- the graph
 variable {G : Graph S ℕ}
 
 /-- The flat text of `G` with the names of `realPn` and `realLn` above the free ports. -/
-noncomputable abbrev flatB (G : Graph S ℕ) : Net S ℕ :=
+noncomputable abbrev flatB
+    (G : Graph S ℕ) :
+    Net S ℕ :=
   flat (realPn (freeBound G)) (realLn (freeBound G)) G
 
 /-- **How often a name occurs in the flat text of a well-formed graph** (Lafont 1997, page 71).
 A name below the bound occurs as often as it ends wires of `G`; a name above it is the name of a
 port or of a cyclic wire, and occurs twice or not at all. -/
-theorem count_vars_flatB (hG : G.WF) (y : ℕ) :
-    (y < freeBound G ∧ (flatB G).vars.count y = G.ends.count (.name y)) ∨
-      (freeBound G ≤ y ∧ ((flatB G).vars.count y = 0 ∨ (flatB G).vars.count y = 2)) := by
+theorem count_vars_flatB
+    -- the graph is well formed
+    (hG : G.WF)
+    -- a name
+    (y : ℕ) :
+    -- either the name is below the bound and occurs as often as it ends wires of `G`,
+    (y < freeBound G ∧ (flatB G).vars.count y = G.ends.count (.name y))
+    -- or it is above the bound and occurs not at all or twice
+    ∨ (freeBound G ≤ y ∧ ((flatB G).vars.count y = 0 ∨ (flatB G).vars.count y = 2)) := by
   have hB : ∀ x, End.name x ∈ G.ends → x < freeBound G := fun x hx => lt_freeBound hx
   simp only [flatB]
   generalize hb : freeBound G = B at hB ⊢
@@ -595,14 +666,21 @@ theorem count_vars_flatB (hG : G.WF) (y : ℕ) :
       split_ifs <;> simp
 
 /-- **The flat text of a well-formed graph is linear** (Lafont 1997, page 71). -/
-theorem linear_flatB (hG : G.WF) : (flatB G).Linear := fun y => by
+theorem linear_flatB
+    -- the graph is well formed
+    (hG : G.WF) :
+    (flatB G).Linear := fun y => by
   rcases count_vars_flatB hG y with ⟨-, h⟩ | ⟨-, h | h⟩ <;> rw [h]
   · exact (hG.name y).trans (by omega)
   · omega
 
 /-- **The free ports of the flat text are those of the graph** (Lafont 1997, page 71): a name
 occurs once in the flat text of a well-formed graph `G` if and only if it is a free port of `G`. -/
-theorem count_vars_flatB_eq_one (hG : G.WF) (y : ℕ) :
+theorem count_vars_flatB_eq_one
+    -- the graph is well formed
+    (hG : G.WF)
+    -- a name
+    (y : ℕ) :
     (flatB G).vars.count y = 1 ↔ y ∈ G.free := by
   rw [mem_free]
   rcases count_vars_flatB hG y with ⟨-, h⟩ | ⟨hy, h⟩
@@ -623,12 +701,20 @@ theorem count_vars_flatB_eq_one (hG : G.WF) (y : ℕ) :
 
 end flat
 
-/-! ## The theorem -/
+-- ============================================================================================
+-- 6. Main results
+-- ============================================================================================
 
 /-- **The flat text of a well-formed graph has a graph isomorphic to it** (Lafont 1997,
 Section 1.1, page 71): the raw graph of the flat text, contracted, is `G` up to `Iso`. -/
-theorem WF.hasGraph_flatB {G : Graph S ℕ} (h : G.WF) :
-    ∃ G' : Graph S ℕ, (flatB G).HasGraph G' ∧ G'.Iso G := by
+theorem WF.hasGraph_flatB
+    -- a well-formed graph
+    {G : Graph S ℕ}
+    (h : G.WF) :
+    -- its flat text has a graph `G'`, isomorphic to `G`
+    ∃ G' : Graph S ℕ,
+      (flatB G).HasGraph G'
+      ∧ G'.Iso G := by
   have hB : ∀ x, End.name x ∈ G.ends → x < freeBound G := fun x hx => lt_freeBound hx
   suffices H : ∃ L : List (Term S ℕ × Term S ℕ), Net.ofList L = flatB G ∧
       ∃ H, Relation.ReflTransGen Contract (raw 0 L) H ∧ G.Iso H by
@@ -754,20 +840,40 @@ theorem WF.hasGraph_flatB {G : Graph S ℕ} (h : G.WF) :
   exact ⟨H, hH, iH⟩
 
 /-- **Every well-formed graph is the graph of a linear net, with the same free ports** (Lafont
-1997, Section 1.1, page 71; PLAN.md Stage C, statement 4). If `G` is well formed, its flat text
-`N` is linear, has a graph isomorphic to `G`, and a name occurs once in `N` exactly when it is a
-free port of `G`. -/
-theorem WF.exists_net_free {G : Graph S ℕ} (h : G.WF) :
-    ∃ (N : Net S ℕ) (G' : Graph S ℕ), N.Linear ∧ N.HasGraph G' ∧ G'.Iso G ∧
-      ∀ x, N.vars.count x = 1 ↔ x ∈ G.free := by
+1997, Section 1.1, page 71). If `G` is well formed, its flat text `N` is linear, has a graph
+isomorphic to `G`, and a name occurs once in `N` exactly when it is a free port of `G`. -/
+theorem WF.exists_net_free
+    -- a well-formed graph
+    {G : Graph S ℕ}
+    (h : G.WF) :
+    -- there are a net `N` and a graph `G'` such that
+    ∃ (N : Net S ℕ) (G' : Graph S ℕ),
+      -- `N` is linear,
+      N.Linear
+      -- `G'` is the graph of `N`,
+      ∧ N.HasGraph G'
+      -- `G'` is isomorphic to `G`,
+      ∧ G'.Iso G
+      -- and the names that occur once in `N` are the free ports of `G`
+      ∧ ∀ x, N.vars.count x = 1 ↔ x ∈ G.free := by
   obtain ⟨G', hG', iG⟩ := h.hasGraph_flatB
   exact ⟨flatB G, G', linear_flatB h, hG', iG, count_vars_flatB_eq_one h⟩
 
-/-- **Every well-formed graph is the graph of a linear net** (Lafont 1997, Section 1.1, page 71;
-PLAN.md Stage C, statement 4). The graph of the net is isomorphic to `G`, not equal: the cells of
-the graph of a net are numbered in the order of its text. -/
-theorem WF.exists_net {G : Graph S ℕ} (h : G.WF) :
-    ∃ (N : Net S ℕ) (G' : Graph S ℕ), N.Linear ∧ N.HasGraph G' ∧ G'.Iso G := by
+/-- **Every well-formed graph is the graph of a linear net** (Lafont 1997, Section 1.1, page 71).
+The graph of the net is isomorphic to `G`, not equal: the cells of the graph of a net are
+numbered in the order of its text. -/
+theorem WF.exists_net
+    -- a well-formed graph
+    {G : Graph S ℕ}
+    (h : G.WF) :
+    -- there are a net `N` and a graph `G'` such that
+    ∃ (N : Net S ℕ) (G' : Graph S ℕ),
+      -- `N` is linear,
+      N.Linear
+      -- `G'` is the graph of `N`,
+      ∧ N.HasGraph G'
+      -- and `G'` is isomorphic to `G`
+      ∧ G'.Iso G := by
   obtain ⟨N, G', h1, h2, h3, -⟩ := h.exists_net_free
   exact ⟨N, G', h1, h2, h3⟩
 
