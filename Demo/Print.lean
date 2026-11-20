@@ -22,15 +22,97 @@ Section 2.1, page 82).
   cells `Term.cells`; `Net.size` is the number of cells of a net.
 
 Everything here is evaluated by the compiler; the tests below use `#guard`.
+
+Contents, in the order of the file:
+
+1. Definitions: `Net.size`, the number of cells of a net; the printers `name`, `Term.toStr`
+   (with the instance `ToString (Term sig ℕ)`), `eqsToStr`, `eqToStr`, `netToStr`, `pnetToStr`.
+2. Auxiliary lemmas: `Term.size_eq_card_cells`, `Net.size_cons`, the number of cells of a tree
+   and of a net with one more equation.
+3. Tests: `#guard` checks of the printers and of the number of cells.
 -/
 
 namespace INet
 
-/-! ## The number of cells -/
+-- ============================================================================================
+-- 1. Definitions: the number of cells, and the printers
+-- ============================================================================================
+
+/-- The number of cells of a net (Section 1.1, page 71): the cells of all its trees. -/
+def Net.size
+    -- a net
+    {S : Signature}
+    {ν : Type}
+    (N : Net S ν) :
+    ℕ :=
+  (Net.cells N).card
+
+namespace Comb
+
+/-- The name of a combinator, in the names of HVM (page 82). -/
+def name :
+    Comb → String
+  | con => "con"
+  | dup => "dup"
+  | era => "era"
+
+/-- The text of a tree of combinators (page 82): `con(a, b)`, `dup(a, b)`, `era`, and a name as
+its number. -/
+def Term.toStr :
+    Term sig ℕ → String
+  | .var x => toString x
+  | .app α ts =>
+    if sig.arity α = 0 then name α
+    else name α ++ "(" ++ ", ".intercalate (List.ofFn fun i => Term.toStr (ts i)) ++ ")"
+
+-- A tree of combinators is printed by `Term.toStr`, so that `#eval` shows it.
+instance : ToString (Term sig ℕ) := ⟨Term.toStr⟩
+
+/-- The text of a list of equations `a = b, c = d`, in the order of the list (page 71). -/
+def eqsToStr
+    -- the equations, as pairs of trees
+    (L : List (Term sig ℕ × Term sig ℕ)) :
+    String :=
+  ", ".intercalate (L.map fun e => Term.toStr e.1 ++ " = " ++ Term.toStr e.2)
+
+/-- The text of an unordered equation (page 71): its two sides in lexicographic order, so that a
+name, which begins with a digit, comes before a tree with a cell. -/
+def eqToStr :
+    Sym2 (Term sig ℕ) → String :=
+  Sym2.lift ⟨fun a b => min (Term.toStr a) (Term.toStr b) ++ " = " ++
+    max (Term.toStr a) (Term.toStr b), fun a b => by dsimp only; rw [min_comm, max_comm]⟩
+
+/-- The text of a net (page 71): its equations, each written by `eqToStr`, sorted in
+lexicographic order and separated by commas. It is computed through `Sym2.lift` and
+`Multiset.sort`, without `Quot.unquot`. -/
+def netToStr
+    -- a net of combinators over the names `ℕ`
+    (N : Net sig ℕ) :
+    String :=
+  ", ".intercalate ((N.map eqToStr).sort (· ≤ ·))
+
+/-- The text of a principal net of arity `n` (page 80): its tree, with the port `i` named `i` and
+the internal wire `w` named `n + w`. -/
+def pnetToStr
+    -- a principal net of arity `n`
+    {n : ℕ}
+    (p : PNet sig n) :
+    String :=
+  Term.toStr (p.inst (fun i => .var (i : ℕ)) fun w => n + w)
+
+end Comb
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: the number of cells
+-- ============================================================================================
 
 /-- The number of cells of a tree, `Term.size` (the numbering of the cells of the raw graph,
 Section 1.1, page 71), is the number of its cells `Term.cells`. -/
-theorem Term.size_eq_card_cells {S : Signature} {ν : Type} (t : Term S ν) :
+theorem Term.size_eq_card_cells
+    -- a tree
+    {S : Signature}
+    {ν : Type}
+    (t : Term S ν) :
     t.size = t.cells.card := by
   induction t with
   | var x => rfl
@@ -41,57 +123,24 @@ theorem Term.size_eq_card_cells {S : Signature} {ν : Type} (t : Term S ν) :
     simp only [Term.size, ← ih]
     omega
 
-/-- The number of cells of a net (Section 1.1, page 71): the cells of all its trees. -/
-def Net.size {S : Signature} {ν : Type} (N : Net S ν) : ℕ := (Net.cells N).card
-
 /-- The number of cells of a net with one more equation `a = b` (page 71): the cells of `a`, of
 `b`, and of the rest. -/
-theorem Net.size_cons {S : Signature} {ν : Type} (a b : Term S ν) (N : Net S ν) :
+theorem Net.size_cons
+    -- the signature and the names
+    {S : Signature}
+    {ν : Type}
+    -- the two sides of the new equation
+    (a b : Term S ν)
+    -- the rest of the net
+    (N : Net S ν) :
     Net.size (s(a, b) ::ₘ N) = a.size + b.size + Net.size N := by
   simp [Net.size, Net.cells_cons, Term.size_eq_card_cells]
 
 namespace Comb
 
-/-! ## Printing -/
-
-/-- The name of a combinator, in the names of HVM (page 82). -/
-def name : Comb → String
-  | con => "con"
-  | dup => "dup"
-  | era => "era"
-
-/-- The text of a tree of combinators (page 82): `con(a, b)`, `dup(a, b)`, `era`, and a name as
-its number. -/
-def Term.toStr : Term sig ℕ → String
-  | .var x => toString x
-  | .app α ts =>
-    if sig.arity α = 0 then name α
-    else name α ++ "(" ++ ", ".intercalate (List.ofFn fun i => Term.toStr (ts i)) ++ ")"
-
-instance : ToString (Term sig ℕ) := ⟨Term.toStr⟩
-
-/-- The text of a list of equations `a = b, c = d`, in the order of the list (page 71). -/
-def eqsToStr (L : List (Term sig ℕ × Term sig ℕ)) : String :=
-  ", ".intercalate (L.map fun e => Term.toStr e.1 ++ " = " ++ Term.toStr e.2)
-
-/-- The text of an unordered equation (page 71): its two sides in lexicographic order, so that a
-name, which begins with a digit, comes before a tree with a cell. -/
-def eqToStr : Sym2 (Term sig ℕ) → String :=
-  Sym2.lift ⟨fun a b => min (Term.toStr a) (Term.toStr b) ++ " = " ++
-    max (Term.toStr a) (Term.toStr b), fun a b => by dsimp only; rw [min_comm, max_comm]⟩
-
-/-- The text of a net (page 71): its equations, each written by `eqToStr`, sorted in
-lexicographic order and separated by commas. It is computed through `Sym2.lift` and
-`Multiset.sort`, without `Quot.unquot`. -/
-def netToStr (N : Net sig ℕ) : String :=
-  ", ".intercalate ((N.map eqToStr).sort (· ≤ ·))
-
-/-- The text of a principal net of arity `n` (page 80): its tree, with the port `i` named `i` and
-the internal wire `w` named `n + w`. -/
-def pnetToStr {n : ℕ} (p : PNet sig n) : String :=
-  Term.toStr (p.inst (fun i => .var (i : ℕ)) fun w => n + w)
-
-/-! ## Tests -/
+-- ============================================================================================
+-- 3. Tests
+-- ============================================================================================
 
 -- A tree, and the two printers of nets.
 #guard Term.toStr (mkCon (.var 0) (mkDup mkEra (.var 1))) == "con(0, dup(era, 1))"
