@@ -5,8 +5,8 @@ import InteractionCombinators.Text.Rename
 # Linear nets with isomorphic graphs are equivalent
 
 Lafont 1997, Section 1.1, page 71: a net is a graph, and a text is only one way to write it down.
-This file proves the direction "`Iso` implies `Equiv`" of PLAN.md Stage C, statement 3, and with
-`Net.Linear.equiv_hasGraph_iso` the equivalence of the two.
+This file proves the direction "`Iso` implies `Equiv`", and with `Net.Linear.equiv_hasGraph_iso`
+the equivalence of the two.
 
 The proof goes through a *flat* text read directly off the graph. Given names `pn c i` for the
 ports of the cells and `ln j` for the cyclic wires, `Graph.flat pn ln G` has
@@ -15,14 +15,26 @@ ports of the cells and `ln j` for the cyclic wires, `Graph.flat pn ln G` has
 * one equation between the names of the two ends of each wire, a free port keeping its name,
 * one equation `ln j = ln j` for each cyclic wire.
 
-* `Graph.equiv_flatTree` — a tree is equivalent to its cells, each in its own equation: each
-  subtree is pulled out of its cell by a wire substitution read backwards.
-* `Graph.equiv_flat_raw` — a text is equivalent to the flat text of its raw graph.
-* `Graph.equiv_flat_contract` — erasing a name of the graph is a wire substitution of the flat
-  text, or renames a cyclic wire.
-* `Graph.flat_iso` — the flat texts of isomorphic graphs differ by the names of the ports.
-* `Net.Linear.equiv_of_hasGraph_iso` — linear nets whose graphs are isomorphic are equivalent.
-* `Net.Linear.equiv_iff_hasGraph_iso` — the equivalence.
+Contents, in the order of the file:
+
+1. Definitions: `End.flatName` (the name of an end in the flat text), `End.flatName_mapCell`;
+   `Graph.cellEq`, `Graph.flatCells`, `Graph.flatWire`, `Graph.flatWires`, `Graph.flatLoops`,
+   `Graph.flat` (the flat text of a graph), `Graph.flatTree`.
+2. The names of the flat text: the private `range_succ_map'` and `map_finsum_flat`,
+   `Graph.eqVars_cellEq`, `Graph.vars_flatCells`, `Graph.vars_flatWires`, `Graph.vars_flat`,
+   `Graph.mem_vars_flatLoops`, `Graph.mem_cellPorts`.
+3. Flattening a tree: `Graph.flatTree_var`, `Graph.flatTree_app`, `Graph.equiv_flatTree` (a tree
+   is equivalent to its cells, each in its own equation: each subtree is pulled out of its cell
+   by a wire substitution read backwards).
+4. Flattening a text: `Graph.flat_raw_cons`, `Graph.equiv_flat_raw` (a text is equivalent to the
+   flat text of its raw graph), `Graph.linear_flat_raw`.
+5. Erasing a name: `Graph.equiv_loop_rename`, `Graph.equiv_flat_contract` (erasing a name of the
+   graph is a wire substitution of the flat text, or renames a cyclic wire),
+   `Graph.equiv_flat_of_contracts`.
+6. Isomorphic graphs: `Graph.flat_iso`, the flat texts of isomorphic graphs differ by the names of
+   the ports.
+7. Main results: `Net.Linear.equiv_of_hasGraph_iso`, linear nets whose graphs are isomorphic are
+   equivalent; `Net.Linear.equiv_iff_hasGraph_iso`, the equivalence.
 -/
 
 namespace INet
@@ -31,20 +43,39 @@ variable {S : Signature}
 
 open Term
 
-/-! ## The flat text of a graph -/
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
 
 namespace End
 
 /-- The name of an end in the flat text: the port `i` of the cell `c` is called `pn c i`, and a
 free port keeps its name. -/
-def flatName (pn : ℕ → ℕ → ℕ) : End ℕ → ℕ
+def flatName
+    -- the names of the ports of the cells
+    (pn : ℕ → ℕ → ℕ) :
+    End ℕ → ℕ
   | port c i => pn c i
   | name x => x
 
-@[simp] theorem flatName_port (pn : ℕ → ℕ → ℕ) (c i : ℕ) : flatName pn (port c i) = pn c i := rfl
-@[simp] theorem flatName_name (pn : ℕ → ℕ → ℕ) (x : ℕ) : flatName pn (name x) = x := rfl
+/-- The port `i` of the cell `c` is called `pn c i`. -/
+@[simp] theorem flatName_port
+    (pn : ℕ → ℕ → ℕ)
+    (c i : ℕ) :
+    flatName pn (port c i) = pn c i := rfl
 
-theorem flatName_mapCell (pn : ℕ → ℕ → ℕ) (σ : ℕ → ℕ) (e : End ℕ) :
+/-- A free port keeps its name. -/
+@[simp] theorem flatName_name
+    (pn : ℕ → ℕ → ℕ)
+    (x : ℕ) :
+    flatName pn (name x) = x := rfl
+
+/-- Renumbering the cells of an end by `σ` is renaming its ports by `pn (σ c) i`. -/
+theorem flatName_mapCell
+    -- the names of the ports, a renumbering of the cells, and an end
+    (pn : ℕ → ℕ → ℕ)
+    (σ : ℕ → ℕ)
+    (e : End ℕ) :
     flatName pn (mapCell σ e) = flatName (fun c i => pn (σ c) i) e := by
   cases e <;> rfl
 
@@ -54,35 +85,69 @@ namespace Graph
 
 /-- The equation of a cell in the flat text: its principal port against the cell whose
 auxiliary ports are all names. -/
-def cellEq (pn : ℕ → ℕ → ℕ) (p : ℕ × S.Sym) : Sym2 (Term S ℕ) :=
+def cellEq
+    -- the names of the ports, and a cell: its number and its symbol
+    (pn : ℕ → ℕ → ℕ)
+    (p : ℕ × S.Sym) :
+    Sym2 (Term S ℕ) :=
   s(var (pn p.1 0), app p.2 fun i => var (pn p.1 ((i : ℕ) + 1)))
 
 /-- The equations of some cells. -/
-def flatCells (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym)) : Net S ℕ := C.map (cellEq pn)
+def flatCells
+    (pn : ℕ → ℕ → ℕ)
+    (C : Multiset (ℕ × S.Sym)) :
+    Net S ℕ := C.map (cellEq pn)
 
 /-- The equation of a wire: the names of its two ends. -/
-def flatWire (pn : ℕ → ℕ → ℕ) : Sym2 (End ℕ) → Sym2 (Term S ℕ) :=
+def flatWire
+    (pn : ℕ → ℕ → ℕ) :
+    Sym2 (End ℕ) → Sym2 (Term S ℕ) :=
   Sym2.map fun e => var (e.flatName pn)
 
 /-- The equations of some wires. -/
-def flatWires (pn : ℕ → ℕ → ℕ) (W : Multiset (Sym2 (End ℕ))) : Net S ℕ := W.map (flatWire pn)
+def flatWires
+    (pn : ℕ → ℕ → ℕ)
+    (W : Multiset (Sym2 (End ℕ))) :
+    Net S ℕ := W.map (flatWire pn)
 
 /-- The equations of `n` cyclic wires, `ln j = ln j` for `j < n`. -/
-def flatLoops (ln : ℕ → ℕ) (n : ℕ) : Net S ℕ :=
+def flatLoops
+    -- the names of the cyclic wires, and their number
+    (ln : ℕ → ℕ)
+    (n : ℕ) :
+    Net S ℕ :=
   (Multiset.range n).map fun j => s(var (ln j), var (ln j))
 
 /-- **The flat text of a graph** (Lafont 1997, page 71): one equation for each cell, each wire and
 each cyclic wire, the ports of the cells named by `pn` and the cyclic wires by `ln`. -/
-def flat (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Graph S ℕ) : Net S ℕ :=
+def flat
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- a graph
+    (G : Graph S ℕ) :
+    Net S ℕ :=
   flatCells pn G.cells + flatWires pn G.wires + flatLoops ln G.loops
 
 /-- The equations of the cells and inner wires of a tree whose cells are numbered from `k`. -/
-def flatTree (pn : ℕ → ℕ → ℕ) (t : Term S ℕ) (k : ℕ) : Net S ℕ :=
+def flatTree
+    -- the names of the ports, a tree, and the number of its first cell
+    (pn : ℕ → ℕ → ℕ)
+    (t : Term S ℕ)
+    (k : ℕ) :
+    Net S ℕ :=
   flatCells pn (t.rawCells k) + flatWires pn (t.rawWires k)
 
-/-! ## The names of the flat text -/
+-- ============================================================================================
+-- 2. The names of the flat text
+-- ============================================================================================
 
-private theorem range_succ_map' {β : Type} (f : ℕ → β) (n : ℕ) :
+private theorem range_succ_map'
+    -- a function on the numbers, and a length
+    {β : Type}
+    (f : ℕ → β)
+    (n : ℕ) :
+    -- the images of `0, …, n` are that of `0`, then those of `i + 1` for `i < n`
     (Multiset.range (n + 1)).map f = f 0 ::ₘ ∑ i : Fin n, {f ((i : ℕ) + 1)} := by
   induction n with
   | zero => simp
@@ -93,20 +158,32 @@ private theorem range_succ_map' {β : Type} (f : ℕ → β) (n : ℕ) :
       ← Multiset.singleton_add]
     abel
 
-private theorem map_finsum_flat {ι α β : Type} (s : Finset ι) (g : ι → Multiset α)
-    (f : α → β) : (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
+private theorem map_finsum_flat
+    -- a finite sum of multisets, and a function on their elements
+    {ι α β : Type}
+    (s : Finset ι)
+    (g : ι → Multiset α)
+    (f : α → β) :
+    -- the image of the sum is the sum of the images
+    (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
   classical
   induction s using Finset.induction_on with
   | empty => simp
   | insert a s ha ih => simp [Finset.sum_insert ha, ih]
 
-theorem eqVars_cellEq (pn : ℕ → ℕ → ℕ) (p : ℕ × S.Sym) :
+/-- The names of the equation of a cell are the names of its ports. -/
+theorem eqVars_cellEq
+    (pn : ℕ → ℕ → ℕ)
+    (p : ℕ × S.Sym) :
     eqVars (cellEq pn p) = (cellPorts p).map (End.flatName pn) := by
   rw [cellPorts, Multiset.map_map]
   rw [show End.flatName pn ∘ End.port p.1 = pn p.1 from rfl, range_succ_map']
   simp only [cellEq, eqVars_mk, vars_var, vars_app, Multiset.singleton_add]
 
-theorem vars_flatCells (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym)) :
+/-- The names of the equations of some cells are the names of their ports. -/
+theorem vars_flatCells
+    (pn : ℕ → ℕ → ℕ)
+    (C : Multiset (ℕ × S.Sym)) :
     (flatCells (S := S) pn C).vars = (C.bind cellPorts).map (End.flatName pn) := by
   unfold flatCells Net.vars
   rw [Multiset.bind_map, Multiset.map_bind]
@@ -114,7 +191,10 @@ theorem vars_flatCells (pn : ℕ → ℕ → ℕ) (C : Multiset (ℕ × S.Sym)) 
   funext p
   exact eqVars_cellEq pn p
 
-theorem vars_flatWires (pn : ℕ → ℕ → ℕ) (W : Multiset (Sym2 (End ℕ))) :
+/-- The names of the equations of some wires are the names of their ends. -/
+theorem vars_flatWires
+    (pn : ℕ → ℕ → ℕ)
+    (W : Multiset (Sym2 (End ℕ))) :
     (flatWires (S := S) pn W).vars = (W.bind wireEnds).map (End.flatName pn) := by
   unfold flatWires Net.vars
   rw [Multiset.bind_map, Multiset.map_bind]
@@ -125,35 +205,66 @@ theorem vars_flatWires (pn : ℕ → ℕ → ℕ) (W : Multiset (Sym2 (End ℕ))
 
 /-- The names of the flat text: the names of the ports of the cells, the names of the ends of the
 wires, and the names of the cyclic wires. -/
-theorem vars_flat (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (G : Graph S ℕ) :
-    (flat pn ln G).vars = (G.cells.bind cellPorts + G.ends).map (End.flatName pn) +
-      (flatLoops (S := S) ln G.loops).vars := by
+theorem vars_flat
+    -- the names of the ports and of the cyclic wires, and a graph
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    (G : Graph S ℕ) :
+    (flat pn ln G).vars
+      = (G.cells.bind cellPorts + G.ends).map (End.flatName pn)
+        + (flatLoops (S := S) ln G.loops).vars := by
   simp only [flat, Net.vars_add, vars_flatCells, vars_flatWires, ends_eq_bind, Multiset.map_add]
 
-theorem mem_vars_flatLoops {ln : ℕ → ℕ} {n y : ℕ} (h : y ∈ (flatLoops (S := S) ln n).vars) :
+/-- A name of the equations of `n` cyclic wires is the name of one of them. -/
+theorem mem_vars_flatLoops
+    -- a name of the equations of `n` cyclic wires
+    {ln : ℕ → ℕ}
+    {n y : ℕ}
+    (h : y ∈ (flatLoops (S := S) ln n).vars) :
+    -- is the name `ln j` of a cyclic wire `j < n`
     ∃ j < n, ln j = y := by
   simp only [flatLoops, Net.vars, Multiset.mem_bind, Multiset.mem_map, Multiset.mem_range] at h
   obtain ⟨e, ⟨j, hj, rfl⟩, hy⟩ := h
   simp only [eqVars_mk, vars_var, Multiset.mem_add, Multiset.mem_singleton, or_self] at hy
   exact ⟨j, hj, hy.symm⟩
 
-theorem mem_cellPorts {e : End ℕ} {p : ℕ × S.Sym} (h : e ∈ (cellPorts p : Multiset (End ℕ))) :
+/-- A port of a cell is one of its ports `0, …, n`, for `n` the arity of its symbol. -/
+theorem mem_cellPorts
+    -- a port of a cell
+    {e : End ℕ}
+    {p : ℕ × S.Sym}
+    (h : e ∈ (cellPorts p : Multiset (End ℕ))) :
+    -- is its port `i`, for some `i` at most its arity
     ∃ i, e = .port p.1 i ∧ i ≤ S.arity p.2 := by
   simp only [cellPorts, Multiset.mem_map, Multiset.mem_range] at h
   obtain ⟨i, hi, rfl⟩ := h
   exact ⟨i, rfl, by omega⟩
 
-/-! ## Flattening a tree -/
+-- ============================================================================================
+-- 3. Flattening a tree
+-- ============================================================================================
 
-theorem flatTree_var (pn : ℕ → ℕ → ℕ) (x k : ℕ) : flatTree (S := S) pn (var x) k = 0 := by
+/-- The flat text of a name is empty. -/
+theorem flatTree_var
+    (pn : ℕ → ℕ → ℕ)
+    (x k : ℕ) :
+    flatTree (S := S) pn (var x) k = 0 := by
   simp [flatTree, flatCells, flatWires, rawCells, rawWires]
 
 /-- The flat text of a tree `α(t_1, …, t_n)`: the equation of its root cell, and for each `i` the
 wire from the auxiliary port `i` to the root of `t_i` and the flat text of `t_i`. -/
-theorem flatTree_app (pn : ℕ → ℕ → ℕ) (α : S.Sym) (ts : Fin (S.arity α) → Term S ℕ) (k : ℕ) :
-    flatTree pn (app α ts) k = cellEq pn (k, α) ::ₘ ∑ i : Fin (S.arity α),
-      (s(var (pn k ((i : ℕ) + 1)), var (((ts i).rootEnd (childBase k ts i)).flatName pn)) ::ₘ
-        flatTree pn (ts i) (childBase k ts i)) := by
+theorem flatTree_app
+    -- the names of the ports
+    (pn : ℕ → ℕ → ℕ)
+    -- a tree `α(t_1, …, t_n)`, its root cell numbered `k`
+    (α : S.Sym)
+    (ts : Fin (S.arity α) → Term S ℕ)
+    (k : ℕ) :
+    flatTree pn (app α ts) k
+      = cellEq pn (k, α)
+        ::ₘ ∑ i : Fin (S.arity α),
+          (s(var (pn k ((i : ℕ) + 1)), var (((ts i).rootEnd (childBase k ts i)).flatName pn))
+            ::ₘ flatTree pn (ts i) (childBase k ts i)) := by
   simp only [flatTree, flatCells, flatWires, rawCells, rawWires, Multiset.map_cons,
     map_finsum_flat, Multiset.cons_add]
   congr 1
@@ -165,9 +276,22 @@ theorem flatTree_app (pn : ℕ → ℕ → ℕ) (α : S.Sym) (ts : Fin (S.arity 
 context `Δ`, the equation `t = u` is equivalent to the equation between the name of the root of
 `t` and `u`, beside the flat text of `t`, when that flat text is linear. Each subtree is pulled
 out of its cell into an equation of its own, by a wire substitution read backwards. -/
-theorem equiv_flatTree (pn : ℕ → ℕ → ℕ) : ∀ (t : Term S ℕ) (k : ℕ) (u : Term S ℕ) (Δ : Net S ℕ),
-    Net.Linear (s(var ((t.rootEnd k).flatName pn), u) ::ₘ (flatTree pn t k + Δ)) →
-    Equiv (s(t, u) ::ₘ Δ) (s(var ((t.rootEnd k).flatName pn), u) ::ₘ (flatTree pn t k + Δ)) := by
+theorem equiv_flatTree
+    -- the names of the ports
+    (pn : ℕ → ℕ → ℕ) :
+    ∀
+      -- a tree, the number of its first cell, the other side of its equation
+      (t : Term S ℕ)
+      (k : ℕ)
+      (u : Term S ℕ)
+      -- the rest of the net
+      (Δ : Net S ℕ),
+      -- if the flat text beside `Δ` is linear
+      Net.Linear (s(var ((t.rootEnd k).flatName pn), u) ::ₘ (flatTree pn t k + Δ)) →
+      -- then `t = u` is equivalent to the root of `t` against `u`, beside the flat text of `t`
+      Equiv
+        (s(t, u) ::ₘ Δ)
+        (s(var ((t.rootEnd k).flatName pn), u) ::ₘ (flatTree pn t k + Δ)) := by
   intro t
   induction t with
   | var x =>
@@ -260,15 +384,24 @@ theorem equiv_flatTree (pn : ℕ → ℕ → ℕ) : ∀ (t : Term S ℕ) (k : �
       subst_of_notMem hu] at W
     exact (E.trans W.equiv).symm
 
-/-! ## Flattening a text -/
+-- ============================================================================================
+-- 4. Flattening a text
+-- ============================================================================================
 
 /-- The flat text of the raw graph of `(a = b) :: L`. -/
-theorem flat_raw_cons (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (k : ℕ) (a b : Term S ℕ)
+theorem flat_raw_cons
+    -- the names of the ports and of the cyclic wires, and the number of the first cell
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    (k : ℕ)
+    -- a text: a first equation `a = b`, then `L`
+    (a b : Term S ℕ)
     (L : List (Term S ℕ × Term S ℕ)) :
-    flat pn ln (raw k ((a, b) :: L)) =
-      s(var ((a.rootEnd k).flatName pn), var ((b.rootEnd (k + a.size)).flatName pn)) ::ₘ
-        (flatTree pn a k + flatTree pn b (k + a.size) +
-          flat pn ln (raw (k + a.size + b.size) L)) := by
+    -- the roots of `a` and `b` against each other, the flat texts of `a`, `b` and `L`
+    flat pn ln (raw k ((a, b) :: L))
+      = s(var ((a.rootEnd k).flatName pn), var ((b.rootEnd (k + a.size)).flatName pn))
+        ::ₘ (flatTree pn a k + flatTree pn b (k + a.size)
+          + flat pn ln (raw (k + a.size + b.size) L)) := by
   simp only [flat, raw, flatCells, flatWires, flatTree, Multiset.map_add, Multiset.map_cons,
     flatWire, Sym2.map_mk]
   simp only [← Multiset.singleton_add]
@@ -276,9 +409,18 @@ theorem flat_raw_cons (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (k : ℕ) (a
 
 /-- **A text is equivalent to the flat text of its raw graph** (Lafont 1997, page 71), in any
 context `Δ`, when the flat text beside `Δ` is linear. -/
-theorem equiv_flat_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) :
-    ∀ (L : List (Term S ℕ × Term S ℕ)) (k : ℕ) (Δ : Net S ℕ),
+theorem equiv_flat_raw
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ) :
+    ∀
+      -- a text, the number of its first cell, and the rest of the net
+      (L : List (Term S ℕ × Term S ℕ))
+      (k : ℕ)
+      (Δ : Net S ℕ),
+      -- if the flat text beside `Δ` is linear
       Net.Linear (flat pn ln (raw k L) + Δ) →
+      -- then the text is equivalent to the flat text, beside `Δ`
       Equiv (Net.ofList L + Δ) (flat pn ln (raw k L) + Δ)
   | [], k, Δ, _ => by
     simp only [flat, raw, flatCells, flatWires, flatLoops, Multiset.map_zero, Multiset.range_zero,
@@ -317,11 +459,21 @@ theorem equiv_flat_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) :
 /-- **The flat text of the raw graph of a linear text is linear** (Lafont 1997, page 71), when the
 names of the ports are distinct and unused in the text: each port name occurs in the equation of
 its cell and in the equation of its wire, and each name of the text as often as in the text. -/
-theorem linear_flat_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (k : ℕ) (L : List (Term S ℕ × Term S ℕ))
+theorem linear_flat_raw
+    -- the names of the ports and of the cyclic wires, and the number of the first cell
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    (k : ℕ)
+    -- a linear text
+    (L : List (Term S ℕ × Term S ℕ))
     (hN : (Net.ofList L).Linear)
-    (hpn : ∀ c i d j, c ∈ (raw k L).cells.map Prod.fst → d ∈ (raw k L).cells.map Prod.fst →
+    -- the names of the ports of the cells of its raw graph are distinct
+    (hpn : ∀ c i d j,
+      c ∈ (raw k L).cells.map Prod.fst → d ∈ (raw k L).cells.map Prod.fst →
       pn c i = pn d j → c = d ∧ i = j)
-    (hpN : ∀ c i, pn c i ∉ (Net.ofList L).vars) : (flat pn ln (raw k L)).Linear := by
+    -- and unused in the text
+    (hpN : ∀ c i, pn c i ∉ (Net.ofList L).vars) :
+    (flat pn ln (raw k L)).Linear := by
   intro y
   rw [vars_flat, raw_loops, raw_ends]
   have hl0 : (flatLoops (S := S) ln 0).vars = 0 := by simp [flatLoops]
@@ -361,11 +513,19 @@ theorem linear_flat_raw (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) (k : ℕ) 
     have := hN y
     omega
 
-/-! ## Erasing a name -/
+-- ============================================================================================
+-- 5. Erasing a name
+-- ============================================================================================
 
 /-- An equation `x = x` whose name occurs nowhere else may be renamed: it is a cyclic wire. -/
-theorem equiv_loop_rename {x z : ℕ} {Δ : Net S ℕ} (hlin : Net.Linear (s(var x, var x) ::ₘ Δ))
+theorem equiv_loop_rename
+    -- an equation `x = x` beside the rest of the net `Δ`, the whole linear
+    {x z : ℕ}
+    {Δ : Net S ℕ}
+    (hlin : Net.Linear (s(var x, var x) ::ₘ Δ))
+    -- a name `z` unused in the net
     (hz : z ∉ Net.vars (s(var x, var x) ::ₘ Δ)) :
+    -- the equation may be renamed to `z = z`
     Equiv (s(var x, var x) ::ₘ Δ) (s(var z, var z) ::ₘ Δ) := by
   simp only [Net.vars_cons, eqVars_mk, vars_var, Multiset.mem_add, Multiset.mem_singleton,
     or_self, not_or] at hz
@@ -403,8 +563,17 @@ theorem equiv_loop_rename {x z : ℕ} {Δ : Net S ℕ} (hlin : Net.Linear (s(var
 page 71). Joining the two wires of a name `x` is the wire substitution of `x`; turning a wire from
 `x` to itself into a cyclic wire renames the equation `x = x`, when the next name of a cyclic wire
 is unused. -/
-theorem equiv_flat_contract (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) {G H : Graph S ℕ} (h : Contract G H)
-    (hlin : (flat pn ln G).Linear) (hfr : ln G.loops ∉ (flat pn ln G).vars) :
+theorem equiv_flat_contract
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- a graph `G` that contracts to `H` by erasing one name
+    {G H : Graph S ℕ}
+    (h : Contract G H)
+    -- the flat text of `G` is linear
+    (hlin : (flat pn ln G).Linear)
+    -- and the name of the next cyclic wire is unused in it
+    (hfr : ln G.loops ∉ (flat pn ln G).vars) :
     Equiv (flat pn ln G) (flat pn ln H) := by
   cases h with
   | join x p q C W n =>
@@ -453,13 +622,26 @@ theorem equiv_flat_contract (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) {G H :
 page 71). Let the raw graph of `L` contract to `G`, the names `pn c i` of the ports of the cells be
 distinct, the names `ln j` of the cyclic wires be distinct, and all of them be different from each
 other and unused in `L`. Then the text of `L` is equivalent to the flat text of `G`. -/
-theorem equiv_flat_of_contracts {L : List (Term S ℕ × Term S ℕ)} {k : ℕ} {G : Graph S ℕ}
-    (hN : (Net.ofList L).Linear) (h : Relation.ReflTransGen Contract (raw k L) G)
-    (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ)
-    (hpn : ∀ c i d j, c ∈ (raw k L).cells.map Prod.fst → d ∈ (raw k L).cells.map Prod.fst →
+theorem equiv_flat_of_contracts
+    -- a linear text, whose raw graph, with cells numbered from `k`, contracts to `G`
+    {L : List (Term S ℕ × Term S ℕ)}
+    {k : ℕ}
+    {G : Graph S ℕ}
+    (hN : (Net.ofList L).Linear)
+    (h : Relation.ReflTransGen Contract (raw k L) G)
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- the names of the ports of the cells are distinct
+    (hpn : ∀ c i d j,
+      c ∈ (raw k L).cells.map Prod.fst → d ∈ (raw k L).cells.map Prod.fst →
       pn c i = pn d j → c = d ∧ i = j)
-    (hln : Function.Injective ln) (hpl : ∀ c i j, pn c i ≠ ln j)
-    (hpN : ∀ c i, pn c i ∉ (Net.ofList L).vars) (hlN : ∀ j, ln j ∉ (Net.ofList L).vars) :
+    -- the names of the cyclic wires are distinct, and different from those of the ports
+    (hln : Function.Injective ln)
+    (hpl : ∀ c i j, pn c i ≠ ln j)
+    -- and all of them are unused in the text
+    (hpN : ∀ c i, pn c i ∉ (Net.ofList L).vars)
+    (hlN : ∀ j, ln j ∉ (Net.ofList L).vars) :
     Equiv (Net.ofList L) (flat pn ln G) := by
   have hl := linear_flat_raw pn ln k L hN hpn hpN
   have E0 : Equiv (Net.ofList L) (flat pn ln (raw k L)) := by
@@ -490,14 +672,24 @@ theorem equiv_flat_of_contracts {L : List (Term S ℕ × Term S ℕ)} {k : ℕ} 
       rw [hln hje] at hj
       exact lt_irrefl _ hj
 
-/-! ## Isomorphic graphs -/
+-- ============================================================================================
+-- 6. Isomorphic graphs
+-- ============================================================================================
 
 /-- **The flat texts of isomorphic graphs differ by the names of the ports** (Lafont 1997,
 page 71): if `σ` carries the cells and wires of `G` to those of `G'`, the flat text of `G'` with
 the port names `pn` is the flat text of `G` with the port names `pn (σ c) i`. -/
-theorem flat_iso (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) {G G' : Graph S ℕ} {σ : ℕ → ℕ}
+theorem flat_iso
+    -- the names of the ports and of the cyclic wires
+    (pn : ℕ → ℕ → ℕ)
+    (ln : ℕ → ℕ)
+    -- two graphs, and a renumbering `σ` of the cells
+    {G G' : Graph S ℕ}
+    {σ : ℕ → ℕ}
+    -- that carries the cells, the wires and the cyclic wires of `G` to those of `G'`
     (hc : G'.cells = G.cells.map (Prod.map σ id))
-    (hw : G'.wires = G.wires.map (Sym2.map (End.mapCell σ))) (hl : G'.loops = G.loops) :
+    (hw : G'.wires = G.wires.map (Sym2.map (End.mapCell σ)))
+    (hl : G'.loops = G.loops) :
     flat pn ln G' = flat (fun c i => pn (σ c) i) ln G := by
   simp only [flat, hc, hw, hl, flatCells, flatWires, Multiset.map_map]
   congr 2
@@ -507,14 +699,24 @@ theorem flat_iso (pn : ℕ → ℕ → ℕ) (ln : ℕ → ℕ) {G G' : Graph S �
 
 end Graph
 
-/-! ## The theorem -/
+-- ============================================================================================
+-- 7. Main results
+-- ============================================================================================
 
 /-- **Linear nets with isomorphic graphs are equivalent** (Lafont 1997, Section 1.1, page 71;
-PLAN.md Stage C, statement 3, the direction from `Iso` to `Equiv`): if `N` and `M` are linear
-and a graph of `N` is isomorphic to a graph of `M`, then `Equiv N M`. Both are equivalent to the
-flat text of the graph of `N`, with ports named above every name of `N` and `M`. -/
-theorem Net.Linear.equiv_of_hasGraph_iso {N M : Net S ℕ} (hN : N.Linear) (hM : M.Linear)
-    {G G' : Graph S ℕ} (hG : N.HasGraph G) (hG' : M.HasGraph G') (h : G.Iso G') :
+the direction from `Iso` to `Equiv`): if `N` and `M` are linear and a graph of `N` is isomorphic
+to a graph of `M`, then `Equiv N M`. Both are equivalent to the flat text of the graph of `N`,
+with ports named above every name of `N` and `M`. -/
+theorem Net.Linear.equiv_of_hasGraph_iso
+    -- two linear nets
+    {N M : Net S ℕ}
+    (hN : N.Linear)
+    (hM : M.Linear)
+    -- a graph of each, the two isomorphic
+    {G G' : Graph S ℕ}
+    (hG : N.HasGraph G)
+    (hG' : M.HasGraph G')
+    (h : G.Iso G') :
     Equiv N M := by
   obtain ⟨L, k, rfl, hc, -⟩ := hG
   obtain ⟨L', k', rfl, hc', -⟩ := hG'
@@ -556,9 +758,18 @@ theorem Net.Linear.equiv_of_hasGraph_iso {N M : Net S ℕ} (hN : N.Linear) (hM :
   exact E1.trans E2.symm
 
 /-- **Two linear nets are equivalent if and only if their graphs are isomorphic** (Lafont 1997,
-Section 1.1, page 71; PLAN.md Stage C, statement 3). -/
-theorem Net.Linear.equiv_iff_hasGraph_iso {N M : Net S ℕ} (hN : N.Linear) (hM : M.Linear)
-    {G G' : Graph S ℕ} (hG : N.HasGraph G) (hG' : M.HasGraph G') : Equiv N M ↔ G.Iso G' :=
+Section 1.1, page 71). -/
+theorem Net.Linear.equiv_iff_hasGraph_iso
+    -- two linear nets
+    {N M : Net S ℕ}
+    (hN : N.Linear)
+    (hM : M.Linear)
+    -- a graph of each
+    {G G' : Graph S ℕ}
+    (hG : N.HasGraph G)
+    (hG' : M.HasGraph G') :
+    -- the nets are equivalent exactly when the graphs are isomorphic
+    Equiv N M ↔ G.Iso G' :=
   ⟨fun h => hN.equiv_hasGraph_iso h hG hG', hN.equiv_of_hasGraph_iso hM hG hG'⟩
 
 end INet
