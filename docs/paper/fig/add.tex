@@ -1,0 +1,32 @@
+% The two rules of unary addition of Demo/Arithmetic.lean.
+\begin{tabular}{@{}c@{\hspace{1.6cm}}c@{}}
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{a}{0,0.55}{add}
+  \node[eracell] (z) at (0,-0.6) {0};
+  \draw[wire] (a-p) -- (z);
+  \draw[wire] (a-0) -- ++(0,0.45) node[port,above] {y};
+  \draw[wire] (a-1) -- ++(0,0.45) node[port,above] {r};
+  \draw[becomes] (0.9,0.2) -- (1.6,0.2);
+  \node[port] (y) at (2.1,1.25) {y};
+  \node[port] (r) at (2.9,1.25) {r};
+  \draw[wire,rounded corners=6pt] (y) -- (2.1,0.0) -- (2.9,0.0) -- (r);
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{a}{0,0.62}{add}
+  \cellOneU{s}{0,-0.62}{S}
+  \draw[wire] (a-p) -- (s-p);
+  \draw[wire] (a-0) -- ++(0,0.45) node[port,above] {y};
+  \draw[wire] (a-1) -- ++(0,0.45) node[port,above] {r};
+  \draw[wire] (s-0) -- ++(0,-0.45) node[port,below] {x};
+  \draw[becomes] (0.9,0) -- (1.6,0);
+  \cellD{b}{2.7,-0.55}{add}
+  \cellOneU{t}{3.75,0.75}{S}
+  \draw[wire] (b-p) -- ++(0,-0.5) node[port,below] {x};
+  \draw[wire] (b-0) -- ($(b-0)+(0,2.05)$) node[port,above] {y};
+  \draw[wire] (t-p) -- ++(0,0.42) node[port,above] {r};
+  \draw[wire] (t-0) to[out=-90,in=90] node[port,right,pos=0.55] {w} (b-1);
+\end{tikzpicture}
+\\[0.8em]
+\small \cod{ruleAddZero} & \small \cod{ruleAddSucc}
+\end{tabular}

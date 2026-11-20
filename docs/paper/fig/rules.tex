@@ -1,0 +1,97 @@
+% The six rules of the interaction combinators, drawn from the definitions `ruleConCon`,
+% `ruleDupDup`, `ruleEraEra`, `ruleEraBin`, `ruleConDup`. Convention of Lafont: the auxiliary
+% ports are numbered clockwise, so a cell drawn upside down has its first port on the right.
+% The small numbers are the indices of the auxiliary ports in the Lean code (0 and 1).
+\begin{tabular}{@{}c@{\hspace{1.3cm}}c@{\hspace{1.3cm}}c@{}}
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{t}{0,0.62}{$\gamma$}
+  \cellU{b}{0,-0.62}{$\gamma$}
+  \draw[wire] (t-p) -- (b-p);
+  \draw[wire] (t-0) -- ++(0,0.4) node[port,above] {a};
+  \draw[wire] (t-1) -- ++(0,0.4) node[port,above] {b};
+  \draw[wire] (b-0) -- ++(0,-0.4) node[port,below] {c};
+  \draw[wire] (b-1) -- ++(0,-0.4) node[port,below] {d};
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  \node[port] (a) at (2.05,1.1) {a}; \node[port] (b) at (2.85,1.1) {b};
+  \node[port] (d) at (2.05,-1.1) {d}; \node[port] (c) at (2.85,-1.1) {c};
+  \draw[wire] (a) -- (d); \draw[wire] (b) -- (c);
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD[isdup]{t}{0,0.62}{$\delta$}
+  \cellU[isdup]{b}{0,-0.62}{$\delta$}
+  \draw[wire] (t-p) -- (b-p);
+  \draw[wire] (t-0) -- ++(0,0.4) node[port,above] {a};
+  \draw[wire] (t-1) -- ++(0,0.4) node[port,above] {b};
+  \draw[wire] (b-0) -- ++(0,-0.4) node[port,below] {c};
+  \draw[wire] (b-1) -- ++(0,-0.4) node[port,below] {d};
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  \node[port] (a) at (2.05,1.1) {a}; \node[port] (b) at (2.85,1.1) {b};
+  \node[port] (d) at (2.05,-1.1) {d}; \node[port] (c) at (2.85,-1.1) {c};
+  \draw[wire] (a) -- (c); \draw[wire] (b) -- (d);
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \node[eracell] (e) at (0,0.5) {$\varepsilon$};
+  \node[eracell] (f) at (0,-0.5) {$\varepsilon$};
+  \draw[wire] (e) -- (f);
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  \node[font=\scriptsize] at (2.45,0) {(empty)};
+\end{tikzpicture}
+\\[0.6em]
+\small $\gamma\gamma$: \cod{ruleConCon} & \small $\delta\delta$: \cod{ruleDupDup} &
+\small $\varepsilon\varepsilon$: \cod{ruleEraEra}
+\\[1.2em]
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \node[eracell] (e) at (0,0.75) {$\varepsilon$};
+  \cellU{b}{0,-0.45}{$\gamma$}
+  \draw[wire] (e) -- (b-p);
+  \draw[wire] (b-0) -- ++(0,-0.4) node[port,below] {a};
+  \draw[wire] (b-1) -- ++(0,-0.4) node[port,below] {b};
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  \node[eracell] (e1) at (2.05,0.35) {$\varepsilon$};
+  \node[eracell] (e0) at (2.85,0.35) {$\varepsilon$};
+  \draw[wire] (e1) -- ++(0,-0.95) node[port,below] {b};
+  \draw[wire] (e0) -- ++(0,-0.95) node[port,below] {a};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \node[eracell] (e) at (0,0.75) {$\varepsilon$};
+  \cellU[isdup]{b}{0,-0.45}{$\delta$}
+  \draw[wire] (e) -- (b-p);
+  \draw[wire] (b-0) -- ++(0,-0.4) node[port,below] {a};
+  \draw[wire] (b-1) -- ++(0,-0.4) node[port,below] {b};
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  \node[eracell] (e1) at (2.05,0.35) {$\varepsilon$};
+  \node[eracell] (e0) at (2.85,0.35) {$\varepsilon$};
+  \draw[wire] (e1) -- ++(0,-0.95) node[port,below] {b};
+  \draw[wire] (e0) -- ++(0,-0.95) node[port,below] {a};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{t}{0,0.62}{$\gamma$}
+  \cellU[isdup]{b}{0,-0.62}{$\delta$}
+  \draw[wire] (t-p) -- (b-p);
+  \draw[wire] (t-0) -- ++(0,0.4) node[port,above] {a};
+  \draw[wire] (t-1) -- ++(0,0.4) node[port,above] {b};
+  \draw[wire] (b-0) -- ++(0,-0.4) node[port,below] {c};
+  \draw[wire] (b-1) -- ++(0,-0.4) node[port,below] {d};
+  \draw[becomes] (0.85,0) -- (1.55,0);
+  % a = dup(w0, w1), b = dup(w2, w3), c = con(w0, w2), d = con(w1, w3)
+  \cellU[isdup]{da}{2.4,1.05}{$\delta$}
+  \cellU[isdup]{db}{4.0,1.05}{$\delta$}
+  \cellD{cd}{2.4,-1.05}{$\gamma$}
+  \cellD{cc}{4.0,-1.05}{$\gamma$}
+  \draw[wire] (da-p) -- ++(0,0.3) node[port,above] {a};
+  \draw[wire] (db-p) -- ++(0,0.3) node[port,above] {b};
+  \draw[wire] (cd-p) -- ++(0,-0.3) node[port,below] {d};
+  \draw[wire] (cc-p) -- ++(0,-0.3) node[port,below] {c};
+  \draw[wire] (da-0) -- (cc-0);
+  \draw[wire] (da-1) -- (cd-0);
+  \draw[wire] (db-0) -- (cc-1);
+  \draw[wire] (db-1) -- (cd-1);
+\end{tikzpicture}
+\\[0.6em]
+\small $\varepsilon\gamma$: \cod{ruleEraBin} & \small $\varepsilon\delta$: \cod{ruleEraBin} &
+\small $\gamma\delta$: \cod{ruleConDup}
+\end{tabular}

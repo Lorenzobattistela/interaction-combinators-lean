@@ -1,0 +1,222 @@
+% References for paper.tex.
+% Source of every entry: docs/paper/related-work.md (the related-work dossier), which records
+% how each item is known. Fields that the dossier does not give were left out rather than
+% guessed. Entries marked CHECK in a comment were known only from a search summary or a
+% bibliographic record; the citations in paper.tex carry a \todo for them.
+
+@article{lafont1997,
+  author  = {Yves Lafont},
+  title   = {Interaction Combinators},
+  journal = {Information and Computation},
+  volume  = {137},
+  number  = {1},
+  pages   = {69--101},
+  year    = {1997},
+  doi     = {10.1006/inco.1997.2643}
+}
+% number = 1: CHECK (not in the dossier; volume, pages, year and DOI are).
+
+@inproceedings{lafont1990,
+  author    = {Yves Lafont},
+  title     = {Interaction Nets},
+  booktitle = {Proceedings of the 17th ACM SIGPLAN-SIGACT Symposium on Principles of
+               Programming Languages (POPL)},
+  pages     = {95--108},
+  year      = {1990},
+  doi       = {10.1145/96709.96718}
+}
+% "17th": CHECK.
+
+@inproceedings{fernandezmackie1999,
+  author    = {Maribel Fern{\'a}ndez and Ian Mackie},
+  title     = {A Calculus for Interaction Nets},
+  booktitle = {Principles and Practice of Declarative Programming (PPDP)},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {1702},
+  pages     = {170--187},
+  publisher = {Springer},
+  year      = {1999}
+}
+% CHECK: bibliographic record only; the full text was not read.
+
+@misc{gay1995,
+  author = {Simon J. Gay},
+  title  = {Combinators for Interaction Nets},
+  note   = {In: Proceedings of the Second Imperial College Workshop on Theory and Formal
+            Methods. Cited from the bibliography of Lafont (1997)},
+  year   = {1995}
+}
+% CHECK: year (1994 or 1995), venue details.
+
+@inproceedings{bechet2001,
+  author    = {Denis B{\'e}chet},
+  title     = {Universal Interaction Systems with Only Two Agents},
+  booktitle = {Rewriting Techniques and Applications (RTA)},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {2051},
+  pages     = {3--14},
+  publisher = {Springer},
+  year      = {2001},
+  doi       = {10.1007/3-540-45127-7_3}
+}
+% CHECK: abstract snippet and bibliographic record only.
+
+@article{mazza2007,
+  author  = {Damiano Mazza},
+  title   = {A Denotational Semantics for the Symmetric Interaction Combinators},
+  journal = {Mathematical Structures in Computer Science},
+  volume  = {17},
+  number  = {3},
+  pages   = {527--562},
+  year    = {2007},
+  doi     = {10.1017/S0960129507006135}
+}
+
+@article{mazza2009,
+  author  = {Damiano Mazza},
+  title   = {Observational Equivalence and Full Abstraction in the Symmetric Interaction
+             Combinators},
+  journal = {Logical Methods in Computer Science},
+  volume  = {5},
+  number  = {4},
+  year    = {2009},
+  note    = {Paper 6. \url{https://arxiv.org/abs/0906.0380}}
+}
+
+@article{defalco2010,
+  author  = {Marc de Falco},
+  title   = {An Explicit Framework for Interaction Nets},
+  journal = {Logical Methods in Computer Science},
+  volume  = {6},
+  number  = {4},
+  year    = {2010},
+  note    = {\url{https://arxiv.org/abs/1010.1066}}
+}
+
+@inproceedings{hassan2015,
+  author    = {Abubakar Hassan and Ian Mackie and Shinya Sato},
+  title     = {An Implementation Model for Interaction Nets},
+  booktitle = {TERMGRAPH 2014},
+  series    = {Electronic Proceedings in Theoretical Computer Science},
+  volume    = {183},
+  pages     = {66--80},
+  year      = {2015},
+  note      = {\url{https://arxiv.org/abs/1505.07164}}
+}
+
+@misc{diguardia2025,
+  author = {R{\'e}mi Di Guardia and Olivier Laurent},
+  title  = {A Formalization of Multiplicative Proof-Nets in {Rocq}},
+  note   = {TLLA 2025. \url{https://perso.ens-lyon.fr/olivier.laurent/rocqpn.pdf}},
+  year   = {2025}
+}
+
+@misc{vyzx,
+  author = {Adrian Lehmann and Ben Caldwell and Bhakti Shah and William Spencer and Robert Rand},
+  title  = {{VyZX}: Formal Verification of a Graphical Quantum Language},
+  note   = {Preprint, \url{https://arxiv.org/abs/2311.11571}},
+  year   = {2023}
+}
+% CHECK: peer-reviewed venue, if any.
+
+@article{soldner2024,
+  author  = {Robert S{\"o}ldner and Detlef Plump},
+  title   = {Formalising the Double-Pushout Approach to Graph Transformation},
+  journal = {Logical Methods in Computer Science},
+  volume  = {20},
+  number  = {4},
+  year    = {2024},
+  note    = {\url{https://lmcs.episciences.org/14420}}
+}
+% CHECK: known from titles and an abstract-level summary only.
+
+@misc{hvm2,
+  author = {{Higher Order Company}},
+  title  = {{HVM2}: a massively parallel interaction combinator evaluator},
+  note   = {Software repository, \url{https://github.com/HigherOrderCO/HVM2}}
+}
+% CHECK: title of the entry is a description, not a verified title; no paper was verified.
+
+@misc{leaninets,
+  author = {Nils Cremer},
+  title  = {lean-inets: a formalisation of interaction nets in {Lean} 4 with {Mathlib}},
+  note   = {Software repository, \url{https://github.com/nilscrm/lean-inets}, read November 2026},
+  year   = {2026}
+}
+
+@misc{onixinets,
+  author = {{OnixResearch}},
+  title  = {inets: a {Lean} 4 formalisation of interaction nets},
+  note   = {Software repository, \url{https://github.com/OnixResearch/inets}, read November 2026},
+  year   = {2026}
+}
+% CHECK: no README and no author list; the title here is a description.
+
+@misc{gebmathlib,
+  author = {Terence Rokop},
+  title  = {geb-mathlib: {Lean} 4 + mathlib formalisation of {Geb}, a categorical programming
+            language},
+  note   = {Software repository, \url{https://github.com/rokopt/geb-mathlib}, directory
+            \texttt{Geb/Prototypes/InteractionNet}, read November 2026},
+  year   = {2026}
+}
+
+@misc{grin,
+  author = {Tyler Strause Tabar{\'e}s},
+  title  = {{GRIN}: Graded Reflective Interaction Nets},
+  note   = {Software repository, \url{https://github.com/tstrause/grin-interaction-nets}, read
+            November 2026},
+  year   = {2026}
+}
+
+@misc{obend,
+  author = {{emberian}},
+  title  = {obend},
+  note   = {Software repository, \url{https://github.com/emberian/obend}, file
+            \texttt{lean/Obend/Hardware/Hvm/Inet.lean}, read November 2026}
+}
+% CHECK: author name and year.
+
+@inproceedings{urban2026,
+  author    = {Josef Urban},
+  title     = {130k Lines of Formal Topology in Two Weeks: Simple and Cheap Autoformalization
+               for Everyone?},
+  booktitle = {Interactive Theorem Proving (ITP 2026)},
+  series    = {LIPIcs},
+  volume    = {382},
+  year      = {2026},
+  note      = {\url{https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITP.2026.31}}
+}
+% CHECK: known from a search summary and the DROPS record.
+
+@misc{rammal2026,
+  author = {A. Rammal and N. Patel and F. Gloeckle and A. Hayat and J. Kempe and R. Munos and
+            C. Arnal and V. Cabannes},
+  title  = {Formalizing Mathematics at Scale},
+  note   = {Preprint, \url{https://arxiv.org/abs/2605.29955}},
+  year   = {2026}
+}
+
+@misc{leanmarathon2026,
+  author = {Y. Zhang and Y. Sun and T. Suzuki and J. D. Lee and F. Liu},
+  title  = {{LeanMarathon}: Toward Reliable {AI} Co-Mathematicians through Long-Horizon {Lean}
+            Autoformalization},
+  note   = {Preprint, \url{https://arxiv.org/abs/2606.05400}},
+  year   = {2026}
+}
+
+@misc{choir2026,
+  author = {Y. Qi and M. Weber},
+  title  = {Choir: An Open Protocol for Distributed Multi-Agent Autoformalization},
+  note   = {Preprint, \url{https://arxiv.org/abs/2609.31903}},
+  year   = {2026}
+}
+
+@misc{tao2026,
+  author = {Terence Tao},
+  title  = {What mathematicians should know about the {Lean} Theorem Prover: questions of
+            reliability and {AI}},
+  note   = {Blog post, 9 October 2026,
+            \url{https://terrytao.wordpress.com/2026/10/09/what-mathematicians-should-know-about-the-lean-theorem-proverquestions-of-reliability-and-ai/}},
+  year   = {2026}
+}

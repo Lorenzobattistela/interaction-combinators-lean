@@ -1,0 +1,39 @@
+% M_3, M_3^* and T_{1,1} as trees of cells, read off `mux`, `muxStar`, `transpositor 1`.
+\begin{tabular}{@{}c@{\hspace{1.5cm}}c@{\hspace{1.5cm}}c@{}}
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  % mux [a, b, c] = con(a, con(b, c))
+  \cellD{l}{0,0}{$\gamma$}
+  \cellD{u}{0.8,1.25}{$\gamma$}
+  \draw[wire] (l-p) -- ++(0,-0.4);
+  \draw[wire] (l-1) to[out=90,in=-90] (u-p);
+  \draw[wire] (l-0) -- ($(l-0)+(0,1.85)$) node[port,above] {a};
+  \draw[wire] (u-0) -- ++(0,0.6) node[port,above] {b};
+  \draw[wire] (u-1) -- ++(0,0.6) node[port,above] {c};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  % muxStar [a, b, c] = con(con(c, b), a): cells pointing up, first port on the right
+  \cellU{l}{0,0}{$\gamma$}
+  \cellU{u}{0.8,-1.25}{$\gamma$}
+  \draw[wire] (l-p) -- ++(0,0.4);
+  % port 1 of the upper cell (drawn left) carries a; port 0 (drawn right) carries the lower cell
+  \draw[wire] (l-1) -- ($(l-1)+(0,-1.85)$) node[port,below] {a};
+  \draw[wire] (l-0) to[out=-90,in=90] (u-p);
+  \draw[wire] (u-1) -- ++(0,-0.6) node[port,below] {b};
+  \draw[wire] (u-0) -- ++(0,-0.6) node[port,below] {c};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  % transpositor 1 [a, b, c] = dup(con(a, b), c)
+  \cellD[isdup]{l}{0,0}{$\delta$}
+  \cellD{u}{-0.8,1.25}{$\gamma$}
+  \draw[wire] (l-p) -- ++(0,-0.4);
+  \draw[wire] (l-0) to[out=90,in=-90] (u-p);
+  \draw[wire] (l-1) -- ($(l-1)+(0,1.85)$) node[port,above] {c};
+  \draw[wire] (u-0) -- ++(0,0.6) node[port,above] {a};
+  \draw[wire] (u-1) -- ++(0,0.6) node[port,above] {b};
+\end{tikzpicture}
+\\[0.6em]
+\small $M_3$: \cod{mux [a, b, c]} & \small $M_3^*$: \cod{muxStar [a, b, c]} &
+\small $T_{1,1}$: \cod{transpositor 1 [a, b, c]}
+\end{tabular}

@@ -1,0 +1,60 @@
+# id | file | declaration(s) | mode
+# Used by paper.tex. Regenerate with: python3 docs/paper/extract.py
+# Modes ending in `-` drop docstrings and comment lines.
+#
+# --- appendix: the definitions Theorem 1 unfolds to, with their docstrings
+a_signature | InteractionCombinators/Core/Term.lean | Signature, Term | full
+a_net | InteractionCombinators/Core/Net.lean | Net, Net.Linear | full
+a_wire | InteractionCombinators/Core/Net.lean | Wire, Equiv | full
+a_rule | InteractionCombinators/Core/System.lean | Rule, Rule.inst, Rule.Linear, Rule.Reduced, Rule.swap | full
+a_system | InteractionCombinators/Core/System.lean | System, Step | full
+a_wellformed | InteractionCombinators/Core/System.lean | System.WellFormed | full
+a_steps | InteractionCombinators/Core/System.lean | Steps, StepE, StepsE | full
+a_pnet | InteractionCombinators/Core/Translation.lean | PNet, PNet.inst, PNet.Strict | full
+a_translation | InteractionCombinators/Core/Translation.lean | Translation, Translation.Strict#2 | full
+a_nettr | InteractionCombinators/Core/Translation.lean | TermTr, EqTr, NetTr | full
+a_compatible | InteractionCombinators/Core/Translation.lean | Compatible | full
+a_universal | InteractionCombinators/Core/Translation.lean | StrictlyUniversal | full
+a_comb | InteractionCombinators/Core/Combinators.lean | Comb, sig, mkCon, mkDup, mkEra | full
+a_rules | InteractionCombinators/Core/Combinators.lean | ruleConCon, ruleDupDup, ruleEraEra, ruleEraBin, ruleConDup, system | full
+a_thm1 | InteractionCombinators/Results.lean | theorem_1_strict | stmt
+a_target | InteractionCombinators/Universality/Theorem1.lean | universal_strict | stmt
+#
+# --- body: bare versions
+term | InteractionCombinators/Core/Term.lean | Signature, Term | full-
+net | InteractionCombinators/Core/Net.lean | Net, Net.Linear | full-
+wire | InteractionCombinators/Core/Net.lean | Wire, Equiv | full-
+rule | InteractionCombinators/Core/System.lean | Rule, Rule.inst | full-
+reduced | InteractionCombinators/Core/System.lean | Rule.Reduced | full-
+step | InteractionCombinators/Core/System.lean | Step, StepE | full-
+symm | InteractionCombinators/Core/System.lean | System.WellFormed | full-
+pnet | InteractionCombinators/Core/Translation.lean | PNet, PNet.inst | full-
+nettr | InteractionCombinators/Core/Translation.lean | TermTr, NetTr | full-
+compatible | InteractionCombinators/Core/Translation.lean | Compatible | full-
+thm1 | InteractionCombinators/Results.lean | theorem_1_strict | stmt-
+thm1_explicit | InteractionCombinators/Results.lean | theorem_1_explicit | stmt-
+prop1 | InteractionCombinators/Results.lean | proposition_1 | stmt-
+normal | InteractionCombinators/Results.lean | normal_form_unique | stmt-
+prop4 | InteractionCombinators/Results.lean | proposition_4_bounds | stmt-
+graph | InteractionCombinators/Core/Graph.lean | End, Graph, Graph.WF | full-
+graph_iso | InteractionCombinators/Core/Graph.lean | Graph.Iso | full-
+graph_contract | InteractionCombinators/Core/Graph.lean | Contract, Net.HasGraph | full-
+graph_equiv | InteractionCombinators/Results.lean | equiv_iff_graph_iso | stmt-
+graph_steps | InteractionCombinators/Results.lean | step_is_interaction, interaction_is_step | stmt-
+mux | InteractionCombinators/Universality/Multiplexors/Multiplexor.lean | mux, muxStar | full-
+mux_prop | InteractionCombinators/Results.lean | multiplexor_property | stmt-
+automux | InteractionCombinators/Universality/Multiplexors/AutoMux.lean | autoMux | full-
+transpositor | InteractionCombinators/Universality/Multiplexors/Transpositor.lean | pairCon, transpositor | full-
+selector | InteractionCombinators/Universality/Menus/Menu.lean | menu, selector | full-
+package | InteractionCombinators/Universality/Menus/Package.lean | Term.IsPackage | full-
+cellskel | InteractionCombinators/Universality/RecursionFree/CellSkeleton.lean | cellSel, cellSkel | full-
+decomposition | InteractionCombinators/Universality/RecursionFree/Decomposition.lean | Decomposition, plug | full-
+plugs | InteractionCombinators/Universality/RecursionFree/RecursionFree.lean | Decomposition.Plugs | full-
+sidesplug | InteractionCombinators/Universality/General/CodeCompatibleSides.lean | System.SidesPlug | full-
+code | InteractionCombinators/Universality/Codes/Code.lean | Decomp.code, decoder | full-
+decoder_prop | InteractionCombinators/Results.lean | decoder_property | stmt-
+codecell | InteractionCombinators/Universality/General/CodeCell.lean | codeCell | full-
+codetree | InteractionCombinators/Universality/General/CodeTr.lean | codeTreeE | full-
+codegamma | InteractionCombinators/Universality/General/CodeGamma.lean | codeGamma | full-
+cells_plug | InteractionCombinators/Universality/General/CodeCellsPlug.lean | codeCells_plugE | stmt-
+plugtarget | InteractionCombinators/Universality/RecursionFree/PlugTermTr.lean | plugTermTarget | full-

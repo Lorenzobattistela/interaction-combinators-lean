@@ -1,0 +1,30 @@
+% A cell, and two texts of the same graph that differ by one wire substitution.
+\begin{tabular}{@{}c@{\hspace{1.4cm}}c@{\hspace{1.4cm}}c@{}}
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{c}{0,0}{$\alpha$}
+  \draw[wire] (c-p) -- ++(0,-0.5) node[port,below] {principal port (root)};
+  \draw[wire] (c-0) -- ++(0,0.5) node[port,above,xshift=-2.5mm] {ts 0};
+  \draw[wire] (c-1) -- ++(0,0.5) node[port,above,xshift=2.5mm] {ts 1};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{c}{0,0}{$\gamma$}
+  \node[boxtree] (u) at (0,-1.15) {u};
+  \node[boxtree] (a) at ($(c-0)+(0,1.0)$) {a};
+  \draw[wire] (c-p) -- (u.north);
+  \draw[wire] (c-0) -- node[port,left] {x} (a.south);
+  \draw[wire] (c-1) -- ++(0,0.75) node[port,above] {z};
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{c}{0,0}{$\gamma$}
+  \node[boxtree] (u) at (0,-1.15) {u};
+  \node[boxtree] (a) at ($(c-0)+(0,1.0)$) {a};
+  \draw[wire] (c-p) -- (u.north);
+  \draw[wire] (c-0) -- (a.south);
+  \draw[wire] (c-1) -- ++(0,0.75) node[port,above] {z};
+\end{tikzpicture}
+\\[0.6em]
+\small (a) \cod{app α ts}, arity 2 & \small (b) $u = \gamma(x, z),\ \ x = a$ &
+\small (c) $u = \gamma(a, z)$
+\end{tabular}

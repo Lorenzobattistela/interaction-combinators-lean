@@ -1,0 +1,28 @@
+% Schematic of the principal net [alpha] of the general translation (`codeTreeE`), as a tree of
+% named components. Our own block diagram; it is not a reproduction of Lafont's Fig. 10.
+\begin{tikzpicture}[
+    blk/.style={draw,line width=0.6pt,rounded corners=1.5pt,minimum height=6.5mm,
+      minimum width=13mm,inner sep=2pt,font=\small},
+    pk/.style={draw,line width=0.6pt,minimum height=6.5mm,minimum width=11mm,inner sep=2pt,
+      font=\small,fill=black!8}]
+  \node[blk,minimum width=36mm] (T) at (0,0) {$T_{1,1}$};
+  \draw[wire] (T.south) -- ++(0,-0.55) node[port,below] {principal port of $[\alpha]$};
+  \node[pk] (G) at (-1.4,1.6) {$\Gamma_\alpha$};
+  \node[blk] (S) at (0,1.6) {$S^{e(\alpha)}_m$};
+  \node[blk,minimum width=52mm] (M) at (1.2,3.2) {$M_{n+2}$};
+  \node[pk] (C) at (-0.9,4.8) {$!\Gamma$};
+  \draw[wire] (G.south) -- node[idx,left,pos=0.8] {1} (G.south |- T.north);
+  \draw[wire] (S.south) -- node[idx,left,pos=0.8] {2} (T.north);
+  \draw[wire] (S.north) -- (S.north |- M.south);
+  \draw[wire] (C.south) -- (C.south |- M.north);
+  \foreach \x/\l in {0.4/{x_1},1.2/{\cdots},2.0/{x_n}} {
+    \draw[wire] (\x,0 |- M.north) -- ++(0,1.0) node[port,above] {$\l$};}
+  \draw[wire,rounded corners=6pt] (3.3,0 |- M.north) -- ++(0,0.5) -- (4.4,4.03) -- (4.4,0.95)
+    node[port,right,pos=0.5] {$\ell$} -- (1.2,0.95) -- node[idx,left,pos=0.6] {3} (1.2,0 |- T.north);
+  \node[font=\footnotesize,anchor=west,text width=5.1cm] at (5.4,2.6)
+    {$\Gamma_\alpha=\Gamma_{1,\alpha}\,\&\cdots\&\,\Gamma_{m,\alpha}$\\[2pt]
+     $\Gamma=\Gamma_1\,\&\cdots\&\,\Gamma_m$\\[2pt]
+     $!\Gamma$: the code of $\Gamma$ (no $\delta$)\\[2pt]
+     $x_1,\dots,x_n$: the ports of $\alpha$\\[2pt]
+     $\ell$: an internal wire (the loop)};
+\end{tikzpicture}

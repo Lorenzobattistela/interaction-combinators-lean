@@ -46,7 +46,10 @@ is stated with the latter.
   The library never imports them.
 - `Demo/` — worked examples. `Arithmetic.lean` translates unary addition, a recursive
   interaction system, into the combinators, and runs `2 + 2`.
+- `InteractionCombinators/Results.lean` — the main results, in the order and with the numbering of
+  the paper. Start here.
 - `PAPER.md` — a map from each definition, lemma, figure and theorem of the paper to the code.
+- `docs/` — a reading guide and the draft of a paper about this development.
 - `history/` — the roadmap, the plans and the progress notes of the agents.
 - `scripts/` — the gate (`check.sh`), the axiom audit, and the launcher of the agent pool.
 
@@ -63,5 +66,11 @@ The project imports only the Mathlib modules it uses; a full build takes a few m
 
 ## What is not here
 
-- The correspondence between this textual presentation and nets as graphs.
-- The parts of the paper after Theorem 1 (Section 3).
+- Section 2.8 of the paper (minimality of the system) and Section 3 (semantics, directed
+  combinators).
+- The symmetric combinators, which the paper treats in Section 3 and which are not the system of
+  Theorem 1.
+
+The correspondence between the textual presentation used here and nets as graphs is proved, in
+`InteractionCombinators/Graphs/`; `InteractionCombinators/Results.lean` lists it with the other
+main results.

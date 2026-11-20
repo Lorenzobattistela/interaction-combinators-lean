@@ -1,0 +1,26 @@
+% The net con(x, y) = dup(x, y) of Checks/Core/GraphCheck.lean: raw graph and graph.
+\begin{tabular}{@{}c@{\hspace{2.0cm}}c@{}}
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{c}{0,0.75}{$\gamma$}
+  \cellU[isdup]{d}{0,-0.75}{$\delta$}
+  \node[font=\tiny\sffamily,anchor=west] at ($(c.center)+(0.5,0.1)$) {cell 0};
+  \node[font=\tiny\sffamily,anchor=west] at ($(d.center)+(0.5,-0.1)$) {cell 1};
+  \draw[wire] (c-p) -- (d-p);
+  \node[nm,label={[font=\scriptsize]left:name $x$}] (n0) at (-1.9,0.9) {};
+  \node[nm,label={[font=\scriptsize]right:name $y$}] (n1) at (1.9,0.9) {};
+  \draw[wire,rounded corners=5pt] (c-0) -- ++(0,0.45) -| (n0);
+  \draw[wire,rounded corners=5pt] (c-1) -- ++(0,0.45) -| (n1);
+  \draw[wire,rounded corners=5pt] (d-0) -- ++(0,-0.75) -| (n0);
+  \draw[wire,rounded corners=5pt] (d-1) -- ++(0,-0.4) -| (n1);
+\end{tikzpicture}
+&
+\begin{tikzpicture}[baseline=(current bounding box.center)]
+  \cellD{c}{0,0.75}{$\gamma$}
+  \cellU[isdup]{d}{0,-0.75}{$\delta$}
+  \draw[wire] (c-p) -- (d-p);
+  \draw[wire,rounded corners=5pt] (c-0) -- ++(0,0.45) -- ++(-1.3,0) |- ($(d-0)+(0,-0.75)$) -- (d-0);
+  \draw[wire,rounded corners=5pt] (c-1) -- ++(0,0.45) -- ++(1.3,0) |- ($(d-1)+(0,-0.4)$) -- (d-1);
+\end{tikzpicture}
+\\[0.8em]
+\small (a) the raw graph: 2 cells, 5 wires & \small (b) the graph: 2 cells, 3 wires
+\end{tabular}

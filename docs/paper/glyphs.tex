@@ -1,0 +1,17 @@
+% Characters of the Lean sources that the monospace font (Menlo) lacks: the subscript letters of
+% `::ₘ`, `Sⁱₙ`, `xₖ`, and the script `ℓ`. Each is set in a box of the width of one monospace
+% character, so that the columns of the listings stay aligned.
+%
+% Among the installed fonts only the macOS system font has the subscript letters. When it is
+% there the real character is typeset (and can be searched and copied in the PDF). Elsewhere a
+% lowered small letter is drawn instead.
+\newcommand{\fbch}[1]{\makebox[0.602em][c]{\fallbackfont #1}}
+\newcommand{\subdrawn}[1]{\makebox[0.602em][c]{\raisebox{-0.38ex}{\scalebox{0.7}{#1}}}}
+\newif\ifsubfont
+\IfFileExists{/System/Library/Fonts/SFNS.ttf}{\subfonttrue
+  \newfontfamily\subfont{SFNS.ttf}[Path=/System/Library/Fonts/,Scale=0.95]}{\subfontfalse}
+\newcommand{\subch}[2]{\ifsubfont\makebox[0.602em][c]{\subfont #1}\else\subdrawn{#2}\fi}
+\newunicodechar{ₘ}{\subch{ₘ}{m}}
+\newunicodechar{ₖ}{\subch{ₖ}{k}}
+\newunicodechar{ₙ}{\subch{ₙ}{n}}
+\newunicodechar{ℓ}{\fbch{ℓ}}
