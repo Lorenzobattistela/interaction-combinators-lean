@@ -14,9 +14,14 @@ the translations of the two cells reduce to a translation of the right-hand side
 `Decomposition.Plugs` links the two: an injective renaming `ι` of the internal wires of `r` and an
 `Equiv` of the two right-hand sides. This file moves the translation along that link.
 
-* `Rule.equiv_inst_of_equiv_rename` — equivalent right-hand sides give equivalent instances.
-* `Translation.NetTr.inst_of_equiv_rename` — the `NetTr` moves along the `Equiv`.
-* `Decomposition.Plugs.netTr_inst` — the same, for a decomposition that plugs into `r`.
+Contents, in the order of the file:
+
+1. Auxiliary lemma: `Rule.equiv_inst_of_equiv_rename`, equivalent right-hand sides give
+   equivalent instances.
+2. Auxiliary lemma: `Translation.NetTr.inst_of_equiv_rename`, a `NetTr` moves along the `Equiv`.
+3. Main results: `Decomposition.Plugs.netTr_inst`, the same for a decomposition that plugs into
+   `r`, and `Decomposition.Plugs.netTr_inst_of_sides`, with the linearity of the plugged rule
+   obtained from that of its two sides.
 -/
 
 namespace INet
@@ -24,6 +29,10 @@ namespace INet
 variable {S S' : Signature}
 
 open Term
+
+-- ============================================================================================
+-- 1. Auxiliary lemma: equivalent right-hand sides give equivalent instances
+-- ============================================================================================
 
 namespace Rule
 
@@ -34,11 +43,22 @@ right-hand side is a graph, plugged into the net by its ports). If the net of `P
 the net of `r` with its internal wires renamed by `ι`, then the instance of `P` with names `xs`,
 `ys` on the ports and `h` on the internal wires is equivalent to the instance of `r` with the same
 ports and `h ∘ ι` on the internal wires, provided the instance of `P` is linear. -/
-theorem equiv_inst_of_equiv_rename (P r : Rule S a b) (hP : P.Linear)
+theorem equiv_inst_of_equiv_rename
+    -- two rules with the same ports; `P` is linear
+    (P r : Rule S a b)
+    (hP : P.Linear)
+    -- a renaming of the internal wires of `r` into those of `P`, under which the nets of the
+    -- two rules are equivalent
     (ι : Fin r.internal → Fin P.internal)
     (hE : Equiv P.net (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)))
-    (xs : Fin a → ℕ) (ys : Fin b → ℕ) (h : Fin P.internal → ℕ)
+    -- the names of the ports and of the internal wires of `P`
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    (h : Fin P.internal → ℕ)
+    -- the instance of `P` with these names is linear
     (hlin : (P.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h).Linear) :
+    -- the instance of `P` is equivalent to the instance of `r` with the same ports and `h ∘ ι`
+    -- on the internal wires
     Equiv (P.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h)
       (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) (h ∘ ι)) := by
   have hL : ∀ y, ∑ i, (Term.var (S := S) (xs i)).vars.count y +
@@ -60,26 +80,49 @@ theorem equiv_inst_of_equiv_rename (P r : Rule S a b) (hP : P.Linear)
 
 end Rule
 
+-- ============================================================================================
+-- 2. Auxiliary lemma: a translation moves along equivalent right-hand sides
+-- ============================================================================================
+
 namespace Translation
 
 variable {Φ : Translation S S'}
 
 /-- **A translation moves along equivalent right-hand sides** (Lafont 1997, pages 80 and 85). If
-the net of `P` is equivalent to the net of `r` with its internal wires renamed by an injective `ι`,
+the net of `P` is equivalent to the net of `r` with its internal wires renamed by `ι`,
 then a translation `N'` of an instance of `P` is equivalent to a translation of an instance of `r`
 with the same names on the ports. -/
-theorem NetTr.inst_of_equiv_rename {a b : ℕ} (P r : Rule S a b) (hP : P.Linear)
+theorem NetTr.inst_of_equiv_rename
+    -- two rules with the same ports; `P` is linear
+    {a b : ℕ}
+    (P r : Rule S a b)
+    (hP : P.Linear)
+    -- a renaming of the internal wires of `r` into those of `P`, under which the nets of the
+    -- two rules are equivalent
     (ι : Fin r.internal → Fin P.internal)
     (hE : Equiv P.net (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x)))
-    (xs : Fin a → ℕ) (ys : Fin b → ℕ) (h : Fin P.internal → ℕ) {N' : Net S' ℕ}
+    -- the names of the ports and of the internal wires of `P`
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    (h : Fin P.internal → ℕ)
+    -- a translation `N'` of the instance of `P` with these names
+    {N' : Net S' ℕ}
     (hN : Φ.NetTr (P.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N') :
+    -- there are names `h'` for the internal wires of `r` and a net `N''`
     ∃ (h' : Fin r.internal → ℕ) (N'' : Net S' ℕ),
-      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N'' ∧ Equiv N' N'' := by
+      -- `N''` is a translation of the instance of `r` with the same ports
+      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N''
+      -- and is equivalent to `N'`
+      ∧ Equiv N' N'' := by
   have E := Rule.equiv_inst_of_equiv_rename P r hP ι hE xs ys h hN.linear_source
   obtain ⟨N'', hN'', e⟩ := hN.of_equiv E
   exact ⟨h ∘ ι, N'', hN'', e⟩
 
 end Translation
+
+-- ============================================================================================
+-- 3. Main results: a translation of the plugged sides is a translation of the rule
+-- ============================================================================================
 
 namespace Decomposition
 
@@ -90,26 +133,57 @@ rule** (Lafont 1997, page 85: the right-hand side of `r` is `φ` plugged to `ψ`
 80: the translation of interaction systems). If `D` plugs into `r` and the plugged rule is linear,
 a translation `N'` of an instance of `Rule.plug D.φ D.ψ D.σ` is equivalent to a translation of an
 instance of `r` with the same names on the ports. -/
-theorem Plugs.netTr_inst {D : Decomposition S a b} {r : Rule S a b} (hD : D.Plugs r)
-    (hP : (Rule.plug D.φ D.ψ D.σ).Linear) {Φ : Translation S S'} (xs : Fin a → ℕ)
-    (ys : Fin b → ℕ) (h : Fin (Rule.plug D.φ D.ψ D.σ).internal → ℕ) {N' : Net S' ℕ}
-    (hN : Φ.NetTr ((Rule.plug D.φ D.ψ D.σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h)
-      N') :
+theorem Plugs.netTr_inst
+    -- a decomposition `D` that plugs into the rule `r`
+    {D : Decomposition S a b}
+    {r : Rule S a b}
+    (hD : D.Plugs r)
+    -- the plugged rule is linear
+    (hP : (Rule.plug D.φ D.ψ D.σ).Linear)
+    -- a translation, and the names of the ports and of the internal wires of the plugged rule
+    {Φ : Translation S S'}
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    (h : Fin (Rule.plug D.φ D.ψ D.σ).internal → ℕ)
+    -- a translation `N'` of the instance of the plugged rule with these names
+    {N' : Net S' ℕ}
+    (hN : Φ.NetTr
+      ((Rule.plug D.φ D.ψ D.σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N') :
+    -- there are names `h'` for the internal wires of `r` and a net `N''`
     ∃ (h' : Fin r.internal → ℕ) (N'' : Net S' ℕ),
-      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N'' ∧ Equiv N' N'' := by
+      -- `N''` is a translation of the instance of `r` with the same ports
+      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N''
+      -- and is equivalent to `N'`
+      ∧ Equiv N' N'' := by
   obtain ⟨ι, -, hE⟩ := hD
   exact Translation.NetTr.inst_of_equiv_rename _ r hP ι hE xs ys h hN
 
 /-- `Plugs.netTr_inst` with the linearity of the plugged rule obtained from that of the two sides
 (`Rule.plug_linear`), as `System.RecursionFreeData.linear` supplies it (Lafont 1997, pages 85 and
 80). -/
-theorem Plugs.netTr_inst_of_sides {D : Decomposition S a b} {r : Rule S a b} (hD : D.Plugs r)
-    (hφ : D.φ.Linear) (hψ : D.ψ.Linear) {Φ : Translation S S'} (xs : Fin a → ℕ)
-    (ys : Fin b → ℕ) (h : Fin (Rule.plug D.φ D.ψ D.σ).internal → ℕ) {N' : Net S' ℕ}
-    (hN : Φ.NetTr ((Rule.plug D.φ D.ψ D.σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h)
-      N') :
+theorem Plugs.netTr_inst_of_sides
+    -- a decomposition `D` that plugs into the rule `r`
+    {D : Decomposition S a b}
+    {r : Rule S a b}
+    (hD : D.Plugs r)
+    -- the two sides of `D` are linear
+    (hφ : D.φ.Linear)
+    (hψ : D.ψ.Linear)
+    -- a translation, and the names of the ports and of the internal wires of the plugged rule
+    {Φ : Translation S S'}
+    (xs : Fin a → ℕ)
+    (ys : Fin b → ℕ)
+    (h : Fin (Rule.plug D.φ D.ψ D.σ).internal → ℕ)
+    -- a translation `N'` of the instance of the plugged rule with these names
+    {N' : Net S' ℕ}
+    (hN : Φ.NetTr
+      ((Rule.plug D.φ D.ψ D.σ).inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N') :
+    -- there are names `h'` for the internal wires of `r` and a net `N''`
     ∃ (h' : Fin r.internal → ℕ) (N'' : Net S' ℕ),
-      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N'' ∧ Equiv N' N'' :=
+      -- `N''` is a translation of the instance of `r` with the same ports
+      Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h') N''
+      -- and is equivalent to `N'`
+      ∧ Equiv N' N'' :=
   hD.netTr_inst (Rule.plug_linear D.σ hφ hψ) xs ys h hN
 
 end Decomposition
