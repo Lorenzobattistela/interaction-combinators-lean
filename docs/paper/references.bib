@@ -1,8 +1,4 @@
-% References for paper.tex.
-% Source of every entry: docs/paper/related-work.md (the related-work dossier), which records
-% how each item is known. Fields that the dossier does not give were left out rather than
-% guessed. Entries marked CHECK in a comment were known only from a search summary or a
-% bibliographic record; the citations in paper.tex carry a \todo for them.
+% References for paper.tex. Every entry was checked against a primary source on 20 November 2026.
 
 @article{lafont1997,
   author  = {Yves Lafont},
@@ -90,35 +86,42 @@
   journal = {Logical Methods in Computer Science},
   volume  = {6},
   number  = {4},
+  pages   = {1--27},
   year    = {2010},
-  note    = {\url{https://arxiv.org/abs/1010.1066}}
+  doi     = {10.2168/LMCS-6(4:6)2010},
+  note    = {Paper 4:6}
 }
 
 @inproceedings{hassan2015,
   author    = {Abubakar Hassan and Ian Mackie and Shinya Sato},
   title     = {An Implementation Model for Interaction Nets},
-  booktitle = {TERMGRAPH 2014},
+  booktitle = {Proceedings of TERMGRAPH 2014},
   series    = {Electronic Proceedings in Theoretical Computer Science},
   volume    = {183},
   pages     = {66--80},
   year      = {2015},
-  note      = {\url{https://arxiv.org/abs/1505.07164}}
+  doi       = {10.4204/EPTCS.183.5}
 }
 
 @misc{diguardia2025,
-  author = {R{\'e}mi Di Guardia and Olivier Laurent},
-  title  = {A Formalization of Multiplicative Proof-Nets in {Rocq}},
-  note   = {TLLA 2025. \url{https://perso.ens-lyon.fr/olivier.laurent/rocqpn.pdf}},
-  year   = {2025}
+  author       = {R{\'e}mi Di Guardia and Olivier Laurent},
+  title        = {A Formalization of Multiplicative Proof-Nets in {Rocq}},
+  howpublished = {9th International Workshop on Trends in Linear Logic and Applications
+                  (TLLA 2025)},
+  year         = {2025},
+  note         = {\url{https://hal.science/hal-05198754}}
 }
 
-@misc{vyzx,
-  author = {Adrian Lehmann and Ben Caldwell and Bhakti Shah and William Spencer and Robert Rand},
-  title  = {{VyZX}: Formal Verification of a Graphical Quantum Language},
-  note   = {Preprint, \url{https://arxiv.org/abs/2311.11571}},
-  year   = {2023}
+@article{vyzx,
+  author  = {Adrian Lehmann and Ben Caldwell and Bhakti Shah and William Spencer and Robert Rand},
+  title   = {{VyZX}: Formal Verification of a Graphical Quantum Language},
+  journal = {ACM Transactions on Programming Languages and Systems},
+  volume  = {48},
+  number  = {3},
+  pages   = {1--39},
+  year    = {2026},
+  doi     = {10.1145/3807780}
 }
-% CHECK: peer-reviewed venue, if any.
 
 @article{soldner2024,
   author  = {Robert S{\"o}ldner and Detlef Plump},
@@ -126,9 +129,9 @@
   journal = {Logical Methods in Computer Science},
   volume  = {20},
   number  = {4},
+  pages   = {3:1--3:37},
   year    = {2024},
-  doi     = {10.46298/lmcs-20(4:3)2024},
-  note    = {Paper 4:3}
+  doi     = {10.46298/lmcs-20(4:3)2024}
 }
 
 @techreport{hvm2,
@@ -151,47 +154,43 @@
 @misc{leaninets,
   author = {Nils Cremer},
   title  = {lean-inets: a formalisation of interaction nets in {Lean} 4 with {Mathlib}},
-  note   = {Software repository, \url{https://github.com/nilscrm/lean-inets}, read November 2026},
+  note   = {Software repository, \url{https://github.com/nilscrm/lean-inets}, commit
+            \texttt{a7d198f} (2 November 2026)},
   year   = {2026}
 }
 
 @misc{onixinets,
   author = {{OnixResearch}},
   title  = {inets: a {Lean} 4 formalisation of interaction nets},
-  note   = {Software repository, \url{https://github.com/OnixResearch/inets}, read November 2026},
+  note   = {Software repository (no README, title from the documentation of its root module),
+            \url{https://github.com/OnixResearch/inets}, commit \texttt{eaddcc1} (16 November
+            2026)},
   year   = {2026}
 }
-% CHECK: no README and no author list; the title here is a description.
 
 @misc{gebmathlib,
   author = {Terence Rokop},
   title  = {geb-mathlib: {Lean} 4 + mathlib formalisation of {Geb}, a categorical programming
             language},
   note   = {Software repository, \url{https://github.com/rokopt/geb-mathlib}, directory
-            \texttt{Geb/Prototypes/InteractionNet}, read November 2026},
+            \texttt{Geb/Prototypes/InteractionNet}, commit \texttt{4309798} (19 November 2026)},
   year   = {2026}
 }
 
 @misc{grin,
   author = {Tyler Strause Tabar{\'e}s},
-  title  = {{GRIN}: Graded Reflective Interaction Nets},
-  note   = {Software repository, \url{https://github.com/tstrause/grin-interaction-nets}, read
-            November 2026},
+  title  = {{GRIN}: {Graded Reflective Interaction Nets}},
+  note   = {Software repository, \url{https://github.com/tstrause/grin-interaction-nets}, commit
+            \texttt{af446d8} (12 November 2026)},
   year   = {2026}
 }
 
-@misc{obend,
-  author = {{emberian}},
-  title  = {obend},
-  note   = {Software repository, \url{https://github.com/emberian/obend}, file
-            \texttt{lean/Obend/Hardware/Hvm/Inet.lean}, read November 2026}
-}
-% CHECK: author name and year.
+
 
 @inproceedings{urban2026,
   author    = {Josef Urban},
   title     = {130k Lines of Formal Topology in Two Weeks: Simple and Cheap Autoformalization
-               for Everyone? (Short Paper)},
+               for Everyone? {(Short Paper)}},
   booktitle = {17th International Conference on Interactive Theorem Proving (ITP 2026)},
   series    = {LIPIcs},
   volume    = {382},
@@ -201,33 +200,33 @@
 }
 
 @misc{rammal2026,
-  author = {A. Rammal and N. Patel and F. Gloeckle and A. Hayat and J. Kempe and R. Munos and
-            C. Arnal and V. Cabannes},
+  author = {Ahmad Rammal and Niket Patel and Fabian Gloeckle and Amaury Hayat and Julia Kempe and
+            Remi Munos and Charles Arnal and Vivien Cabannes},
   title  = {Formalizing Mathematics at Scale},
-  note   = {Preprint, \url{https://arxiv.org/abs/2605.29955}},
+  note   = {Preprint, \href{https://arxiv.org/abs/2605.29955}{arXiv:2605.29955}},
   year   = {2026}
 }
 
 @misc{leanmarathon2026,
-  author = {Y. Zhang and Y. Sun and T. Suzuki and J. D. Lee and F. Liu},
+  author = {Yuanhe Zhang and Yuekai Sun and Taiji Suzuki and Jason D. Lee and Fanghui Liu},
   title  = {{LeanMarathon}: Toward Reliable {AI} Co-Mathematicians through Long-Horizon {Lean}
             Autoformalization},
-  note   = {Preprint, \url{https://arxiv.org/abs/2606.05400}},
+  note   = {Preprint, \href{https://arxiv.org/abs/2606.05400}{arXiv:2606.05400}},
   year   = {2026}
 }
 
 @misc{choir2026,
-  author = {Y. Qi and M. Weber},
+  author = {Yidi Qi and Melanie Weber},
   title  = {Choir: An Open Protocol for Distributed Multi-Agent Autoformalization},
-  note   = {Preprint, \url{https://arxiv.org/abs/2609.31903}},
+  note   = {Preprint, \href{https://arxiv.org/abs/2609.31903}{arXiv:2609.31903}},
   year   = {2026}
 }
 
-@misc{tao2026,
-  author = {Terence Tao},
+@misc{hales2026,
+  author = {Thomas C. Hales},
   title  = {What mathematicians should know about the {Lean} Theorem Prover: questions of
             reliability and {AI}},
-  note   = {Blog post, 9 October 2026,
+  note   = {Guest post on Terence Tao's blog \emph{What's new}, 9 October 2026.\newline
             \url{https://terrytao.wordpress.com/2026/10/09/what-mathematicians-should-know-about-the-lean-theorem-proverquestions-of-reliability-and-ai/}},
   year   = {2026}
 }

@@ -86,10 +86,10 @@
   \draw[wire] (db-p) -- ++(0,0.3) node[port,above] {b};
   \draw[wire] (cd-p) -- ++(0,-0.3) node[port,below] {d};
   \draw[wire] (cc-p) -- ++(0,-0.3) node[port,below] {c};
-  \draw[wire] (da-0) -- (cc-0);
+  \draw[wire] (da-0) -- ++(0,-0.3) -- ($(cc-0)+(0,0.3)$) -- (cc-0);
   \draw[wire] (da-1) -- (cd-0);
   \draw[wire] (db-0) -- (cc-1);
-  \draw[wire] (db-1) -- (cd-1);
+  \draw[wire] (db-1) -- ++(0,-0.3) -- ($(cd-1)+(0,0.3)$) -- (cd-1);
 \end{tikzpicture}
 \\[0.6em]
 \small $\varepsilon\gamma$: \cod{ruleEraBin} & \small $\varepsilon\delta$: \cod{ruleEraBin} &

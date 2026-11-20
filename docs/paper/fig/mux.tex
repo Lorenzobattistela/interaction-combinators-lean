@@ -5,7 +5,7 @@
   \cellD{l}{0,0}{$\gamma$}
   \cellD{u}{0.8,1.25}{$\gamma$}
   \draw[wire] (l-p) -- ++(0,-0.4);
-  \draw[wire] (l-1) to[out=90,in=-90] (u-p);
+  \draw[wire] (l-1) -- ++(0,0.25) to[out=90,in=-90] (u-p);
   \draw[wire] (l-0) -- ($(l-0)+(0,1.85)$) node[port,above] {a};
   \draw[wire] (u-0) -- ++(0,0.6) node[port,above] {b};
   \draw[wire] (u-1) -- ++(0,0.6) node[port,above] {c};
@@ -18,7 +18,7 @@
   \draw[wire] (l-p) -- ++(0,0.4);
   % port 1 of the upper cell (drawn left) carries a; port 0 (drawn right) carries the lower cell
   \draw[wire] (l-1) -- ($(l-1)+(0,-1.85)$) node[port,below] {a};
-  \draw[wire] (l-0) to[out=-90,in=90] (u-p);
+  \draw[wire] (l-0) -- ++(0,-0.25) to[out=-90,in=90] (u-p);
   \draw[wire] (u-1) -- ++(0,-0.6) node[port,below] {b};
   \draw[wire] (u-0) -- ++(0,-0.6) node[port,below] {c};
 \end{tikzpicture}
@@ -28,7 +28,7 @@
   \cellD[isdup]{l}{0,0}{$\delta$}
   \cellD{u}{-0.8,1.25}{$\gamma$}
   \draw[wire] (l-p) -- ++(0,-0.4);
-  \draw[wire] (l-0) to[out=90,in=-90] (u-p);
+  \draw[wire] (l-0) -- ++(0,0.25) to[out=90,in=-90] (u-p);
   \draw[wire] (l-1) -- ($(l-1)+(0,1.85)$) node[port,above] {c};
   \draw[wire] (u-0) -- ++(0,0.6) node[port,above] {a};
   \draw[wire] (u-1) -- ++(0,0.6) node[port,above] {b};
