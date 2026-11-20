@@ -60,7 +60,7 @@ Contents, in the order of the file:
 
 1. Reduction (Section 1.2, pages 73-74): `proposition_1`, `normal_form_unique`,
    `normal_form_reached`.
-2. Reduced nets (Section 1.6, pages 78-80): `proposition_2_exists`, `proposition_2_unique`,
+2. Reduced nets (Section 1.6, pages 77-80): `proposition_2_exists`, `proposition_2_unique`,
    `reduced_iff_trees_on_wiring`, `reduced_closed_empty`.
 3. Translations (Section 1.7, pages 80-81): `proposition_3`, `proposition_3_converse`,
    `invertible_iff_renaming`, the abbreviation `LinearRules`, `proposition_4`,
@@ -168,7 +168,7 @@ theorem normal_form_reached
   StepsEN.normal_of_stepsEN hI hN hP hs hk
 
 -- ============================================================================================
--- 2. Reduced nets (Section 1.6, pages 78-80)
+-- 2. Reduced nets (Section 1.6, pages 77-80)
 -- ============================================================================================
 
 /-- **Proposition 2, existence** (Lafont 1997, page 79): "Any reduced net with `n` free ports can
