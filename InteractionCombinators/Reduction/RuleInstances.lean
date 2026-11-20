@@ -15,11 +15,10 @@ The same active pair can be fired in two ways that differ in the text:
 * the new wires may get different names (`Rule.equiv_inst_same`);
 * the equation `α(as) = α(bs)` is unordered, so a rule `r` of `α` with itself can be read with
   `as` and `bs` exchanged. The two results are the same graph because `r` is symmetric
-  (`System.WellFormed.symm`, page 73: "the rule for α, α must be symmetric"). For a rule
-  symmetric up to wires this is `Rule.equiv_inst_comm`; the symmetry up to a permutation of the
-  internal wires, which `System.WellFormed.symm` gives, is treated in
-  `Universality/RecursionFree/SymmPerm.lean`, and `Rule.equiv_inst_swap` in
-  `StrongConfluence.lean` combines the two.
+  (`System.WellFormed.symm`, page 73: "the rule for α, α must be symmetric"). The symmetry is up
+  to a permutation of the internal wires; it is treated in
+  `Universality/RecursionFree/SymmPerm.lean` (`Rule.equiv_inst_comm_of_symmPerm`), which
+  `Rule.equiv_inst_swap` in `StrongConfluence.lean` uses.
 
 The tool for the second point is `Rule.equiv_bind_args`: plugging trees into the auxiliary ports
 of two equivalent right-hand sides gives equivalent nets.
@@ -33,8 +32,7 @@ Contents, in the order of the file:
    `Rule.count_vars_bind_args_le`, `Rule.equiv_bind_args` (equivalent right-hand sides give
    equivalent instances), `Rule.portShape_net`; `Rule.linear_inst_add`,
    `Rule.equiv_inst_of_linear` (the names of the new wires do not matter), `Rule.swap_inst`.
-3. Main results: `Rule.equiv_inst_comm` (a symmetric rule read from either cell) and
-   `Rule.equiv_inst_same` (the same active pair fired twice, the same way).
+3. Main result: `Rule.equiv_inst_same` (the same active pair fired twice, the same way).
 -/
 
 namespace INet
@@ -360,38 +358,8 @@ theorem swap_inst
   rcases p with i | j | w <;> rfl
 
 -- ============================================================================================
--- 3. Main results
+-- 3. Main result
 -- ============================================================================================
-
-/-- A symmetric rule can be read with its two groups of ports exchanged: if `r.swap.net` and
-`r.net` are the same graph, the instances `r.inst as bs f` and `r.inst bs as f` are the same
-graph, when linear. -/
-theorem equiv_inst_comm
-    -- a linear rule of a symbol with one of the same arity, symmetric up to wires
-    {a : ℕ}
-    (r : Rule S a a)
-    (hr : r.Linear)
-    (hsymm : Equiv r.swap.net r.net)
-    -- the trees on the ports and the names of the new wires
-    (as bs : Fin a → Term S ℕ)
-    (f : Fin r.internal → ℕ)
-    -- the rest of the net
-    (Δ : Net S ℕ)
-    -- the instance is linear
-    (L : (r.inst as bs f + Δ).Linear) :
-    Equiv (r.inst as bs f + Δ) (r.inst bs as f + Δ) := by
-  have hL : ∀ y, ∑ i, (bs i).vars.count y + ∑ j, (as j).vars.count y +
-      2 * (∑ w, if y = f w then 1 else 0) + Δ.vars.count y ≤ 2 := by
-    intro y
-    have := L y
-    rw [Net.vars_add, Multiset.count_add, count_vars_inst r hr] at this
-    omega
-  have E := equiv_bind_args hsymm.symm (portShape_net r hr) bs as f Δ hL
-  have e : (r.swap.net.bind (args bs as f) : Net S ℕ) = r.inst as bs f := swap_inst r as bs f
-  have E' : Equiv (r.inst bs as f + Δ) (r.inst as bs f + Δ) := by
-    rw [← e]
-    exact E
-  exact E'.symm
 
 /-- **The same active pair, read the same way** (Lafont 1997, Proposition 1, page 73, implicit:
 firing the same active pair twice gives the same graph). For a linear rule `r` and a linear net

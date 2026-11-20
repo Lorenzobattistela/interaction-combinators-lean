@@ -3035,8 +3035,6 @@ INet.Cut.mem_chain_var theorem 144221888 -
 INet.Cut.mem_chain_var._f def 1087346688 1224674900
 INet.Cut.mem_chain_var.match_1_1 def 3436247317 479536608
 INet.Cut.not_isCell_var theorem 304992489 -
-INet.Cut.rel_count_le theorem 534769371 -
-INet.Cut.rel_count_le._proof_1_1 theorem 2455735634 -
 INet.Cut.sub def 935377613 2863578625
 INet.Cut.sub.eq_1 theorem 3394139820 -
 INet.Cut.sub_add theorem 3803820502 -
@@ -6187,8 +6185,6 @@ INet.Rule.equiv_bind_args._proof_1_1 theorem 3185002308 -
 INet.Rule.equiv_bind_args._proof_1_2 theorem 3179210105 -
 INet.Rule.equiv_inst theorem 3982755884 -
 INet.Rule.equiv_inst._proof_1_1 theorem 3040745162 -
-INet.Rule.equiv_inst_comm theorem 803712784 -
-INet.Rule.equiv_inst_comm._proof_1_1 theorem 3334024565 -
 INet.Rule.equiv_inst_comm_of_symmPerm theorem 4148153175 -
 INet.Rule.equiv_inst_comm_of_symmPerm._proof_1_1 theorem 3334024565 -
 INet.Rule.equiv_inst_of_equiv_rename theorem 1324204124 -
@@ -6207,7 +6203,6 @@ INet.Rule.exists_reduced_of_isReduced._proof_1_1 theorem 426268962 -
 INet.Rule.exists_reduced_of_isReduced._proof_1_2 theorem 621765511 -
 INet.Rule.exists_reduced_of_isReduced._proof_1_3 theorem 845632606 -
 INet.Rule.exists_reduced_of_isReduced._proof_1_4 theorem 394230607 -
-INet.Rule.exists_symm_decomposition theorem 2069319149 -
 INet.Rule.exists_symm_decomposition_of_symmPerm theorem 1911370914 -
 INet.Rule.expanded_rename theorem 216960946 -
 INet.Rule.expanded_rename._simp_1_1 theorem 3236171319 -

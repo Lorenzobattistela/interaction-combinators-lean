@@ -18,7 +18,7 @@ the definition stronger:
 * `Decomposition.Plugs.cells`, `rankBound_transfer`: any decomposition that plugs `r` splits the
   cells of `r` between `φ` and `ψ`. So for a rule `α`–`α`, where both sides are bounded by
   `rank α`, the order condition holds for one decomposition iff it holds for every one, in
-  particular for the symmetric decomposition `Rule.exists_symm_decomposition` (#77).
+  particular for the symmetric decomposition `Rule.exists_symm_decomposition_of_symmPerm` (#77).
 * `RecursionFreeDataRaw.recursionFree`: for a well-formed system, the order condition with
   *arbitrary* decompositions (no `involutive`, no `self`, no `ne`) already gives
   `System.RecursionFree`.
@@ -109,7 +109,7 @@ namespace RecursionFreeDataRaw
 variable {I : System S}
 
 /-- The symmetric decomposition of a rule `α`–`α` of a well-formed system
-(`Rule.exists_symm_decomposition`, page 86); now `System.WellFormed.symmDec` in
+(`Rule.exists_symm_decomposition_of_symmPerm`, page 86); now `System.WellFormed.symmDec` in
 `DecompositionAbsorb.lean`. -/
 noncomputable def symmDec (hI : I.WellFormed) (α : S.Sym) (r : Rule S (S.arity α) (S.arity α))
     (h : I.rule α α = some r) : Decomposition S (S.arity α) (S.arity α) :=

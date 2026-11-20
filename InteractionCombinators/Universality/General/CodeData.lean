@@ -275,9 +275,9 @@ theorem normDecomp_ne
 -- ============================================================================================
 
 /-- **Page 86, "one can assume", without an order (page 90).** Every well-formed system has
-normalised decomposition data: the symmetric decomposition (`Rule.exists_symm_decomposition`) of
-a rule `α`–`α`, and the canonical decomposition `Rule.decompose` with `σ` moved into `φ`
-(`Decomposition.absorb`) of a rule `α`–`β` with `α ≠ β`. -/
+normalised decomposition data: the symmetric decomposition
+(`Rule.exists_symm_decomposition_of_symmPerm`) of a rule `α`–`α`, and the canonical decomposition
+`Rule.decompose` with `σ` moved into `φ` (`Decomposition.absorb`) of a rule `α`–`β` with `α ≠ β`. -/
 noncomputable def decData
     -- the system is well-formed
     (hI : I.WellFormed) :

@@ -8,7 +8,7 @@ Issue #236, item 5. The rule `twin` of `Checks/DecompositionSymmReview.lean` (tw
 auxiliary ports are crossed) is symmetric in the sense of page 73: read from the other cell, it is
 the same net with its two internal wires exchanged (`twin_swap`). So it is `Rule.SymmPerm`, while
 it is not `Equiv` to its swap (`twin_not_symm`). The two lemmas of `Lafont/SymmPerm.lean` apply to
-it, where `Rule.equiv_inst_comm` and `Rule.exists_symm_decomposition` do not.
+it; versions of them that ask for `Equiv r.swap.net r.net` would not.
 -/
 
 namespace INet.DecompositionSymmReview

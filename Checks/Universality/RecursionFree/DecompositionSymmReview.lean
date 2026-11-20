@@ -5,8 +5,9 @@ import InteractionCombinators.Universality.RecursionFree.SymmPerm
 /-!
 # Review of the symmetric decomposition (page 86)
 
-Review of `Rule.exists_symm_decomposition` (`Lafont/DecompositionSymm.lean`) and of its literal
-case `Rule.SymmLit.exists_symm_decomposition` (`Lafont/DecompositionSymmLiteral.lean`) against
+Review of `Rule.exists_symm_decomposition_of_symmPerm` (`RecursionFree/SymmPerm.lean`) and of its
+literal case `Rule.SymmLit.exists_symm_decomposition`
+(`RecursionFree/DecompositionSymmLiteral.lean`) against
 Lafont 1997, pages 85–86 (PDF pages 17–18) and Fig. 7. Issue #132.
 
 Page 85: "By the symmetry condition, and by uniqueness of the canonical decomposition, one gets
@@ -63,8 +64,8 @@ open Term Rule DecompositionReview DecompositionCheck
 /-! ### The hypotheses are those of a well-formed system -/
 
 /-- For a well-formed interaction system, every rule `α`–`α` has the symmetric decomposition of
-page 86: the hypotheses of `Rule.exists_symm_decomposition` are exactly the fields `linear`,
-`reduced` and `symm` of `System.WellFormed`. -/
+page 86: the hypotheses of `Rule.exists_symm_decomposition_of_symmPerm` are exactly the fields
+`linear`, `reduced` and `symm` of `System.WellFormed`. -/
 theorem exists_symm_decomposition_of_wellFormed {S : Signature} {I : System S} (hI : I.WellFormed)
     (α : S.Sym) (r : Rule S (S.arity α) (S.arity α)) (h : I.rule α α = some r) :
     ∃ D : Decomposition S (S.arity α) (S.arity α), D.ψ = D.φ ∧ (∀ l, D.σ (D.σ l) = l) ∧
@@ -125,10 +126,10 @@ theorem conCon_plug_refl_not : ¬ ∃ ι : Fin ruleConCon.internal →
 
 /-! ### The renaming `ι` is not degenerate -/
 
-/-- The conclusion of `Rule.exists_symm_decomposition` determines the cells: the cells of `r` are
-those of `φ`, twice. `Equiv` keeps the cells (`Equiv.cells_eq`), and renaming wires changes none,
-so the injective renaming `ι` cannot make the `Equiv` hold trivially (page 86, last row of
-Fig. 7). -/
+/-- The conclusion of `Rule.exists_symm_decomposition_of_symmPerm` determines the cells: the cells
+of `r` are those of `φ`, twice. `Equiv` keeps the cells (`Equiv.cells_eq`), and renaming wires
+changes none, so the injective renaming `ι` cannot make the `Equiv` hold trivially (page 86, last
+row of Fig. 7). -/
 theorem symm_decomposition_cells {S : Signature} {a : ℕ} {r : Rule S a a}
     {D : Decomposition S a a} (hψ : D.ψ = D.φ)
     {ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal}

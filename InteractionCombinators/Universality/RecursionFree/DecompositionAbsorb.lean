@@ -13,7 +13,7 @@ longer canonical, but `σ_{i,j}` is an identity."
 * `Decomposition.absorb` — for `α ≠ β`, the permutation is moved into `φ` by renumbering its
   middle wires; cells, linearity, reducedness and `Plugs` are kept, and `σ` becomes `1`.
 * `System.WellFormed.symmDec` — the symmetric decomposition of a rule `α`–`α` of a well-formed
-  system (`Rule.exists_symm_decomposition`).
+  system (`Rule.exists_symm_decomposition_of_symmPerm`).
 
 These were first written in the review file `RecursionFreeCheck.lean` (#79) and are moved here so
 that library files can use them.
@@ -223,7 +223,8 @@ end Decomposition
 -- ============================================================================================
 
 /-- The symmetric decomposition of a rule `α`–`α` of a well-formed system, chosen by
-`Rule.exists_symm_decomposition` (page 86: `φ_{i,i} = ψ_{i,i}`, `σ_{i,i}` involutive). -/
+`Rule.exists_symm_decomposition_of_symmPerm` (page 86: `φ_{i,i} = ψ_{i,i}`, `σ_{i,i}`
+involutive). -/
 noncomputable def System.WellFormed.symmDec
     -- a well-formed interaction system
     {I : System S}

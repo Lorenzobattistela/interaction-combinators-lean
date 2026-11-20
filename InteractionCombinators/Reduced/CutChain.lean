@@ -35,7 +35,7 @@ Contents, in the order of the file:
    `Wire.chainCut_symm`, `Equiv.chainCut_iff`.
 5. A cut up to wires is a written cut: `HasCut.chainCut`, `hasCut_iff_chainCut`.
 6. Auxiliary lemmas, following a chain back through a translation: `TermTr.isCell`,
-   `TermTr.var_var`, `EqTr.inv`, `walk`, `rel_count_le`.
+   `TermTr.var_var`, `EqTr.inv`, `walk`.
 7. Main result: `Translation.NetTr.hasCut_reflect`, a translation reflects cuts (first point of
    the proof of Proposition 3, page 80).
 -/
@@ -765,25 +765,6 @@ theorem walk :
         | app γ vs =>
           refine Or.inl ⟨Term.app γ vs, y₀, ys, s(a, var w) ::ₘ D₀, ⟨γ, vs, rfl⟩, hy₀, ?_⟩
           rw [Multiset.add_cons]
-
-/-- A translation keeps every name: each name occurs in the translation at least as often as in
-the source net. -/
-theorem rel_count_le
-    -- the source net `N`, and `N'`, whose equations translate those of `N` one by one
-    {N : Net S ℕ}
-    {N' : Net S' ℕ}
-    (h : Multiset.Rel Φ.EqTr N N')
-    -- the name counted
-    (y : ℕ) :
-    N.vars.count y ≤ N'.vars.count y := by
-  induction h with
-  | zero => simp
-  | cons he _ ih =>
-    obtain ⟨a, b, a', b', rfl, rfl, ha, hb⟩ := he
-    simp only [Net.vars_cons, eqVars_mk, Multiset.count_add]
-    have := ha.count_le y
-    have := hb.count_le y
-    omega
 
 end Cut
 

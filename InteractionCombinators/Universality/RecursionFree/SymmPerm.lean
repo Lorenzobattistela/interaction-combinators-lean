@@ -214,7 +214,7 @@ open DecompositionSymm in
 symbol with itself which, read from the other cell, is the same graph up to a permutation of its
 internal wires. Then `r` has a decomposition `(φ, ψ, σ)` with `ψ = φ` and `σ` involutive, whose
 side `φ` is linear and reduced, and whose plug is `r` up to `Equiv` and an injective renaming of
-the internal wires. This is `Rule.exists_symm_decomposition` with a weaker hypothesis. -/
+the internal wires. -/
 theorem Rule.exists_symm_decomposition_of_symmPerm
     -- a linear reduced rule of a symbol with itself, symmetric up to a permutation of its
     -- internal wires
