@@ -16,6 +16,7 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,calc,arrows.meta,positioning}
 \usepackage{caption}
+\usepackage{float}
 \usepackage{xurl}
 \usepackage[hidelinks]{hyperref}
 
@@ -33,7 +34,7 @@
 \definecolor{codeframe}{gray}{0.70}
 \newcommand{\lean}[1]{%
   \VerbatimInput[frame=single,rulecolor=\color{codeframe},framesep=1.6mm,breaklines=true,
-    breakanywhere=false,breaksymbolleft={},fontsize=\fontsize{7.4}{9.0}\selectfont]{snip/#1.lean}}
+    breakanywhere=false,breaksymbolleft={},samepage=true,fontsize=\fontsize{7.4}{9.0}\selectfont]{snip/#1.lean}}
 \let\origus\_
 \ExplSyntaxOn
 \NewDocumentCommand{\cod}{m}{
@@ -161,9 +162,8 @@ Fig.~7 for this translation.'' \pp{p.~90}
 \end{quote}
 
 We know of no machine-checked proof of the theorem (Section~\ref{sec:related}). This paper
-presents one, in Lean~4 with Mathlib. It follows Lafont's proof construction by construction
-and includes the analogue of Fig.~7 for the general translation. Specifically, the development
-contains:
+presents one, in Lean~4 with Mathlib. The formal proof has the same structure as Lafont's and
+includes the analogue of Fig.~7 for the general translation. The development contains:
 
 \begin{itemize}
 \item Theorem~1, in strict form (Section~\ref{sec:universality}), together with the results of
@@ -223,7 +223,7 @@ mapped to a single wire. $\Phi$ is a \emph{translation of interaction systems} i
 rule, the translations of the two cells joined by their roots reduce to the translation of the
 right member \pp{p.~81}.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \input{fig/rules.tex}
 \caption{The six rules of the interaction combinators, drawn from the Lean definitions named
@@ -270,7 +270,7 @@ two occurrences, and a name that occurs once is a free port. A net is \emph{line
 name occurs more than twice; reduction and equivalence preserve linearity. A cyclic wire is the
 equation $x = x$.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \input{fig/wire.tex}
 \caption{(a) A cell as the root of a tree. (b), (c) Two texts of the same graph: an equation is
@@ -362,7 +362,7 @@ auxiliary port. In it a name ends one wire per occurrence. Then every name that 
 is erased, by joining the two wires or, for a wire from a name to itself, by turning it into a
 cyclic wire. \cod{N.HasGraph G} says that $G$ is obtained from $N$ in this way.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \input{fig/graph.tex}
 \caption{The net $\gamma(x, y) = \delta(x, y)$. (a) The raw graph read off the text: the wire
@@ -471,7 +471,7 @@ states for it. We list them with the name of the theorem in
   $D$ recovers $\pi$ from it \pp{Figs.~8 and~9} (\cod{decoder\_property}).
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \input{fig/mux.tex}
 \caption{$M_3$, $M_3^*$ and the transpositor $T_{1,1}$ as trees of cells, read off the
@@ -491,12 +491,11 @@ decomposition is correct for a rule when plugging gives the rule back up to \Equ
 
 The translation needs a symmetric normal form: for the rule of a symbol with itself, $\varphi =
 \psi$ and $\sigma$ is an involution, because the two cells of the active pair are translated by
-the same net and must each contribute the same half. The paper says that the decomposition
-``is not unique, but there is a canonical one'', shows the canonical decomposition of one rule,
-and obtains the normal form ``by the symmetry condition, and by uniqueness of the canonical
-decomposition'' \pp{p.~85}. The canonical decomposition is not defined. Mazza's
-thesis~\cite{mazza2006} repeats the argument in the same words, and we know of no source that
-spells it out.
+the same net and must each contribute the same half. In the paper, the normal form follows ``by the
+symmetry condition, and by uniqueness of the canonical decomposition'' \pp{p.~85}. The paper
+does not define the canonical decomposition; it states that one exists and shows it for one
+rule. Mazza's thesis~\cite{mazza2006} repeats the argument in the same words, and we know of
+no source that defines it.
 
 The direct reading does not work for text. Our canonical decomposition \cod{Rule.decompose}
 sends the equations rooted at a port of the first cell to $\varphi$ and the others to $\psi$,
@@ -544,7 +543,7 @@ the translation is a function \cod{codeTranslationE e side} of a numbering \cod{
 symbols and a family \cod{side} of sides. It is strict, since the root of $[\alpha]$ is a
 $\delta$.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \input{fig/cell.tex}
 \caption{The principal net $[\alpha]$ of the general translation as a tree of components, for
@@ -590,7 +589,7 @@ $\Delta$ such that the whole net is linear. The starting net is $[\alpha](\vec x
   translations respect \Equiv{}, it is \Equiv{} to a translation of an instance of the rule.
 \end{enumerate}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{@{}llp{6.0cm}@{}}
 \toprule
@@ -668,7 +667,7 @@ Sections~2.1 to~2.7 of the paper was compared once more with its figure, wire by
 the author read the statements of the main results and the definitions they depend on against
 the paper.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{@{}lr@{}}
 \toprule
@@ -695,7 +694,7 @@ one. None is a defect of Lafont's paper. Of the seven, five were caught by the r
 another agent, two by the comparison made after the proofs, and none by the gate. Two of them
 are worth describing, because the main theorem had been proved before they were found.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{@{}lp{8.4cm}p{3.4cm}r@{}}
 \toprule
