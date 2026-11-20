@@ -179,8 +179,7 @@ includes the analogue of Fig.~7 for the general translation. The development con
 \end{itemize}
 
 The proofs were written by a swarm of autonomous language-model agents, against definitions and
-target statements fixed and reviewed by the author. Section~\ref{sec:method} describes how, and
-what went wrong.
+target statements fixed and reviewed by the author (Section~\ref{sec:method}).
 
 \paragraph{Notation.}
 We use Lafont's $\gamma$, $\delta$, $\varepsilon$ in the text. The Lean code calls them
@@ -320,7 +319,7 @@ directions. A rule for $\alpha, \beta$ with $\alpha \neq \beta$ excludes one for
 read from the other cell be the same net, and the field \cod{symm} asks this up to \Equiv{}
 and a permutation $\pi$ of the internal wires. The permutation is needed because the names of
 a rule form a closed finite type, in which \Equiv{} alone cannot exchange two internal wires
-(Section~\ref{sec:defects}).
+(Section~\ref{sec:method}).
 
 \subsection{Translations}
 
@@ -639,124 +638,55 @@ translations of the nets of $2 + 2$ and $2 \times 2$ reduce in the combinators t
 of the net of $4$.
 
 %=================================================================================================
-\section{Method}
+\section{The formalization process}
 \label{sec:method}
 
-\paragraph{Roles.}
-The author wrote, with an interactive assistant, the definitions of Section~\ref{sec:text}, the
-statement of the main theorem, a roadmap, and the rules for agents. These files were
-\emph{protected}: no agent could change them. Autonomous agents did the rest, at most two at a
-time. A \emph{planner} session turned the roadmap into issues, each asking for one lemma or one
-review; a \emph{worker} session took an issue, wrote Lean in its own branch, and opened a pull
-request; a \emph{repair} session fixed a pull request whose check failed. Nobody answered
-questions from agents, and a pull request was merged automatically when its check passed.
+The definitions of Section~\ref{sec:text} and the statement of the main theorem were written by
+the author, with an interactive assistant, before any proof existed, and were then fixed: no
+agent could change them. The statements of the other results were written by agents. After the
+proofs were complete, every definition taken from a figure of Sections~2.1 to~2.7 of the paper
+was compared with its figure, wire by wire, under the port convention of the one picture of the
+paper where ports are numbered \pp{p.~82}. Finally the author read the statements of the main
+results, and the definitions they depend on, against the paper.
 
-\paragraph{The gate.}
-Every pull request ran one script: no change to a protected path; none of \cod{sorry},
-\cod{admit}, \cod{axiom}, \cod{native\_decide}, \cod{unsafe}, \cod{implemented\_by}; the full
-build; and an audit that every theorem depends only on the axioms \cod{propext},
-\cod{Classical.choice} and \cod{Quot.sound}.
-
-\paragraph{Reviews.}
-The gate checks proofs, not meaning. Every new definition taken from a figure was therefore
-followed by a \emph{review issue}, given to a different session: read the page of the paper,
-rendering the figure at high resolution, compare the definition port by port, and try to refute
-the statements about it. Reviews produced Lean files of examples and counterexamples, kept
-outside the library. After the proofs were complete, every definition of
-Sections~2.1 to~2.7 of the paper was compared once more with its figure, wire by wire. Finally
-the author read the statements of the main results and the definitions they depend on against
-the paper.
+The proofs were written by a swarm of autonomous language-model agents, at most two running at
+a time, with no human answering their questions. A planning agent turned a roadmap into tasks,
+each asking for one lemma or for the review of one definition; a working agent took a task,
+wrote Lean on its own branch, and submitted it; a reviewing agent, given a definition written
+by another, compared it with the page of the paper and tried to refute the statements about
+it, leaving its examples and counterexamples as Lean files outside the library. A submission
+was merged automatically when it passed one script: no change to a fixed file, no \cod{sorry}
+or added axiom, a full build, and an audit that every theorem depends only on the three
+standard axioms of Lean. Table~\ref{tab:numbers} gives the size of the run.
 
 \begin{table}[H]
 \centering\small
 \begin{tabular}{@{}lr@{}}
 \toprule
-Agent sessions (planning, work, repair, re-planning) & 529 (214, 301, 10, 4) \\
+Agent sessions & 529 \\
 Total session time & 51.9 h \\
 Time the agents were running & 29.8 h \\
-From the first agent to the merge of Theorem~1 in strict form & 8 h 57 min \\
-Pull requests merged & 301 \\
-Review issues, of 304 issues & 62 \\
+From the first agent to the main theorem & 8 h 57 min \\
+Contributions merged & 301 \\
 Lean, library & $44\,840$ lines \\
 Lean, examples and counterexamples & $22\,067$ lines \\
 \bottomrule
 \end{tabular}
-\caption{The run. Numbers are from the records of the run, computed on 20 November 2026. The
-development uses Lean \texttt{v4.36.0} and Mathlib.}
+\caption{The run. The development uses Lean \texttt{v4.36.0} and Mathlib.}
 \label{tab:numbers}
 \end{table}
 
-\subsection{Defects in definitions}
-\label{sec:defects}
+The review of definitions led to two corrections after the main theorem had been proved. The
+symmetry condition on the rule of a symbol with itself was at first stated as \Equiv{} between
+the right member and its swap, which excludes some interaction systems of the paper
+(Section~\ref{sec:text}); it was weakened to its present form and the two lemmas that use it
+were proved again. And the code $!\pi$ and the decoder $D$ had the two auxiliary ports of every
+$\delta$ exchanged with respect to Fig.~8. The exchange was consistent, so every lemma about
+codes held and the theorem was proved with it. No proof could have detected it: exchanging the
+auxiliary ports of every $\delta$ is a symmetry of the system of combinators. It was found by
+the comparison with the figures.
 
-Table~\ref{tab:defects} lists the defects found in a definition, a statement, or a claim about
-one. None is a defect of Lafont's paper. Of the seven, five were caught by the review of
-another agent, two by the comparison made after the proofs, and none by the gate. Two of them
-are worth describing, because the main theorem had been proved before they were found.
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{@{}lp{8.4cm}p{3.4cm}r@{}}
-\toprule
- & Defect & Found by & Delay \\
-\midrule
-D1 & The rules for agents described the nesting of the multiplexor wrongly; the definition was
-  right. & review & 50 min \\
-D2 & The canonical decomposition is not symmetric for a rule of a symbol with itself
-  (Section~\ref{sec:decomp}). & review & 19 min \\
-D3 & The symmetry condition was stronger than the paper's; the theorem did not cover some
-  interaction systems. & review & 6 h 39 min \\
-D4 & Code and decoder had two ports exchanged with respect to Fig.~8, consistently. &
-  comparison; three reviews missed it & 14 h 25 min \\
-D5 & A rule of the multiplication example had the ports of a duplicator exchanged. & review &
-  32 min \\
-D6 & Two auxiliary functions disagreed outside their hypotheses; no theorem used it. & review
-  & 48 min \\
-D7 & The canonical decomposition numbers the middle wires differently from the example of
-  p.~85. & comparison; not changed & 14 h 55 min \\
-\bottomrule
-\end{tabular}
-\caption{Defects in definitions, statements, or claims about them. ``Delay'' is from the merge
-that introduced the defect to the record that reports it.}
-\label{tab:defects}
-\end{table}
-
-\paragraph{The symmetry condition (D3).}
-The first version of the field \cod{symm} asked that the right member and its swap be \Equiv{}.
-With it the theorem was proved. A review then exhibited a rule of a unary symbol $\alpha$ with
-itself whose right member is $a = \beta(w_0, w_1)$, $b = \beta(w_1, w_0)$ for a binary symbol
-$\beta$. Read from the other cell it is the same graph with $w_0$ and $w_1$ exchanged, but the
-two texts are not \Equiv{}: every internal name is used twice and there is no spare name
-through which to rename. The system with this one rule is an interaction system in the sense of
-the paper and was excluded by the definition. The condition was changed to symmetry up to a
-permutation of the internal wires, and the two lemmas that use it were proved again.
-
-\paragraph{The port order of Fig.~8 (D4).}
-\label{sec:fig8}
-In the first version of the code $!\pi$ and of the decoder $D$, the second and third leaves of
-$M_4$ and of $M_4^*$ were exchanged with respect to Fig.~8. Equivalently, every $\delta$ in the
-pair was mirrored. The exchange was made on both sides, so Fig.~9 held for the pair, every
-lemma about codes was proved, and the theorem was proved with it. The cause was a reading of
-the figure: Fig.~8 draws $\delta$ cells pointing up, and for a cell pointing up the first port
-is on the right. The agent that wrote the definition and the agent that reviewed it both took
-the left port as drawn to be the first, and two later reviews did not notice.
-
-No proof could have revealed the exchange. The rules $\gamma\delta$ and $\delta\delta$ are
-invariant under exchanging the two auxiliary ports of every $\delta$: it is a symmetry of the
-system, so a construction that mirrors every $\delta$ consistently satisfies the same theorems.
-It was found by the comparison of every definition with its figure, with the port convention
-fixed on the one picture of the paper where ports are numbered \pp{p.~82}, and then corrected.
-
-\paragraph{What a proof does not check.}
-The kernel guarantees that the theorems follow from the definitions. It does not guarantee that
-the definitions are the nets of the pictures. The definitions that the main theorem unfolds to
-(trees, nets, \Equiv{}, reduction, interaction systems, translations, the six rules) were read
-by the author; an error there would change what the theorem says. The constructions of
-Section~\ref{sec:universality} are internal to the proof: an error in them, such as D4, cannot
-make the theorem false, only make the proof a different proof from Lafont's. This is one run on
-one paper, with no baseline and no measure of cost.
-
-\paragraph{Statement on the use of AI.}
+\paragraph{Use of AI.}
 The Lean proofs, the examples and the reviews were written by large-language-model agents
 \todo{name the model(s) and versions, and the agent tooling}. The definitions and the statement
 of the main theorem were written by the author with an AI assistant and reviewed by the author.
@@ -817,7 +747,7 @@ results~\cite{rammal2026,leanmarathon2026}, and a protocol for distributed multi
 formalization coordinated through a repository with a deterministic merge
 check~\cite{choir2026}, which is the closest published description of a workflow like ours.
 Tao~\cite{tao2026} argues that a formal proof should not be accepted before a human audit of
-the fidelity of its statement; Section~\ref{sec:defects} is a case in support.
+the fidelity of its statement.
 
 %=================================================================================================
 \section{Limitations and conclusion}
