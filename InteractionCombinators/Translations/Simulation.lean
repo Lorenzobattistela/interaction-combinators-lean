@@ -21,8 +21,28 @@ compatibility applies to the first equation, the reduction is done beside the re
 (`StepsE.add_right`), and the wires `xs = as`, `ys = bs` are contracted again on the right-hand
 side (`Simulation.equiv_contract_inst`).
 
-* `Translation.Compatible.step` — one interaction is simulated.
-* `Translation.Compatible.steps` — any number of interactions are simulated.
+Contents, in the order of the file:
+
+1. Definitions: `Simulation.wires` (the wires `p = σ p`), `Simulation.ports` (the fresh names on
+   the auxiliary ports of an active pair), `Simulation.arg` (the tree plugged into a fresh name),
+   `Simulation.pairVar` (the active pair with the fresh names), `Translation.CompatibleBy`
+   (compatibility for any reduction `R` of the target), `Translation.CompatibleByDistinct` (the
+   same, for distinct names on the ports).
+2. Auxiliary lemmas, contracting wires: `Simulation.equiv_wire_net` (one wire),
+   `Simulation.equiv_contract_list` (several wires), `Simulation.bind_ofFn`,
+   `Simulation.sum_singleton_ofFn`.
+3. Auxiliary lemmas, the fresh names: `Simulation.arg_left`, `Simulation.arg_right`,
+   `Simulation.mem_ports`, `Simulation.nodup_ports`, `Simulation.fresh_arg`,
+   `Simulation.bind_arg_below`, `Simulation.vars_wires_ports`.
+4. Auxiliary lemmas, expanding the active pair and contracting the right member:
+   `Simulation.equiv_expand`, `Simulation.equiv_contract_inst`.
+5. Auxiliary lemmas, reduction up to wires and translations: `StepE.free_iff`,
+   `StepsE.free_iff` (the free ports are kept), `StepsE.of_equiv`, `Translation.TermTr.var_inv`,
+   `Translation.TermTr.app_var_inv`, `Translation.compatible_iff_compatibleBy`,
+   `Translation.CompatibleBy.distinct`.
+6. Main results, Proposition 4 (page 81): `Translation.CompatibleByDistinct.step`,
+   `Translation.CompatibleBy.step`, `Translation.Compatible.step` (one interaction is
+   simulated), `Translation.Compatible.steps` (any number of interactions are simulated).
 -/
 
 namespace INet
@@ -31,12 +51,128 @@ variable {S S' : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
 namespace Simulation
 
+/-- The wires `p = σ p`, for the names `p` of a list. -/
+abbrev wires
+    -- the tree on the other end of each name
+    (σ : ℕ → Term S ℕ)
+    -- the names
+    (l : List ℕ) :
+    Net S ℕ :=
+  (l : Multiset ℕ).map fun p => s(var p, σ p)
+
+/-- The fresh names put on the auxiliary ports of an active pair, from the bound `B` on: `B + i`
+for the `i`-th port of the first cell, `B + a + j` for the `j`-th port of the second. -/
+def ports
+    -- the bound, and the arities of the two cells
+    (B a b : ℕ) :
+    List ℕ :=
+  List.ofFn (fun i : Fin a => B + i) ++ List.ofFn (fun j : Fin b => B + a + j)
+
+/-- The tree plugged into a fresh name: `as i` into `B + i`, `bs j` into `B + a + j`. -/
+def arg
+    -- the arities of the two cells, and the bound
+    {a b : ℕ}
+    (B : ℕ)
+    -- the trees on the auxiliary ports of the two cells
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- the name
+    (z : ℕ) :
+    Term S ℕ :=
+  if h : B ≤ z ∧ z < B + a then as ⟨z - B, by omega⟩
+  else if h' : B + a ≤ z ∧ z < B + a + b then bs ⟨z - B - a, by omega⟩ else var z
+
+/-- The active pair `α(xs) = β(ys)` with the fresh names `xs i = B + i`, `ys j = B + a + j`. -/
+abbrev pairVar
+    -- the bound, and the symbols of the two cells
+    (B : ℕ)
+    (α β : S.Sym) :
+    Sym2 (Term S ℕ) :=
+  s(.app α fun i => var (B + i), .app β fun j => var (B + S.arity α + j))
+
+end Simulation
+
+/-- `Translation.Compatible`, with the reduction of each rule taken in a relation `R` on the nets
+of the target instead of `StepsE I'`. `Compatible` is the case `R = StepsE I'`
+(`Translation.compatible_iff_compatibleBy`); a reduction counted and bounded is another case
+(Lafont 1997, page 81, the lengths `L` and `M`). -/
+def Translation.CompatibleBy
+    -- the translation, and the interaction system of the source
+    (Φ : Translation S S')
+    (I : System S)
+    -- the reduction of the target
+    (R : Net S' ℕ → Net S' ℕ → Prop) :
+    Prop :=
+  -- for every rule `r` of `I` between `α` and `β`,
+  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
+    -- all names `xs`, `ys` on the ports and `f`, `g` on the internal wires of the translations,
+    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
+      -- if the translations of the two cells, plugged by their roots, form a linear net,
+      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
+        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
+      -- then this net reduces by `R` to a net `M`
+      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
+        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
+          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
+        -- which is the same graph as `N'`
+        Equiv M N' ∧
+        -- a translation of the right member, with the same names on the ports
+        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
+
+/-- `Translation.CompatibleBy`, for distinct names only: the rule is simulated when the names
+`xs` on the ports of the first cell are pairwise distinct, those `ys` of the second too, and no
+`xs i` is a `ys j`, as for the two cells of a rule in the paper (Lafont 1997, page 81). The
+proof of Proposition 4 only uses this case (`Translation.CompatibleByDistinct.step`). -/
+def Translation.CompatibleByDistinct
+    -- the translation, and the interaction system of the source
+    (Φ : Translation S S')
+    (I : System S)
+    -- the reduction of the target
+    (R : Net S' ℕ → Net S' ℕ → Prop) :
+    Prop :=
+  -- for every rule `r` of `I` between `α` and `β`,
+  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
+    -- all names `xs`, `ys` on the ports and `f`, `g` on the internal wires of the translations,
+    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
+      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
+      -- if the names on the ports are pairwise distinct,
+      Function.Injective xs → Function.Injective ys → (∀ i j, xs i ≠ ys j) →
+      -- and the translations of the two cells, plugged by their roots, form a linear net,
+      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
+        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
+      -- then this net reduces by `R` to a net `M`
+      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
+        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
+          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
+        -- which is the same graph as `N'`
+        Equiv M N' ∧
+        -- a translation of the right member, with the same names on the ports
+        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
+
+namespace Simulation
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: contracting wires
+-- ============================================================================================
+
 /-- **One wire, anywhere in a net.** An equation `x = t` whose name `x` has its other end in `K`
-is the same graph as `K` with `t` plugged into `x` (Lafont 1997, Section 1.2, page 71). -/
-theorem equiv_wire_net {x : ℕ} {t : Term S ℕ} {K : Net S ℕ}
-    (hlin : Net.Linear (s(var x, t) ::ₘ K)) (hx : x ∈ K.vars) :
+is the same graph as `K` with `t` plugged into `x` (Lafont 1997, Section 1.1, page 71). -/
+theorem equiv_wire_net
+    -- the wire `x = t`, and the rest of the net
+    {x : ℕ}
+    {t : Term S ℕ}
+    {K : Net S ℕ}
+    -- the net is linear, and the other end of `x` is in `K`
+    (hlin : Net.Linear (s(var x, t) ::ₘ K))
+    (hx : x ∈ K.vars) :
+    -- the net is the same graph as `K` with `t` plugged into `x`
     Equiv (s(var x, t) ::ₘ K) (K.bind fun z => if z = x then t else var z) := by
   obtain ⟨e, he, hxe⟩ : ∃ e ∈ K, x ∈ eqVars e := by
     simpa [Net.vars, Multiset.mem_bind] using hx
@@ -56,11 +192,15 @@ theorem equiv_wire_net {x : ℕ} {t : Term S ℕ} {K : Net S ℕ}
     conv_lhs => rw [← Net.bind_var_self K']
     exact Net.bind_congr fun z hz => by simp [show z ≠ x from fun h => hK' (h ▸ hz)]
 
-/-- The wires `p = σ p`, for the names `p` of a list. -/
-abbrev wires (σ : ℕ → Term S ℕ) (l : List ℕ) : Net S ℕ :=
-  (l : Multiset ℕ).map fun p => s(var p, σ p)
-
-theorem mem_vars_wires {σ : ℕ → Term S ℕ} {l : List ℕ} {z : ℕ} (hz : z ∈ (wires σ l).vars) :
+/-- A name of the wires `p = σ p` is a name `q` of the list or a name of its tree `σ q`. -/
+theorem mem_vars_wires
+    -- the wires
+    {σ : ℕ → Term S ℕ}
+    {l : List ℕ}
+    -- a name of the wires
+    {z : ℕ}
+    (hz : z ∈ (wires σ l).vars) :
+    -- it is a name `q` of the list, or a name of `σ q`
     ∃ q ∈ l, z = q ∨ z ∈ (σ q).vars := by
   simp only [wires, Net.vars, Multiset.mem_bind, Multiset.mem_map, Multiset.mem_coe] at hz
   obtain ⟨e, ⟨q, hq, rfl⟩, hz⟩ := hz
@@ -69,10 +209,21 @@ theorem mem_vars_wires {σ : ℕ → Term S ℕ} {l : List ℕ} {z : ℕ} (hz : 
 
 /-- **Several wires, contracted.** If the names `p` of a list each have one end in `K` and the
 other in an equation `p = σ p`, and no `σ q` uses a name of the list, the net `K, (p = σ p)ₚ` is
-the same graph as `K` with `σ p` plugged into each `p` (Lafont 1997, Section 1.2, page 71). -/
-theorem equiv_contract_list (σ : ℕ → Term S ℕ) :
-    ∀ (l : List ℕ) (K : Net S ℕ), l.Nodup → (∀ p ∈ l, ∀ q ∈ l, p ∉ (σ q).vars) →
-      (∀ p ∈ l, p ∈ K.vars) → (K + wires σ l).Linear →
+the same graph as `K` with `σ p` plugged into each `p` (Lafont 1997, Section 1.1, page 71). -/
+theorem equiv_contract_list
+    -- the tree on the other end of each name
+    (σ : ℕ → Term S ℕ) :
+    -- for a list `l` of names and a net `K`:
+    ∀ (l : List ℕ) (K : Net S ℕ),
+      -- if the names of the list are distinct,
+      l.Nodup →
+      -- no tree `σ q` uses a name of the list,
+      (∀ p ∈ l, ∀ q ∈ l, p ∉ (σ q).vars) →
+      -- every name of the list occurs in `K`,
+      (∀ p ∈ l, p ∈ K.vars) →
+      -- and `K` with the wires is linear,
+      (K + wires σ l).Linear →
+      -- then `K` with the wires is the same graph as `K` with `σ p` plugged into each `p`
       Equiv (K + wires σ l) (K.bind fun z => if z ∈ l then σ z else var z)
   | [], K, _, _, _, _ => by
     simpa [wires] using Equiv.of_eq (Net.bind_var_self K).symm
@@ -117,34 +268,40 @@ theorem equiv_contract_list (σ : ℕ → Term S ℕ) :
     · simp [hzp]
 
 /-- A multiset of names given as a list of values, bound: the sum over the indices. -/
-theorem bind_ofFn {n : ℕ} (f : Fin n → ℕ) (g : ℕ → Multiset ℕ) :
+theorem bind_ofFn
+    -- the values, and the multiset of each value
+    {n : ℕ}
+    (f : Fin n → ℕ)
+    (g : ℕ → Multiset ℕ) :
     ((List.ofFn f : List ℕ) : Multiset ℕ).bind g = ∑ i, g (f i) := by
   rw [← Fin.univ_val_map, Multiset.bind_map]
   rfl
 
 /-- The sum of the singletons of the values of `f` is the list of its values. -/
-theorem sum_singleton_ofFn {n : ℕ} (f : Fin n → ℕ) :
+theorem sum_singleton_ofFn
+    -- the values
+    {n : ℕ}
+    (f : Fin n → ℕ) :
     ∑ i, ({f i} : Multiset ℕ) = ((List.ofFn f : List ℕ) : Multiset ℕ) := by
   rw [← Fin.univ_val_map]
   have := Multiset.sum_map_singleton (Finset.univ.val.map f)
   rw [Multiset.map_map] at this
   exact this
 
-/-! ## The fresh names of the expansion -/
-
-/-- The fresh names put on the auxiliary ports of an active pair, from the bound `B` on: `B + i`
-for the `i`-th port of the first cell, `B + a + j` for the `j`-th port of the second. -/
-def ports (B a b : ℕ) : List ℕ :=
-  List.ofFn (fun i : Fin a => B + i) ++ List.ofFn (fun j : Fin b => B + a + j)
-
-/-- The tree plugged into a fresh name: `as i` into `B + i`, `bs j` into `B + a + j`. -/
-def arg {a b : ℕ} (B : ℕ) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (z : ℕ) : Term S ℕ :=
-  if h : B ≤ z ∧ z < B + a then as ⟨z - B, by omega⟩
-  else if h' : B + a ≤ z ∧ z < B + a + b then bs ⟨z - B - a, by omega⟩ else var z
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the fresh names of the expansion
+-- ============================================================================================
 
 variable {a b : ℕ}
 
-theorem arg_left (B : ℕ) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (i : Fin a) :
+/-- The tree plugged into the fresh name `B + i` is `as i`. -/
+theorem arg_left
+    -- the bound, and the trees on the auxiliary ports of the two cells
+    (B : ℕ)
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- a port of the first cell
+    (i : Fin a) :
     arg B as bs (B + i) = as i := by
   unfold arg
   split_ifs with h1
@@ -152,7 +309,14 @@ theorem arg_left (B : ℕ) (as : Fin a → Term S ℕ) (bs : Fin b → Term S �
     exact Fin.ext (by simp)
   all_goals omega
 
-theorem arg_right (B : ℕ) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) (j : Fin b) :
+/-- The tree plugged into the fresh name `B + a + j` is `bs j`. -/
+theorem arg_right
+    -- the bound, and the trees on the auxiliary ports of the two cells
+    (B : ℕ)
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- a port of the second cell
+    (j : Fin b) :
     arg B as bs (B + a + j) = bs j := by
   unfold arg
   split_ifs with h1 h2
@@ -161,6 +325,7 @@ theorem arg_right (B : ℕ) (as : Fin a → Term S ℕ) (bs : Fin b → Term S �
     exact Fin.ext (by simp; omega)
   · omega
 
+/-- The fresh names are the numbers from `B` to `B + a + b`, excluded. -/
 theorem mem_ports {B z : ℕ} : z ∈ ports B a b ↔ B ≤ z ∧ z < B + a + b := by
   simp only [ports, List.mem_append, List.mem_ofFn]
   constructor
@@ -170,12 +335,15 @@ theorem mem_ports {B z : ℕ} : z ∈ ports B a b ↔ B ≤ z ∧ z < B + a + b 
     · exact Or.inl ⟨⟨z - B, by omega⟩, by simp; omega⟩
     · exact Or.inr ⟨⟨z - B - a, by omega⟩, by simp; omega⟩
 
+/-- The name `B + i` of the `i`-th port of the first cell is a fresh name. -/
 theorem left_mem_ports (B : ℕ) (i : Fin a) : B + (i : ℕ) ∈ ports B a b :=
   List.mem_append_left _ (List.mem_ofFn.2 ⟨i, rfl⟩)
 
+/-- The name `B + a + j` of the `j`-th port of the second cell is a fresh name. -/
 theorem right_mem_ports (B : ℕ) (j : Fin b) : B + a + (j : ℕ) ∈ ports B a b :=
   List.mem_append_right _ (List.mem_ofFn.2 ⟨j, rfl⟩)
 
+/-- The fresh names are distinct. -/
 theorem nodup_ports (B a b : ℕ) : (ports B a b).Nodup := by
   rw [ports, List.nodup_append]
   refine ⟨List.nodup_ofFn.2 fun i j h => Fin.ext (by simpa using h),
@@ -186,22 +354,43 @@ theorem nodup_ports (B a b : ℕ) : (ports B a b).Nodup := by
   obtain ⟨j, rfl⟩ := hy
   omega
 
-theorem arg_below {B z : ℕ} (hz : z < B) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) :
+/-- Nothing is plugged into a name below `B`. -/
+theorem arg_below
+    -- a name below the bound
+    {B z : ℕ}
+    (hz : z < B)
+    -- the trees on the auxiliary ports of the two cells
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ) :
     arg B as bs z = var z := by
   unfold arg
   split_ifs <;> first | rfl | omega
 
 /-- The names of the trees plugged into the fresh names are below `B`. -/
-theorem below_arg {B : ℕ} {as : Fin a → Term S ℕ} {bs : Fin b → Term S ℕ}
-    (has : ∀ i, (as i).Below B) (hbs : ∀ j, (bs j).Below B) {p : ℕ} (hp : p ∈ ports B a b) :
+theorem below_arg
+    -- the bound, and the trees on the auxiliary ports, whose names are below it
+    {B : ℕ}
+    {as : Fin a → Term S ℕ}
+    {bs : Fin b → Term S ℕ}
+    (has : ∀ i, (as i).Below B)
+    (hbs : ∀ j, (bs j).Below B)
+    -- a fresh name
+    {p : ℕ}
+    (hp : p ∈ ports B a b) :
     (arg B as bs p).Below B := by
   simp only [ports, List.mem_append, List.mem_ofFn] at hp
   rcases hp with ⟨i, rfl⟩ | ⟨j, rfl⟩
   · rw [arg_left]; exact has i
   · rw [arg_right]; exact hbs j
 
-theorem fresh_arg {B : ℕ} {as : Fin a → Term S ℕ} {bs : Fin b → Term S ℕ}
-    (has : ∀ i, (as i).Below B) (hbs : ∀ j, (bs j).Below B) :
+/-- No tree plugged into a fresh name uses a fresh name. -/
+theorem fresh_arg
+    -- the bound, and the trees on the auxiliary ports, whose names are below it
+    {B : ℕ}
+    {as : Fin a → Term S ℕ}
+    {bs : Fin b → Term S ℕ}
+    (has : ∀ i, (as i).Below B)
+    (hbs : ∀ j, (bs j).Below B) :
     ∀ p ∈ ports B a b, ∀ q ∈ ports B a b, p ∉ (arg B as bs q).vars := by
   intro p hp q hq hm
   have := below_arg has hbs hq p hm
@@ -209,7 +398,13 @@ theorem fresh_arg {B : ℕ} {as : Fin a → Term S ℕ} {bs : Fin b → Term S �
   omega
 
 /-- Plugging the trees into the fresh names leaves a net below `B` unchanged. -/
-theorem bind_arg_below {B : ℕ} (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ) {Δ : Net S ℕ}
+theorem bind_arg_below
+    -- the bound, and the trees on the auxiliary ports of the two cells
+    {B : ℕ}
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- a net whose names are below the bound
+    {Δ : Net S ℕ}
     (hΔ : Δ.Below B) :
     Δ.bind (fun z => if z ∈ ports B a b then arg B as bs z else var z) = Δ := by
   conv_rhs => rw [← Net.bind_var_self Δ]
@@ -217,27 +412,41 @@ theorem bind_arg_below {B : ℕ} (as : Fin a → Term S ℕ) (bs : Fin b → Ter
   have : z ∉ ports B a b := fun h => by have := hΔ z hz; have := (mem_ports.1 h).1; omega
   simp [this]
 
-theorem vars_wires (σ : ℕ → Term S ℕ) (l : List ℕ) :
+/-- The names of the wires `p = σ p` are the names of the list and the names of the trees. -/
+theorem vars_wires
+    -- the wires
+    (σ : ℕ → Term S ℕ)
+    (l : List ℕ) :
     (wires σ l).vars = (l : Multiset ℕ) + (l : Multiset ℕ).bind fun p => (σ p).vars := by
   simp only [wires, Net.vars, Multiset.bind_map, eqVars_mk, vars_var]
   rw [Multiset.bind_add, Multiset.bind_singleton, Multiset.map_id']
 
-theorem vars_wires_ports (B : ℕ) (as : Fin (a) → Term S ℕ) (bs : Fin b → Term S ℕ) :
-    (wires (arg B as bs) (ports B a b)).vars = (ports B a b : Multiset ℕ) +
-      ((∑ i, (as i).vars) + ∑ j, (bs j).vars) := by
+/-- The names of the wires `xs = as`, `ys = bs` are the fresh names and the names of the trees. -/
+theorem vars_wires_ports
+    -- the bound, and the trees on the auxiliary ports of the two cells
+    (B : ℕ)
+    (as : Fin (a) → Term S ℕ)
+    (bs : Fin b → Term S ℕ) :
+    (wires (arg B as bs) (ports B a b)).vars
+      = (ports B a b : Multiset ℕ) + ((∑ i, (as i).vars) + ∑ j, (bs j).vars) := by
   rw [vars_wires]
   congr 1
   rw [ports, ← Multiset.coe_add, Multiset.add_bind, bind_ofFn, bind_ofFn]
   simp only [arg_left, arg_right]
 
-/-! ## Expanding the active pair, contracting the right-hand side -/
+-- ============================================================================================
+-- 4. Auxiliary lemmas: expanding the active pair, contracting the right member
+-- ============================================================================================
 
-/-- The active pair `α(xs) = β(ys)` with the fresh names `xs i = B + i`, `ys j = B + a + j`. -/
-abbrev pairVar (B : ℕ) (α β : S.Sym) : Sym2 (Term S ℕ) :=
-  s(.app α fun i => var (B + i), .app β fun j => var (B + S.arity α + j))
-
-theorem mem_vars_pairVar {B : ℕ} {α β : S.Sym} {p : ℕ}
-    (hp : p ∈ ports B (S.arity α) (S.arity β)) : p ∈ eqVars (pairVar B α β) := by
+/-- The fresh names occur in the active pair `α(xs) = β(ys)`. -/
+theorem mem_vars_pairVar
+    -- the bound, and the symbols of the two cells
+    {B : ℕ}
+    {α β : S.Sym}
+    -- a fresh name
+    {p : ℕ}
+    (hp : p ∈ ports B (S.arity α) (S.arity β)) :
+    p ∈ eqVars (pairVar B α β) := by
   simp only [ports, List.mem_append, List.mem_ofFn] at hp
   simp only [eqVars_mk, vars_app, vars_var, Multiset.mem_add, Multiset.mem_sum, Finset.mem_univ,
     true_and, Multiset.mem_singleton]
@@ -245,14 +454,23 @@ theorem mem_vars_pairVar {B : ℕ} {α β : S.Sym} {p : ℕ}
   · exact Or.inl ⟨i, rfl⟩
   · exact Or.inr ⟨j, rfl⟩
 
-/-- **The active pair, expanded** (Lafont 1997, Section 1.2, page 71). With the names from `B` on
+/-- **The active pair, expanded** (Lafont 1997, Section 1.2, page 73). With the names from `B` on
 unused, `α(as) = β(bs), Δ` is the same graph as `α(xs) = β(ys), Δ, xs = as, ys = bs`, and the
 expanded net is linear. -/
-theorem equiv_expand {B : ℕ} {α β : S.Sym} {as : Fin (S.arity α) → Term S ℕ}
-    {bs : Fin (S.arity β) → Term S ℕ} {Δ : Net S ℕ}
+theorem equiv_expand
+    -- the bound, and the active pair `α(as) = β(bs)`
+    {B : ℕ}
+    {α β : S.Sym}
+    {as : Fin (S.arity α) → Term S ℕ}
+    {bs : Fin (S.arity β) → Term S ℕ}
+    -- the rest of the net
+    {Δ : Net S ℕ}
+    -- the net is linear, and its names are below `B`
     (hN : Net.Linear (s(.app α as, .app β bs) ::ₘ Δ))
     (hB : Net.Below B (s(.app α as, .app β bs) ::ₘ Δ)) :
+    -- the expanded net `α(xs) = β(ys), Δ, xs = as, ys = bs` is linear,
     Net.Linear ((pairVar B α β ::ₘ Δ) + wires (arg B as bs) (ports B (S.arity α) (S.arity β))) ∧
+      -- and the net is the same graph as the expanded net
       Equiv (s(.app α as, .app β bs) ::ₘ Δ)
         ((pairVar B α β ::ₘ Δ) + wires (arg B as bs) (ports B (S.arity α) (S.arity β))) := by
   obtain ⟨hA, hBb, hΔ⟩ := Net.below_cons.1 hB
@@ -283,15 +501,28 @@ theorem equiv_expand {B : ℕ} {α β : S.Sym} {as : Fin (S.arity α) → Term S
     funext j
     rw [ite_eq_left_of_eq_true _ _ (eq_true (right_mem_ports B j)), arg_right]
 
-/-- **The right-hand side, contracted** (Lafont 1997, Section 1.2, page 71). An instance of a
+/-- **The right-hand side, contracted** (Lafont 1997, Section 1.2, page 73). An instance of a
 linear rule with the fresh names `xs`, `ys` on the ports, beside `Δ` and the wires `xs = as`,
 `ys = bs`, is the same graph as the instance with `as`, `bs` on the ports, beside `Δ`. -/
-theorem equiv_contract_inst {B : ℕ} {α β : S.Sym} (r : Rule S (S.arity α) (S.arity β))
-    (hr : r.Linear) {as : Fin (S.arity α) → Term S ℕ} {bs : Fin (S.arity β) → Term S ℕ}
-    {Δ : Net S ℕ} (h₂ : Fin r.internal → ℕ) (has : ∀ i, (as i).Below B)
-    (hbs : ∀ j, (bs j).Below B) (hΔ : Δ.Below B)
+theorem equiv_contract_inst
+    -- the bound, the symbols of the two cells, and a linear rule between them
+    {B : ℕ}
+    {α β : S.Sym}
+    (r : Rule S (S.arity α) (S.arity β))
+    (hr : r.Linear)
+    -- the trees on the auxiliary ports, the rest of the net, and the names of the internal wires
+    {as : Fin (S.arity α) → Term S ℕ}
+    {bs : Fin (S.arity β) → Term S ℕ}
+    {Δ : Net S ℕ}
+    (h₂ : Fin r.internal → ℕ)
+    -- the names of the trees and of the rest are below `B`
+    (has : ∀ i, (as i).Below B)
+    (hbs : ∀ j, (bs j).Below B)
+    (hΔ : Δ.Below B)
+    -- the instance with the fresh names, beside `Δ` and the wires `xs = as`, `ys = bs`, is linear
     (hlin : Net.Linear ((r.inst (fun i => var (B + i)) (fun j => var (B + S.arity α + j)) h₂ + Δ)
       + wires (arg B as bs) (ports B (S.arity α) (S.arity β)))) :
+    -- it is the same graph as the instance with `as`, `bs` on the ports, beside `Δ`
     Equiv ((r.inst (fun i => var (B + i)) (fun j => var (B + S.arity α + j)) h₂ + Δ)
       + wires (arg B as bs) (ports B (S.arity α) (S.arity β))) (r.inst as bs h₂ + Δ) := by
   refine (equiv_contract_list _ _ _ (nodup_ports _ _ _) (fresh_arg has hbs) ?_ hlin).trans
@@ -322,28 +553,55 @@ theorem equiv_contract_inst {B : ℕ} {α β : S.Sym} (r : Rule S (S.arity α) (
 
 end Simulation
 
-/-! ## Reduction up to wires, free ports, and equivalence -/
+-- ============================================================================================
+-- 5. Auxiliary lemmas: reduction up to wires, translations of cells
+-- ============================================================================================
 
-/-- One interaction up to wires keeps the free ports (Lafont 1997, Section 1.3, page 72). -/
-theorem StepE.free_iff {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : StepE I N M) (y : ℕ) :
+/-- One interaction up to wires keeps the free ports (Lafont 1997, Section 1.2, page 73). -/
+theorem StepE.free_iff
+    -- an interaction system with linear rules
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction up to wires from `N` to `M`
+    {N M : Net S ℕ}
+    (h : StepE I N M)
+    -- a name
+    (y : ℕ) :
+    -- it is a free port of `M` exactly when it is a free port of `N`
     M.vars.count y = 1 ↔ N.vars.count y = 1 := by
   obtain ⟨K, hE, hS⟩ := h
   exact (hS.free_iff hI y).trans (hE.free_iff y).symm
 
-/-- Reduction up to wires keeps the free ports (Lafont 1997, Section 1.3, page 72). -/
-theorem StepsE.free_iff {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : StepsE I N M) (y : ℕ) :
+/-- Reduction up to wires keeps the free ports (Lafont 1997, Section 1.2, page 73). -/
+theorem StepsE.free_iff
+    -- an interaction system with linear rules
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a reduction up to wires from `N` to `M`
+    {N M : Net S ℕ}
+    (h : StepsE I N M)
+    -- a name
+    (y : ℕ) :
+    -- it is a free port of `M` exactly when it is a free port of `N`
     M.vars.count y = 1 ↔ N.vars.count y = 1 := by
   induction h with
   | refl => exact Iff.rfl
   | tail _ hs ih => exact (hs.free_iff hI y).trans ih
 
 /-- **An equivalence followed by a reduction up to wires.** If `N` is the same graph as `K` and `K`
-reduces to `M`, then `N` reduces to a net that is the same graph as `M` (Lafont 1997, Section 1.3,
-page 72: reduction is defined on graphs). -/
-theorem StepsE.of_equiv {I : System S} {N K M : Net S ℕ} (hE : Equiv N K) (h : StepsE I K M) :
-    ∃ M', StepsE I N M' ∧ Equiv M' M := by
+reduces to `M`, then `N` reduces to a net that is the same graph as `M` (Lafont 1997, Section 1.2,
+page 73: reduction is defined on graphs). -/
+theorem StepsE.of_equiv
+    -- an interaction system
+    {I : System S}
+    -- `N` is the same graph as `K`, and `K` reduces up to wires to `M`
+    {N K M : Net S ℕ}
+    (hE : Equiv N K)
+    (h : StepsE I K M) :
+    -- `N` reduces up to wires to a net `M'` that is the same graph as `M`
+    ∃ M',
+      StepsE I N M' ∧
+      Equiv M' M := by
   induction h with
   | refl => exact ⟨N, Relation.ReflTransGen.refl, hE⟩
   | tail _ hs ih =>
@@ -355,14 +613,24 @@ namespace Translation
 variable {Φ : Translation S S'}
 
 /-- The only translation of a name is the name. -/
-theorem TermTr.var_inv {x : ℕ} {t' : Term S' ℕ} (h : Φ.TermTr (.var x) t') : t' = .var x := by
+theorem TermTr.var_inv
+    -- a translation `t'` of the name `x`
+    {x : ℕ}
+    {t' : Term S' ℕ}
+    (h : Φ.TermTr (.var x) t') :
+    t' = .var x := by
   cases h
   rfl
 
 /-- The translations of a cell with names on its auxiliary ports are the instances of its
 principal net with the same names on the ports (Lafont 1997, Section 1.7, page 80). -/
-theorem TermTr.app_var_inv {α : S.Sym} {xs : Fin (S.arity α) → ℕ} {t' : Term S' ℕ}
+theorem TermTr.app_var_inv
+    -- a cell `α` with the names `xs` on its auxiliary ports, and a translation `t'` of it
+    {α : S.Sym}
+    {xs : Fin (S.arity α) → ℕ}
+    {t' : Term S' ℕ}
     (h : Φ.TermTr (.app α fun i => .var (xs i)) t') :
+    -- `t'` is the principal net of `α` with `xs` on its ports and some names `f` inside
     ∃ f, t' = (Φ.net α).inst (fun i => .var (xs i)) f := by
   cases h with
   | app _ _ ts' f hh =>
@@ -373,52 +641,29 @@ theorem TermTr.app_var_inv {α : S.Sym} {xs : Fin (S.arity α) → ℕ} {t' : Te
 
 end Translation
 
-/-! ## Proposition 4 -/
-
-/-- `Translation.Compatible`, with the reduction of each rule taken in a relation `R` on the nets
-of the target instead of `StepsE I'`. `Compatible` is the case `R = StepsE I'`
-(`Translation.compatible_iff_compatibleBy`); a reduction counted and bounded is another case
-(Lafont 1997, page 81, the lengths `L` and `M`). -/
-def Translation.CompatibleBy (Φ : Translation S S') (I : System S)
-    (R : Net S' ℕ → Net S' ℕ → Prop) : Prop :=
-  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
-    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
-      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
-        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
-      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
-        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
-          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
-        Equiv M N' ∧
-        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
-
-/-- A translation of interaction systems (Lafont 1997, Section 1.7, page 80) is one compatible by
+/-- A translation of interaction systems (Lafont 1997, Section 1.7, page 81) is one compatible by
 the reduction up to wires of the target. -/
-theorem Translation.compatible_iff_compatibleBy {Φ : Translation S S'} {I : System S}
-    {I' : System S'} : Φ.Compatible I I' ↔ Φ.CompatibleBy I (StepsE I') := Iff.rfl
-
-/-- `Translation.CompatibleBy`, for distinct names only: the rule is simulated when the names
-`xs` on the ports of the first cell are pairwise distinct, those `ys` of the second too, and no
-`xs i` is a `ys j`, as for the two cells of a rule in the paper (Lafont 1997, page 80). The
-proof of Proposition 4 only uses this case (`Translation.CompatibleByDistinct.step`). -/
-def Translation.CompatibleByDistinct (Φ : Translation S S') (I : System S)
-    (R : Net S' ℕ → Net S' ℕ → Prop) : Prop :=
-  ∀ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
-    ∀ (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-      (f : Fin (Φ.net α).internal → ℕ) (g : Fin (Φ.net β).internal → ℕ),
-      Function.Injective xs → Function.Injective ys → (∀ i j, xs i ≠ ys j) →
-      Net.Linear ({s((Φ.net α).inst (fun i => .var (xs i)) f,
-        (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) →
-      ∃ (M N' : Net S' ℕ) (h : Fin r.internal → ℕ),
-        R {s((Φ.net α).inst (fun i => .var (xs i)) f,
-          (Φ.net β).inst (fun j => .var (ys j)) g)} M ∧
-        Equiv M N' ∧
-        Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N'
+theorem Translation.compatible_iff_compatibleBy
+    -- a translation, and the interaction systems of the source and of the target
+    {Φ : Translation S S'}
+    {I : System S}
+    {I' : System S'} :
+    Φ.Compatible I I' ↔ Φ.CompatibleBy I (StepsE I') := Iff.rfl
 
 /-- A translation compatible for all names is compatible for distinct names. -/
-theorem Translation.CompatibleBy.distinct {Φ : Translation S S'} {I : System S}
-    {R : Net S' ℕ → Net S' ℕ → Prop} (h : Φ.CompatibleBy I R) : Φ.CompatibleByDistinct I R :=
+theorem Translation.CompatibleBy.distinct
+    -- a translation, the interaction system of the source, and a reduction of the target
+    {Φ : Translation S S'}
+    {I : System S}
+    {R : Net S' ℕ → Net S' ℕ → Prop}
+    -- `Φ` is compatible by `R` for all names
+    (h : Φ.CompatibleBy I R) :
+    Φ.CompatibleByDistinct I R :=
   fun α β r hr xs ys f g _ _ _ hl => h α β r hr xs ys f g hl
+
+-- ============================================================================================
+-- 6. Main results: Proposition 4
+-- ============================================================================================
 
 /-- **One interaction is simulated, for any reduction of the target** (Lafont 1997,
 Proposition 4, page 81, the case of one step). `R` is a reduction of the target nets that can be
@@ -427,18 +672,38 @@ reduction up to wires (`hR`). If the translations of the two cells of every rule
 names on their ports, reduce by `R` to a translation of its right-hand side, `N` reduces to `M` by
 one interaction, and `N'` is a translation of `N`, then `N'` reduces by `R` to a net that is the
 same graph as a translation of `M`. The rules of `I` and of `I'` are linear, as Lafont's rules are
-(page 72). -/
-theorem Translation.CompatibleByDistinct.step {I : System S} {I' : System S'}
+(page 73). -/
+theorem Translation.CompatibleByDistinct.step
+    -- the interaction systems of the source and of the target, and a reduction of the target
+    {I : System S}
+    {I' : System S'}
     {R : Net S' ℕ → Net S' ℕ → Prop}
+    -- the rules of both systems are linear
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
+    -- `R` can be done beside a context `Γ`
     (hadd : ∀ {N M : Net S' ℕ} (Γ : Net S' ℕ), R N M → (N + Γ).Linear →
       ∃ M', R (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear)
+    -- `R` can start from the same graph
     (heq : ∀ {N K M : Net S' ℕ}, Equiv N K → R K M → ∃ M', R N M' ∧ Equiv M' M)
+    -- `R` is a reduction up to wires
     (hR : ∀ {N M : Net S' ℕ}, R N M → StepsE I' N M)
-    {Φ : Translation S S'} (hΦ : Φ.CompatibleByDistinct I R)
-    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
-    ∃ M₁ M', R N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' := by
+    -- the translation, compatible by `R` for distinct names
+    {Φ : Translation S S'}
+    (hΦ : Φ.CompatibleByDistinct I R)
+    -- one interaction from `N` to `M`, and a translation `N'` of `N`
+    {N M : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Step I N M)
+    (hT : Φ.NetTr N N') :
+    -- there are nets `M₁` and `M'` such that
+    ∃ M₁ M',
+      -- `N'` reduces by `R` to `M₁`,
+      R N' M₁ ∧
+      -- `M₁` is the same graph as `M'`,
+      Equiv M₁ M' ∧
+      -- and `M'` is a translation of `M`
+      Φ.NetTr M M' := by
   obtain ⟨α, β, r, hr, as, bs, Δ, hh, hhinj, hhfresh⟩ := h
   have hN := hT.linear_source
   have hrl := hI _ _ _ hr
@@ -579,30 +844,66 @@ theorem Translation.CompatibleByDistinct.step {I : System S} {I' : System S'}
 /-- **One interaction is simulated, for any reduction of the target** (Lafont 1997,
 Proposition 4, page 81, the case of one step): `Translation.CompatibleByDistinct.step` for a
 translation compatible for all names. -/
-theorem Translation.CompatibleBy.step {I : System S} {I' : System S'}
+theorem Translation.CompatibleBy.step
+    -- the interaction systems of the source and of the target, and a reduction of the target
+    {I : System S}
+    {I' : System S'}
     {R : Net S' ℕ → Net S' ℕ → Prop}
+    -- the rules of both systems are linear
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
+    -- `R` can be done beside a context `Γ`
     (hadd : ∀ {N M : Net S' ℕ} (Γ : Net S' ℕ), R N M → (N + Γ).Linear →
       ∃ M', R (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear)
+    -- `R` can start from the same graph
     (heq : ∀ {N K M : Net S' ℕ}, Equiv N K → R K M → ∃ M', R N M' ∧ Equiv M' M)
+    -- `R` is a reduction up to wires
     (hR : ∀ {N M : Net S' ℕ}, R N M → StepsE I' N M)
-    {Φ : Translation S S'} (hΦ : Φ.CompatibleBy I R)
-    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
-    ∃ M₁ M', R N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' :=
+    -- the translation, compatible by `R` for all names
+    {Φ : Translation S S'}
+    (hΦ : Φ.CompatibleBy I R)
+    -- one interaction from `N` to `M`, and a translation `N'` of `N`
+    {N M : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Step I N M)
+    (hT : Φ.NetTr N N') :
+    -- there are nets `M₁` and `M'` such that
+    ∃ M₁ M',
+      -- `N'` reduces by `R` to `M₁`,
+      R N' M₁ ∧
+      -- `M₁` is the same graph as `M'`,
+      Equiv M₁ M' ∧
+      -- and `M'` is a translation of `M`
+      Φ.NetTr M M' :=
   hΦ.distinct.step hI hI' hadd heq hR h hT
 
 /-- **One interaction is simulated** (Lafont 1997, Proposition 4, page 81, the case of one step).
 If `Φ` is a translation of interaction systems from `I` to `I'`, `N` reduces to `M` by one
 interaction, and `N'` is a translation of `N`, then `N'` reduces up to wires to a net that is the
 same graph as a translation of `M`. The rules of `I` and of `I'` are linear, as Lafont's rules are
-(page 72). -/
-theorem Translation.Compatible.step {I : System S} {I' : System S'}
+(page 73). -/
+theorem Translation.Compatible.step
+    -- the interaction systems of the source and of the target, whose rules are linear
+    {I : System S}
+    {I' : System S'}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    {Φ : Translation S S'} (hΦ : Φ.Compatible I I')
-    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M) (hT : Φ.NetTr N N') :
-    ∃ M₁ M', StepsE I' N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' :=
+    -- a translation of interaction systems
+    {Φ : Translation S S'}
+    (hΦ : Φ.Compatible I I')
+    -- one interaction from `N` to `M`, and a translation `N'` of `N`
+    {N M : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Step I N M)
+    (hT : Φ.NetTr N N') :
+    -- there are nets `M₁` and `M'` such that
+    ∃ M₁ M',
+      -- `N'` reduces up to wires to `M₁`,
+      StepsE I' N' M₁ ∧
+      -- `M₁` is the same graph as `M'`,
+      Equiv M₁ M' ∧
+      -- and `M'` is a translation of `M`
+      Φ.NetTr M M' :=
   Translation.CompatibleBy.step hI hI' (fun Γ h hl => StepsE.add_right hI' Γ h hl)
     (fun hE h => StepsE.of_equiv hE h) id hΦ h hT
 
@@ -610,12 +911,28 @@ theorem Translation.Compatible.step {I : System S} {I' : System S'}
 reduces in n steps to M, then Φ(N) reduces in n′ steps to Φ(M)"). If `Φ` is a translation of
 interaction systems from `I` to `I'`, `N` reduces to `M`, and `N'` is a translation of `N`, then
 `N'` reduces up to wires to a net that is the same graph as a translation of `M`. -/
-theorem Translation.Compatible.steps {I : System S} {I' : System S'}
+theorem Translation.Compatible.steps
+    -- the interaction systems of the source and of the target, whose rules are linear
+    {I : System S}
+    {I' : System S'}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    {Φ : Translation S S'} (hΦ : Φ.Compatible I I')
-    {N M : Net S ℕ} {N' : Net S' ℕ} (h : Steps I N M) (hT : Φ.NetTr N N') :
-    ∃ M₁ M', StepsE I' N' M₁ ∧ Equiv M₁ M' ∧ Φ.NetTr M M' := by
+    -- a translation of interaction systems
+    {Φ : Translation S S'}
+    (hΦ : Φ.Compatible I I')
+    -- a reduction from `N` to `M`, and a translation `N'` of `N`
+    {N M : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Steps I N M)
+    (hT : Φ.NetTr N N') :
+    -- there are nets `M₁` and `M'` such that
+    ∃ M₁ M',
+      -- `N'` reduces up to wires to `M₁`,
+      StepsE I' N' M₁ ∧
+      -- `M₁` is the same graph as `M'`,
+      Equiv M₁ M' ∧
+      -- and `M'` is a translation of `M`
+      Φ.NetTr M M' := by
   induction h with
   | refl => exact ⟨N', N', Relation.ReflTransGen.refl, Equiv.refl _, hT⟩
   | tail _ hs ih =>
