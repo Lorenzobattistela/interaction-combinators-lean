@@ -7,8 +7,9 @@ import InteractionCombinators.Text.RenameStep
 # After one interaction up to wires, a pair of two cells leaves no cut (page 81)
 
 Lafont 1997, page 81: "if `Φ` is invertible, the reduction must be of length 1", because after
-the interaction of the two cells `α'`, `β'` the net is "an instance of a reduced net", which has
-no cut (page 72: the right member of a rule is reduced).
+the interaction of the two cells `α'`, `β'` the net is an instance of the right member of a rule,
+which has no cut ("Remember that `ρ_{i,j}` is supposed to be reduced", page 81; the condition is
+set on page 79).
 
 In Lean the interaction is `StepE`: it happens on some net `K₀` that is the same graph as the pair
 `P = {γ(u) = δ(v)}`, with `u`, `v` pairwise distinct names. This file shows that the net reached
@@ -37,6 +38,21 @@ The proof follows the shape of `K₀`.
 
 Only the linearity and the reducedness of the rules are used
 (`PairStepE.stepE_pair_not_hasCut_of`).
+
+Contents, in the order of the file:
+
+1. Nets of wires, and contracting them: `PairStepE.Wires`, `Wires.of_le`, `sub_var_eq`,
+   `count_vars_rename`, `Wires.bind_var`, `wire_sub` (one wire substitution), `bind_var_id`, and
+   `PairStepE.contract` (the wires of a net plugged into two nets, contracted at once).
+2. Solutions where every cell is `true`: `PairStepE.blind`, `BlindSolves`, `BlindSol`,
+   `blindSolves_cons`, `blind_subst`, `blind_congr`, `PairStepE.Wire.blindSol_iff`, and
+   `PairStepE.Equiv.blindSol_iff` (nets that are the same graph have the same such solutions).
+3. The pair of two cells: `PairStepE.pairNet`, `eq_var_of_cells`, `sum_ite_inj`, and
+   `PairStepE.stepE_pair_not_hasCut_of` (no cut after one interaction, from linear and reduced
+   rules).
+4. Main results: `System.WellFormed.stepE_pair_not_hasCut` (page 81) and
+   `Translation.Invertible.compatibleWithin_one_of_wellFormed` (`L = M = 1` if `Φ` is
+   invertible, page 81).
 -/
 
 namespace INet
@@ -47,16 +63,31 @@ open Term
 
 namespace PairStepE
 
-/-! ## Nets of wires, and contracting them -/
+-- ============================================================================================
+-- 1. Nets of wires, and contracting them
+-- ============================================================================================
 
 /-- Every equation of the net is a wire `a = b` between two names. -/
-def Wires (N : Net S ℕ) : Prop := ∀ e ∈ N, ∃ a b : ℕ, e = s(var a, var b)
+def Wires
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  ∀ e ∈ N, ∃ a b : ℕ, e = s(var a, var b)
 
-theorem Wires.of_le {N M : Net S ℕ} (h : Wires M) (hle : N ≤ M) : Wires N :=
+/-- A part of a net of wires is a net of wires. -/
+theorem Wires.of_le
+    -- a net of wires `M`, and a part `N` of it
+    {N M : Net S ℕ}
+    (h : Wires M)
+    (hle : N ≤ M) :
+    Wires N :=
   fun e he => h e (Multiset.mem_of_le hle he)
 
 /-- Plugging the name `z` into the name `x` is renaming `x` to `z`. -/
-theorem sub_var_eq (N : Net S ℕ) (x z : ℕ) :
+theorem sub_var_eq
+    -- the net, the name `x` and the name `z` plugged into it
+    (N : Net S ℕ)
+    (x z : ℕ) :
     Cut.sub N x (var z) = N.bind fun w => var (if w = x then z else w) := by
   have hf : (fun y => if y = x then var z else var y : ℕ → Term S ℕ) =
       fun w => var (if w = x then z else w) := by
@@ -66,9 +97,14 @@ theorem sub_var_eq (N : Net S ℕ) (x z : ℕ) :
   rw [hf]
 
 /-- The names of a net after renaming `x` to `z`. -/
-theorem count_vars_rename (N : Net S ℕ) (x z y : ℕ) :
+theorem count_vars_rename
+    -- the net, the name `x` renamed to `z`, and the name `y` counted
+    (N : Net S ℕ)
+    (x z y : ℕ) :
+    -- `y` occurs once for each `x` if it is `z`, plus as often as before unless it is `x`
     (N.bind fun w => var (if w = x then z else w)).vars.count y =
-      N.vars.count x * (if y = z then 1 else 0) + if y = x then 0 else N.vars.count y := by
+      N.vars.count x * (if y = z then 1 else 0)
+        + if y = x then 0 else N.vars.count y := by
   rw [Net.vars_bind]
   have hf : (fun w => ((var (if w = x then z else w) : Term S ℕ)).vars) =
       fun w => ((if w = x then var z else var w : Term S ℕ)).vars := by
@@ -78,7 +114,12 @@ theorem count_vars_rename (N : Net S ℕ) (x z y : ℕ) :
   simp [Multiset.count_singleton]
 
 /-- A net of wires stays one after renaming. -/
-theorem Wires.bind_var {N : Net S ℕ} (h : Wires N) (ρ : ℕ → ℕ) :
+theorem Wires.bind_var
+    -- the net of wires
+    {N : Net S ℕ}
+    (h : Wires N)
+    -- the renaming
+    (ρ : ℕ → ℕ) :
     Wires (N.bind fun w => var (ρ w)) := by
   intro e he
   rw [Net.bind, Multiset.mem_map] at he
@@ -88,8 +129,16 @@ theorem Wires.bind_var {N : Net S ℕ} (h : Wires N) (ρ : ℕ → ℕ) :
 
 /-- **One wire substitution**, with `x` anywhere in the rest of the net: plugging `t` into the
 other end of the wire `x = t`. -/
-theorem wire_sub {x : ℕ} {t : Term S ℕ} {A : Net S ℕ} (hlin : Net.Linear (s(var x, t) ::ₘ A))
-    (hx : x ∈ A.vars) : Wire (s(var x, t) ::ₘ A) (Cut.sub A x t) := by
+theorem wire_sub
+    -- the wire `x = t`, the rest of the net `A`, and the net is linear
+    {x : ℕ}
+    {t : Term S ℕ}
+    {A : Net S ℕ}
+    (hlin : Net.Linear (s(var x, t) ::ₘ A))
+    -- the other end of `x` is in `A`
+    (hx : x ∈ A.vars) :
+    -- the net reduces by a wire substitution to `A` with `t` plugged into `x`
+    Wire (s(var x, t) ::ₘ A) (Cut.sub A x t) := by
   obtain ⟨g, hg, hxg⟩ := Multiset.mem_bind.1 hx
   obtain ⟨A', rfl⟩ := Multiset.exists_cons_of_mem hg
   induction g using Sym2.ind with
@@ -104,7 +153,9 @@ theorem wire_sub {x : ℕ} {t : Term S ℕ} {A : Net S ℕ} (hlin : Net.Linear (
     exact Wire.mk x t a b A' hlin hxg
 
 /-- The net is not changed by the renaming that fixes every name. -/
-theorem bind_var_id (N : Net S ℕ) : (N.bind fun w => var w) = N := by
+theorem bind_var_id
+    (N : Net S ℕ) :
+    (N.bind fun w => var w) = N := by
   unfold Net.bind
   conv_rhs => rw [← Multiset.map_id N]
   refine Multiset.map_congr rfl fun e _ => ?_
@@ -112,21 +163,36 @@ theorem bind_var_id (N : Net S ℕ) : (N.bind fun w => var w) = N := by
   | _ a b => simp [Term.bind_var_self]
 
 /-- **Contracting the wires of a net** `Δ` plugged into two nets `Γ₁`, `Γ₂` that have the same
-names in common with `Δ` (Lafont 1997, Section 1.2, page 71: a wire with a free end elsewhere is
+names in common with `Δ` (Lafont 1997, Section 1.1, page 71: a wire with a free end elsewhere is
 the same as plugging it there). The two nets `Γᵢ + Δ` are the same graphs as the renamings of
 `Γᵢ` by one `ρ`, which fixes the names outside `Δ`, plus one net of wires `W`; no name of `W` is
 in either renamed `Γᵢ`, and each name of a wire `a = b` of `W` with `a ≠ b` is free. -/
-theorem contract : ∀ (n : ℕ) (Δ Γ₁ Γ₂ : Net S ℕ), Multiset.card Δ = n → Wires Δ →
-    (Γ₁ + Δ).Linear → (Γ₂ + Δ).Linear →
-    (∀ y ∈ Δ.vars, Γ₁.vars.count y = Γ₂.vars.count y) →
-    ∃ (ρ : ℕ → ℕ) (W : Net S ℕ), Wires W ∧
-      Equiv (Γ₁ + Δ) ((Γ₁.bind fun w => var (ρ w)) + W) ∧
-      Equiv (Γ₂ + Δ) ((Γ₂.bind fun w => var (ρ w)) + W) ∧
-      (∀ y, y ∉ Δ.vars → ρ y = y) ∧
-      (∀ y ∈ W.vars, y ∉ (Γ₁.bind fun w => var (ρ w)).vars ∧
-        y ∉ (Γ₂.bind fun w => var (ρ w)).vars) ∧
-      (∀ a b, s(var a, var b) ∈ W → a ≠ b →
-        ((Γ₁.bind fun w => var (ρ w)) + W).vars.count a = 1) := by
+theorem contract :
+    -- for every number `n`, net `Δ` of `n` wires, and two nets `Γ₁`, `Γ₂`:
+    ∀ (n : ℕ) (Δ Γ₁ Γ₂ : Net S ℕ),
+      Multiset.card Δ = n →
+      Wires Δ →
+      -- if `Γ₁ + Δ` and `Γ₂ + Δ` are linear,
+      (Γ₁ + Δ).Linear →
+      (Γ₂ + Δ).Linear →
+      -- and each name of `Δ` occurs as often in `Γ₁` as in `Γ₂`,
+      (∀ y ∈ Δ.vars, Γ₁.vars.count y = Γ₂.vars.count y) →
+      -- then there are a renaming `ρ` and a net of wires `W` such that
+      ∃ (ρ : ℕ → ℕ) (W : Net S ℕ),
+        Wires W ∧
+        -- `Γ₁ + Δ` is the same graph as `Γ₁` renamed by `ρ`, plus `W`,
+        Equiv (Γ₁ + Δ) ((Γ₁.bind fun w => var (ρ w)) + W) ∧
+        -- `Γ₂ + Δ` is the same graph as `Γ₂` renamed by `ρ`, plus `W`,
+        Equiv (Γ₂ + Δ) ((Γ₂.bind fun w => var (ρ w)) + W) ∧
+        -- `ρ` fixes the names outside `Δ`,
+        (∀ y, y ∉ Δ.vars → ρ y = y) ∧
+        -- no name of `W` is in `Γ₁` or `Γ₂` renamed,
+        (∀ y ∈ W.vars,
+          y ∉ (Γ₁.bind fun w => var (ρ w)).vars
+            ∧ y ∉ (Γ₂.bind fun w => var (ρ w)).vars) ∧
+        -- and each name of a wire `a = b` of `W` with `a ≠ b` is free
+        (∀ a b, s(var a, var b) ∈ W → a ≠ b →
+          ((Γ₁.bind fun w => var (ρ w)) + W).vars.count a = 1) := by
   intro n
   induction n using Nat.strong_induction_on with
   | _ n ih =>
@@ -242,28 +308,58 @@ theorem contract : ∀ (n : ℕ) (Δ Γ₁ Γ₂ : Net S ℕ), Multiset.card Δ 
       rw [← Multiset.cons_erase hab, Multiset.add_cons, Net.vars_cons, Multiset.count_add, h0']
       simp [hne]
 
-/-! ## Solutions where every cell is `true` -/
+-- ============================================================================================
+-- 2. Solutions where every cell is `true`
+-- ============================================================================================
 
 /-- The value of a tree when the names have the values `ρ` and every cell is `true`. -/
-def blind (ρ : ℕ → Bool) : Term S ℕ → Bool
+def blind
+    -- the values of the names
+    (ρ : ℕ → Bool) :
+    Term S ℕ → Bool
   | .var x => ρ x
   | .app _ _ => true
 
-@[simp] theorem blind_var (ρ : ℕ → Bool) (x : ℕ) : blind ρ (var x : Term S ℕ) = ρ x := rfl
-@[simp] theorem blind_app (ρ : ℕ → Bool) (α : S.Sym) (ts : Fin (S.arity α) → Term S ℕ) :
+/-- A name has its value. -/
+@[simp] theorem blind_var
+    (ρ : ℕ → Bool)
+    (x : ℕ) :
+    blind ρ (var x : Term S ℕ) = ρ x := rfl
+
+/-- A cell has the value `true`. -/
+@[simp] theorem blind_app
+    -- the values of the names
+    (ρ : ℕ → Bool)
+    -- the cell `α` and the trees on its auxiliary ports
+    (α : S.Sym)
+    (ts : Fin (S.arity α) → Term S ℕ) :
     blind ρ (app α ts) = true := rfl
 
 /-- `ρ` solves `N` when every cell is `true`: the two sides of each equation have the same value. -/
-def BlindSolves (ρ : ℕ → Bool) (N : Net S ℕ) : Prop :=
+def BlindSolves
+    -- the values of the names, and the net
+    (ρ : ℕ → Bool)
+    (N : Net S ℕ) :
+    Prop :=
   ∀ a b, s(a, b) ∈ N → blind ρ a = blind ρ b
 
 /-- The values on the free names of `N` that extend to a solution of `N` where every cell is
 `true`. -/
-def BlindSol (N : Net S ℕ) (s : ℕ → Bool) : Prop :=
+def BlindSol
+    -- the net, and the values on its free names
+    (N : Net S ℕ)
+    (s : ℕ → Bool) :
+    Prop :=
   ∃ ρ, BlindSolves ρ N ∧ ∀ p, N.vars.count p = 1 → ρ p = s p
 
-theorem blindSolves_cons {ρ : ℕ → Bool} {c d : Term S ℕ} {N : Net S ℕ} :
-    BlindSolves ρ (s(c, d) ::ₘ N) ↔ blind ρ c = blind ρ d ∧ BlindSolves ρ N := by
+/-- `ρ` solves a net with one more equation when it solves the equation and the rest. -/
+theorem blindSolves_cons
+    -- the values of the names, the equation `c = d`, and the rest of the net
+    {ρ : ℕ → Bool}
+    {c d : Term S ℕ}
+    {N : Net S ℕ} :
+    BlindSolves ρ (s(c, d) ::ₘ N)
+      ↔ blind ρ c = blind ρ d ∧ BlindSolves ρ N := by
   constructor
   · intro h
     exact ⟨h c d (Multiset.mem_cons_self _ _), fun a b hab => h a b (Multiset.mem_cons_of_mem hab)⟩
@@ -274,7 +370,15 @@ theorem blindSolves_cons {ρ : ℕ → Bool} {c d : Term S ℕ} {N : Net S ℕ} 
       · exact h1.symm
     · exact h2 a b hm
 
-theorem blind_subst (ρ : ℕ → Bool) (a : Term S ℕ) (x : ℕ) (t : Term S ℕ) :
+/-- The value of a tree after plugging `t` into `x` is its value with `x` given the value of
+`t`. -/
+theorem blind_subst
+    -- the values of the names
+    (ρ : ℕ → Bool)
+    -- the tree `a`, and the tree `t` plugged into its name `x`
+    (a : Term S ℕ)
+    (x : ℕ)
+    (t : Term S ℕ) :
     blind ρ (a.subst x t) = blind (Function.update ρ x (blind ρ t)) a := by
   cases a with
   | var y =>
@@ -284,7 +388,12 @@ theorem blind_subst (ρ : ℕ → Bool) (a : Term S ℕ) (x : ℕ) (t : Term S �
     · simp [Term.subst, h]
   | app α ts => rfl
 
-theorem blind_congr {ρ ρ' : ℕ → Bool} {a : Term S ℕ} (h : ∀ y ∈ a.vars, ρ y = ρ' y) :
+/-- The value of a tree depends only on the values of its names. -/
+theorem blind_congr
+    -- two valuations that agree on the names of the tree `a`
+    {ρ ρ' : ℕ → Bool}
+    {a : Term S ℕ}
+    (h : ∀ y ∈ a.vars, ρ y = ρ' y) :
     blind ρ a = blind ρ' a := by
   cases a with
   | var y => exact h y (by simp)
@@ -292,7 +401,12 @@ theorem blind_congr {ρ ρ' : ℕ → Bool} {a : Term S ℕ} (h : ∀ y ∈ a.va
 
 /-- A wire substitution does not change the values on the free names that extend to a solution
 where every cell is `true`. -/
-theorem Wire.blindSol_iff {N M : Net S ℕ} (h : Wire N M) (s : ℕ → Bool) :
+theorem Wire.blindSol_iff
+    -- one wire substitution from `N` to `M`
+    {N M : Net S ℕ}
+    (h : Wire N M)
+    -- the values on the free names
+    (s : ℕ → Bool) :
     BlindSol N s ↔ BlindSol M s := by
   have hfree := h.free_iff
   obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := h
@@ -339,9 +453,14 @@ theorem Wire.blindSol_iff {N M : Net S ℕ} (h : Wire N M) (s : ℕ → Bool) :
       exact hp p ((hfree p).1 hp1)
 
 /-- **Nets that are the same graph have the same solutions where every cell is `true`** (an
-invariant of the equivalence of Lafont 1997, Section 1.2, page 71, which sees the wires between
+invariant of the equivalence of Lafont 1997, Section 1.1, page 71, which sees the wires between
 free names and not the cells). -/
-theorem Equiv.blindSol_iff {N M : Net S ℕ} (h : Equiv N M) (s : ℕ → Bool) :
+theorem Equiv.blindSol_iff
+    -- two nets that are the same graph
+    {N M : Net S ℕ}
+    (h : Equiv N M)
+    -- the values on the free names
+    (s : ℕ → Bool) :
     BlindSol N s ↔ BlindSol M s := by
   induction h with
   | rel _ _ h => exact Wire.blindSol_iff h s
@@ -349,20 +468,37 @@ theorem Equiv.blindSol_iff {N M : Net S ℕ} (h : Equiv N M) (s : ℕ → Bool) 
   | symm _ _ _ ih => exact ih.symm
   | trans _ _ _ _ _ ih₁ ih₂ => exact ih₁.trans ih₂
 
-/-! ## The pair of two cells -/
+-- ============================================================================================
+-- 3. The pair of two cells
+-- ============================================================================================
 
 /-- The pair `γ(u) = δ(v)` of two cells plugged by their principal ports. -/
-def pairNet (γ δ : S.Sym) (u : Fin (S.arity γ) → ℕ) (v : Fin (S.arity δ) → ℕ) : Net S ℕ :=
+def pairNet
+    -- the two symbols
+    (γ δ : S.Sym)
+    -- the names on their auxiliary ports
+    (u : Fin (S.arity γ) → ℕ)
+    (v : Fin (S.arity δ) → ℕ) :
+    Net S ℕ :=
   {s(.app γ fun i => .var (u i), .app δ fun j => .var (v j))}
 
 /-- A tree without cells is a name. -/
-theorem eq_var_of_cells {t : Term S ℕ} (h : t.cells = 0) : ∃ x, t = var x := by
+theorem eq_var_of_cells
+    {t : Term S ℕ}
+    (h : t.cells = 0) :
+    ∃ x, t = var x := by
   cases t with
   | var x => exact ⟨x, rfl⟩
   | app α ts => simp at h
 
 /-- With distinct names, a name occurs at most once among them. -/
-theorem sum_ite_inj {n : ℕ} {u : Fin n → ℕ} (hu : Function.Injective u) (y : ℕ) :
+theorem sum_ite_inj
+    -- `n` distinct names
+    {n : ℕ}
+    {u : Fin n → ℕ}
+    (hu : Function.Injective u)
+    -- the name counted
+    (y : ℕ) :
     (∑ i, if y = u i then 1 else 0) = if ∃ i, y = u i then 1 else 0 := by
   split_ifs with h
   · obtain ⟨i₀, rfl⟩ := h
@@ -370,19 +506,28 @@ theorem sum_ite_inj {n : ℕ} {u : Fin n → ℕ} (hu : Function.Injective u) (y
   · exact Finset.sum_eq_zero fun i _ => ite_eq_right_iff.2 fun e => absurd ⟨i, e⟩ h
 
 /-- **After one interaction up to wires, a pair of two cells leaves no cut** (Lafont 1997,
-page 81: "its right member, an instance of a reduced net, has no cut"; page 72: the right member
-of a rule is a reduced net). Let the rules of `I` be linear and reduced. If the pair
-`γ(u) = δ(v)`, with pairwise distinct names on the auxiliary ports, reduces in one interaction up
-to wires to `K`, then `K` has no cut. The interaction may happen on any net that is the same
-graph as the pair; such a net is the cut with wires joining its ports to the free names, and
-closed wires `a = a` (see the module docstring). -/
-theorem stepE_pair_not_hasCut_of {I : System S}
+page 81: "if `Φ` is invertible, the reduction must be of length 1", since "`ρ_{i,j}` is supposed
+to be reduced"; page 79: the right member of a rule is a reduced net). Let the rules of `I` be
+linear and reduced. If the pair `γ(u) = δ(v)`, with pairwise distinct names on the auxiliary
+ports, reduces in one interaction up to wires to `K`, then `K` has no cut. The interaction may
+happen on any net that is the same graph as the pair; such a net is the cut with wires joining its
+ports to the free names, and closed wires `a = a` (see the module docstring). -/
+theorem stepE_pair_not_hasCut_of
+    -- a system whose rules are linear and reduced
+    {I : System S}
     (hlin : ∀ α β r, I.rule α β = some r → r.Linear)
     (hred : ∀ α β r, I.rule α β = some r → r.Reduced)
-    {γ δ : S.Sym} {u : Fin (S.arity γ) → ℕ} {v : Fin (S.arity δ) → ℕ}
-    (hu : Function.Injective u) (hv : Function.Injective v) (huv : ∀ i j, u i ≠ v j)
+    -- two symbols, and pairwise distinct names on their auxiliary ports
+    {γ δ : S.Sym}
+    {u : Fin (S.arity γ) → ℕ}
+    {v : Fin (S.arity δ) → ℕ}
+    (hu : Function.Injective u)
+    (hv : Function.Injective v)
+    (huv : ∀ i j, u i ≠ v j)
+    -- the pair `γ(u) = δ(v)` reduces in one interaction, up to wires, to `K`
     {K : Net S ℕ}
     (h : StepE I {s(.app γ fun i => .var (u i), .app δ fun j => .var (v j))} K) :
+    -- then `K` has no cut
     ¬ K.HasCut := by
   classical
   obtain ⟨K₀, hE, hs⟩ := h
@@ -591,17 +736,31 @@ theorem stepE_pair_not_hasCut_of {I : System S}
 
 end PairStepE
 
+-- ============================================================================================
+-- 4. Main results: no cut after the interaction of a pair, and `L = M = 1`
+-- ============================================================================================
+
 /-- **After one interaction up to wires, a pair of two cells leaves no cut** (Lafont 1997,
-page 81: "its right member, an instance of a reduced net, has no cut"; page 72: the right member
-of a rule is a reduced net). In a well-formed system, if the pair `γ(u) = δ(v)`, with pairwise
-distinct names on its auxiliary ports, reduces in one interaction up to wires to `K`, then `K` has
-no cut. Only the linearity and the reducedness of the rules are used
-(`PairStepE.stepE_pair_not_hasCut_of`). -/
-theorem System.WellFormed.stepE_pair_not_hasCut {I : System S} (hI : I.WellFormed)
-    {γ δ : S.Sym} {u : Fin (S.arity γ) → ℕ} {v : Fin (S.arity δ) → ℕ}
-    (hu : Function.Injective u) (hv : Function.Injective v) (huv : ∀ i j, u i ≠ v j)
+page 81: "if `Φ` is invertible, the reduction must be of length 1", since "`ρ_{i,j}` is supposed
+to be reduced"; page 79: the right member of a rule is a reduced net). In a well-formed system, if
+the pair `γ(u) = δ(v)`, with pairwise distinct names on its auxiliary ports, reduces in one
+interaction up to wires to `K`, then `K` has no cut. Only the linearity and the reducedness of
+the rules are used (`PairStepE.stepE_pair_not_hasCut_of`). -/
+theorem System.WellFormed.stepE_pair_not_hasCut
+    -- a well-formed system
+    {I : System S}
+    (hI : I.WellFormed)
+    -- two symbols, and pairwise distinct names on their auxiliary ports
+    {γ δ : S.Sym}
+    {u : Fin (S.arity γ) → ℕ}
+    {v : Fin (S.arity δ) → ℕ}
+    (hu : Function.Injective u)
+    (hv : Function.Injective v)
+    (huv : ∀ i j, u i ≠ v j)
+    -- the pair `γ(u) = δ(v)` reduces in one interaction, up to wires, to `K`
     {K : Net S ℕ}
     (h : StepE I {s(.app γ fun i => .var (u i), .app δ fun j => .var (v j))} K) :
+    -- then `K` has no cut
     ¬ K.HasCut :=
   PairStepE.stepE_pair_not_hasCut_of hI.linear hI.reduced hu hv huv h
 
@@ -614,8 +773,18 @@ reduction must be of length 1 … `L = M = 1` if `Φ` is invertible"). Let `Φ` 
 compatible, with `I` and `I'` well-formed. Then `Φ` simulates every rule of `I` in exactly one
 interaction up to wires. This is `Invertible.compatibleWithin_one`, whose hypothesis on the pairs
 of two cells of `I'` is `System.WellFormed.stepE_pair_not_hasCut`. -/
-theorem Invertible.compatibleWithin_one_of_wellFormed {I : System S} {I' : System S'}
-    (hΦ : Φ.Invertible) (hI : I.WellFormed) (hI' : I'.WellFormed) (h : Φ.Compatible I I') :
+theorem Invertible.compatibleWithin_one_of_wellFormed
+    -- the two systems
+    {I : System S}
+    {I' : System S'}
+    -- the translation is invertible
+    (hΦ : Φ.Invertible)
+    -- both systems are well formed
+    (hI : I.WellFormed)
+    (hI' : I'.WellFormed)
+    -- the translation is compatible with reduction
+    (h : Φ.Compatible I I') :
+    -- then it simulates every rule of `I` in exactly one interaction of `I'`
     Φ.CompatibleWithin I I' 1 1 :=
   hΦ.compatibleWithin_one hI hI'.linear
     (fun _ _ _ _ hu hv huv _ hK => hI'.stepE_pair_not_hasCut hu hv huv hK) h
