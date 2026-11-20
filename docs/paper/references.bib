@@ -14,7 +14,6 @@
   year    = {1997},
   doi     = {10.1006/inco.1997.2643}
 }
-% number = 1: CHECK (not in the dossier; volume, pages, year and DOI are).
 
 @inproceedings{lafont1990,
   author    = {Yves Lafont},
@@ -25,7 +24,6 @@
   year      = {1990},
   doi       = {10.1145/96709.96718}
 }
-% "17th": CHECK.
 
 @inproceedings{fernandezmackie1999,
   author    = {Maribel Fern{\'a}ndez and Ian Mackie},
@@ -35,18 +33,21 @@
   volume    = {1702},
   pages     = {170--187},
   publisher = {Springer},
-  year      = {1999}
+  year      = {1999},
+  doi       = {10.1007/10704567_10}
 }
-% CHECK: bibliographic record only; the full text was not read.
+% CHECK: only pages 170-171 were read; Sections 2-3 were not.
 
-@misc{gay1995,
-  author = {Simon J. Gay},
-  title  = {Combinators for Interaction Nets},
-  note   = {In: Proceedings of the Second Imperial College Workshop on Theory and Formal
-            Methods. Cited from the bibliography of Lafont (1997)},
-  year   = {1995}
+@inproceedings{gay1995,
+  author    = {Simon J. Gay},
+  title     = {Combinators for Interaction Nets},
+  booktitle = {Theory and Formal Methods of Computing 94: Proceedings of the Second Imperial
+               College Department of Computing Workshop on Theory and Formal Methods},
+  editor    = {C. L. Hankin and I. C. Mackie and R. Nagarajan},
+  publisher = {Imperial College Press},
+  year      = {1995}
 }
-% CHECK: year (1994 or 1995), venue details.
+% The paper itself was not found online; "eight symbols" is Lafont's report of it.
 
 @inproceedings{bechet2001,
   author    = {Denis B{\'e}chet},
@@ -59,7 +60,7 @@
   year      = {2001},
   doi       = {10.1007/3-540-45127-7_3}
 }
-% CHECK: abstract snippet and bibliographic record only.
+% Abstract and pages 3-4 read; Sections 3-5 were not.
 
 @article{mazza2007,
   author  = {Damiano Mazza},
@@ -126,16 +127,26 @@
   volume  = {20},
   number  = {4},
   year    = {2024},
-  note    = {\url{https://lmcs.episciences.org/14420}}
+  doi     = {10.46298/lmcs-20(4:3)2024},
+  note    = {Paper 4:3}
 }
-% CHECK: known from titles and an abstract-level summary only.
 
-@misc{hvm2,
-  author = {{Higher Order Company}},
-  title  = {{HVM2}: a massively parallel interaction combinator evaluator},
-  note   = {Software repository, \url{https://github.com/HigherOrderCO/HVM2}}
+@techreport{hvm2,
+  author      = {Victor Taelin},
+  title       = {{HVM2}: A Parallel Evaluator for Interaction Combinators},
+  institution = {Higher Order Company},
+  year        = {2024},
+  note        = {Work in progress,
+                 \url{https://github.com/HigherOrderCO/HVM2/blob/main/paper/HVM2.pdf}}
 }
-% CHECK: title of the entry is a description, not a verified title; no paper was verified.
+
+@phdthesis{mazza2006,
+  author = {Damiano Mazza},
+  title  = {Interaction Nets: Semantics and Concurrent Extensions},
+  school = {Universit{\'e} de la M{\'e}diterran{\'e}e and Universit{\`a} degli Studi Roma Tre},
+  year   = {2006},
+  note   = {\url{https://lipn.fr/~mazza/papers/Thesis-1.0.pdf}}
+}
 
 @misc{leaninets,
   author = {Nils Cremer},
@@ -180,14 +191,14 @@
 @inproceedings{urban2026,
   author    = {Josef Urban},
   title     = {130k Lines of Formal Topology in Two Weeks: Simple and Cheap Autoformalization
-               for Everyone?},
-  booktitle = {Interactive Theorem Proving (ITP 2026)},
+               for Everyone? (Short Paper)},
+  booktitle = {17th International Conference on Interactive Theorem Proving (ITP 2026)},
   series    = {LIPIcs},
   volume    = {382},
+  pages     = {31:1--31:9},
   year      = {2026},
-  note      = {\url{https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITP.2026.31}}
+  doi       = {10.4230/LIPIcs.ITP.2026.31}
 }
-% CHECK: known from a search summary and the DROPS record.
 
 @misc{rammal2026,
   author = {A. Rammal and N. Patel and F. Gloeckle and A. Hayat and J. Kempe and R. Munos and

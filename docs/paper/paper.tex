@@ -153,7 +153,7 @@ notes that a universal Turing machine, seen as an interaction system, is \emph{n
 this sense \pp{p.~70}. The theorem is the reason three symbols suffice as a target for
 compiling interaction nets, and the combinators (in a symmetric variant, see
 Section~\ref{sec:limits}) are the basis of practical evaluators such as
-HVM~\cite{hvm2}\todo{check the HVM reference; the dossier found only the repository}.
+HVM~\cite{hvm2}.
 
 \paragraph{The gap.}
 The proof occupies Section~2 of the paper, pages 81 to 90, and is carried by its figures
@@ -260,8 +260,7 @@ cells differ: ``it is $\gamma\gamma$, not $\delta\delta$, which exchanges the po
 \pp{p.~82}. This asymmetry is used by the proof of universality (the transpositors of
 Section~\ref{sec:mux}), and the system in which both annihilations are alike is, in Lafont's
 words, ``not universal in the technical sense of Theorem~1'' although it has the same
-expressive power \pp{p.~97}\todo{page number taken from the page headers of the text file;
-confirm on the PDF}.
+expressive power \pp{p.~97}.
 
 %=================================================================================================
 \section{Nets as text}
@@ -1222,7 +1221,7 @@ From the first agent to the merge of Theorem~1 in strict form & 8 h 57 min \\
 Lean, library (\cod{InteractionCombinators/}), 116 files & $44\,840$ lines ($30\,369$) \\
 Lean, checks (\cod{Checks/}), 138 files & $22\,067$ lines ($22\,064$) \\
 Lean, demos (\cod{Demo/}), 4 files & $2\,202$ lines ($1\,478$) \\
-Declarations reported by the axiom audit & $6\,774$ \\
+Declarations reported by the axiom audit & $6\,831$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1324,22 +1323,22 @@ author takes responsibility for the content.
 \section{Related work}
 \label{sec:related}
 
-\todo{This section follows \texttt{docs/paper/related-work.md}. Items marked ``check'' were
-known only from a search summary or a bibliographic record when the dossier was compiled.}
-
 \paragraph{Universality.}
 Theorem~1 is Lafont's~\cite{lafont1997}. Gay obtained independently a universal system with
-eight symbols~\cite{gay1995}\todo{check: cited from Lafont's bibliography; year 1994 or 1995}.
-B\'echet showed that every interaction system can be simulated with two
-symbols~\cite{bechet2001}\todo{check: abstract only}, a result that depends on Theorem~1 and
-does not re-prove it. Mazza studied the symmetric combinators~\cite{mazza2007}, which ``enjoy a
+eight symbols, as Lafont reports~\cite{gay1995}.
+B\'echet showed that every interaction system can be simulated by one with two symbols and
+hence, applying this to Lafont's system, that there is a universal system with two
+symbols~\cite{bechet2001}; the result depends on Theorem~1 and does not re-prove it. Mazza studied the symmetric combinators~\cite{mazza2007}, which ``enjoy a
 weaker universality property with respect to interaction nets, but are equally
-expressive''\todo{quotation from the abstract, seen in a search summary}; his later
+expressive''; his later
 paper~\cite{mazza2009} states the translation theorem for the symmetric combinators, attributes
-it to Lafont, and refers to Lafont's paper ``for a proper formulation and proof''. We are not
-aware of a published proof of the step that~\cite{lafont1997} leaves to the reader\todo{the
-dossier could not check Mazza's 2006 thesis, Gay's paper or B\'echet's paper for a complete
-proof; ask the authors}. Three senses of ``universal'' should be kept apart: Lafont's
+it to Lafont, and refers to Lafont's paper ``for a proper formulation and proof''. The only written-out
+treatment of the general case that we know of is in Mazza's thesis~\cite{mazza2006}, Section~6.4,
+which proves, by figures and up to a behavioural equivalence, the universality of a multiport
+generalization of the combinators, of which Theorem~1 is stated to be a particular case; several
+of its component lemmas are left to the reader. We know of no refereed publication that
+completes the step that~\cite{lafont1997} leaves to the reader\todo{Gay's paper and the body
+of B\'echet's were not read; neither is online}. Three senses of ``universal'' should be kept apart: Lafont's
 (translation of every interaction system, commuting with reduction), Turing-universality
 (which the symmetric combinators also have), and the weaker translation properties of the
 symmetric system. Our result is about the first, for Lafont's asymmetric system.
@@ -1356,9 +1355,9 @@ possible extensions not started. \emph{OnixResearch/inets}~\cite{onixinets} prov
 confluence and bounds on the cost of executing nets on abstract machines.
 \emph{geb-mathlib}~\cite{gebmathlib} contains a graph model, a textual calculus of
 configurations and equations, a diamond property, and a theorem that every finite textual
-execution is simulated by graph contraction\todo{the exact statement and direction of this
-theorem were not read; read it before submission, since it decides how
-contribution (ii) is worded}. GRIN~\cite{grin} proves confluence for an extension of
+execution is simulated by graph contraction (\texttt{System.run\_graph\_reaches}, read at commit
+\texttt{4309798}: a run of its deterministic textual scheduler on a closed configuration yields
+a sequence of graph steps between the compiled graphs; we found no converse). GRIN~\cite{grin} proves confluence for an extension of
 interaction nets. A model of the HVM2 fragment with a simulation result exists in
 \emph{obend}~\cite{obend}. In view of these, strong confluence and uniqueness of normal forms
 are not new as mechanized results, and a mechanized link from a textual calculus to graphs
@@ -1369,9 +1368,9 @@ presentation.
 \paragraph{The textual presentation.}
 Lafont's first paper~\cite{lafont1990} already used a textual notation for rules. The
 interaction calculus of Fern\'andez and Mackie~\cite{fernandezmackie1999} is the standard
-reference for nets as configurations of equations\todo{whether that paper proves the
-equivalence with graph rewriting, or gives an informal translation, could not be verified; read
-it}; later work gives implementation models based on it~\cite{hassan2015}. De
+reference for nets as configurations of equations; its abstract presents a textual calculus
+with a formal operational semantics and does not announce a theorem relating it to graph
+rewriting\todo{only its first two pages were read; read Sections 2--3 before submission}; later work gives implementation models based on it~\cite{hassan2015}. De
 Falco~\cite{defalco2010} gives a rigorous graph-side framework, with nets as partial
 permutations and a careful proof of strong confluence.
 
@@ -1382,11 +1381,12 @@ treat only sequent calculi; proof nets are the logical ancestors of interaction 
 working with graphs up to isomorphism is the difficulty they report. VyZX~\cite{vyzx} verifies
 a graphical quantum language through an inductive, term-like presentation of diagrams, the same
 design choice as ours. S\"oldner and Plump formalize double-pushout graph transformation in
-Isabelle/HOL~\cite{soldner2024}\todo{check: title-level knowledge only}.
+Isabelle/HOL~\cite{soldner2024}, with the uniqueness of derivations and the Church--Rosser
+theorem.
 
 \paragraph{AI-assisted formalization.}
 Large formalizations driven by language-model agents were reported in 2025 and 2026: Urban's
-formalization of general topology with coding agents~\cite{urban2026}\todo{check details},
+formalization of general topology with coding agents, checked by Megalodon~\cite{urban2026},
 multi-agent systems for textbooks and research results~\cite{rammal2026,leanmarathon2026}, and
 a protocol for distributed multi-agent formalization coordinated through a repository with a
 deterministic merge check~\cite{choir2026}, which is the closest published description of a
