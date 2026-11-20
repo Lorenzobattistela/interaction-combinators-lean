@@ -14,33 +14,59 @@ the selector of `[α]` takes `Γ_{α,β}` from the menu of `[β]` and the select
 `Γ_{α,β}`: the code `!Γ` meets the copier `C_p`, the ports of `[α]` meet the trees of `⟨φ_{α,β}⟩`,
 and the loop meets the transpositor `T_σ`.
 
-* `codeRen` — the renaming of the names of the tree of `[α]`: the ports to the given names, every
-  other name `x` to `K + x`. `inst_codeNet_fresh`: the instance of `[α]` whose internal wires are
-  named by `codeRen` is the tree of `[α]` renamed by `codeRen`.
-* `getElem_codeCellMenu`, `length_codeCellMenu` — the entry of the menu `Γ_β` at the number of `α`
-  is `Γ_{α,β}`.
-* `codeCells_meet` — the two cells meet (Fig. 7, rows 1–2, for Fig. 10).
-* `codeCells_meet_gamma` — the multiplexor of `[α]` against `Γ_{α,β}` (Fig. 7, row 3, for
-  Fig. 10).
-
 The results are stated first with the symbols numbered by any `e : S.Sym ≃ Fin n` (names ending in
 `E`: `codeWiresE`, `inst_codeNetE_fresh`, `getElem_codeCellMenuE`, `codeCells_meetE`, …), then
 for `e := symEnum S` under the old names.
+
+Contents, in the order of the file:
+
+1. Renaming the tree of a principal net: `codeRen`, the renaming of the names of a tree (the ports
+   to the given names, every other name `x` to `K + x`); `codeRen_injOn`,
+   `treePNet_inst_codeRen`.
+2. For any numbering `e`, the wires of `[α]` and the menu `Γ_β`: `codeWiresE`,
+   `inst_codeNetE_fresh` (the instance of `[α]` whose internal wires are named by `codeWiresE` is
+   the tree of `[α]` renamed by `codeRen`), `codeWiresE_injective`, `le_codeWiresE`,
+   `codeWiresE_lt`, `length_codeCellMenuE`, `getElem_codeCellMenuE` (the entry of the menu `Γ_β`
+   at the number of `α` is `Γ_{α,β}`), `codeCellMenuE_isPackage`, `le_of_mem_codeCellMenuE`.
+3. For any numbering `e`, the two cells meet: `codeTreeE_bind_codeRen`,
+   `codeCellMenuE_bind_isPackage`, `codeCells_meetE` (Fig. 7, rows 1–2, for Fig. 10).
+4. The same for the numbering `symEnum S`: `codeWires`, `inst_codeNet_fresh`,
+   `codeWires_injective`, `le_codeWires`, `codeWires_lt`, `length_codeCellMenu`,
+   `getElem_codeCellMenu`, `codeCellMenu_isPackage`, `le_of_mem_codeCellMenu`,
+   `codeTree_bind_codeRen`, `codeCellMenu_bind_isPackage`.
+5. Main result: `codeCells_meet`, the two cells meet (Fig. 7, rows 1–2, for Fig. 10).
+6. Main result: `codeCells_meet_gamma`, the multiplexor of `[α]` against `Γ_{α,β}` (Fig. 7, row 3,
+   for Fig. 10), with the auxiliary lemmas `zipWith_ofFn_ofFn` and `mux_muxStar_cons_ofFn`.
 -/
 
 namespace INet.Comb
 
 open Term Translation
 
-/-! ## Renaming the tree of a principal net -/
+-- ============================================================================================
+-- 1. Renaming the tree of a principal net
+-- ============================================================================================
 
 /-- The renaming of the names of a tree with `n` ports (page 80): the port `x < n` to `xs x`, every
 other name `x` to `K + x`. -/
-def codeRen {n : ℕ} (xs : Fin n → ℕ) (K x : ℕ) : ℕ :=
+def codeRen
+    -- the names on the `n` ports
+    {n : ℕ}
+    (xs : Fin n → ℕ)
+    -- the shift of the other names, and the name renamed
+    (K x : ℕ) :
+    ℕ :=
   if h : x < n then xs ⟨x, h⟩ else K + x
 
 /-- `codeRen` is injective on the names that are not ports. -/
-theorem codeRen_injOn {n : ℕ} (xs : Fin n → ℕ) (K : ℕ) (X : Set ℕ) (hX : ∀ x ∈ X, n ≤ x) :
+theorem codeRen_injOn
+    -- the renaming
+    {n : ℕ}
+    (xs : Fin n → ℕ)
+    (K : ℕ)
+    -- a set of names, none of which is a port
+    (X : Set ℕ)
+    (hX : ∀ x ∈ X, n ≤ x) :
     Set.InjOn (codeRen xs K) X := by
   intro x hx y hy h
   have h1 := hX x hx
@@ -51,8 +77,15 @@ theorem codeRen_injOn {n : ℕ} (xs : Fin n → ℕ) (K : ℕ) (X : Set ℕ) (hX
 /-- **The instance of `treePNet` with its wires shifted** (page 80): the instance of the principal
 net of a tree `t` with the names `xs` on its ports and the internal wire of name `x` named `K + x`
 is `t` renamed by `codeRen xs K`. -/
-theorem treePNet_inst_codeRen (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.vars.count i = 1)
-    (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2) (xs : Fin n → ℕ) (K : ℕ) :
+theorem treePNet_inst_codeRen
+    -- the tree: the ports `0, …, n - 1` occur once, every other name twice
+    (n : ℕ)
+    (t : Term sig ℕ)
+    (hp : ∀ i < n, t.vars.count i = 1)
+    (hw : ∀ x ∈ t.vars, n ≤ x → t.vars.count x = 2)
+    -- the names on the ports, and the shift of the internal wires
+    (xs : Fin n → ℕ)
+    (K : ℕ) :
     (treePNet n t hp hw).inst (fun i => var (xs i))
         (fun w => K + ((wireNum n t).symm w).1) =
       t.bind fun x => var (codeRen xs K x) := by
@@ -67,29 +100,45 @@ theorem treePNet_inst_codeRen (n : ℕ) (t : Term sig ℕ) (hp : ∀ i < n, t.va
       Finset.mem_filter.2 ⟨Multiset.mem_toFinset.2 hx, not_lt.1 h1⟩
     simp [h1, h2, codeRen]
 
+-- the interaction system
 variable {S : Signature}
-
-/-! ## For any numbering `e` of the symbols -/
 
 section Enum
 
+-- the numbering `e` of the `n` symbols, and the choice `side` of expanded sides
 variable {n : ℕ} (e : S.Sym ≃ Fin n)
   (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
+-- ============================================================================================
+-- 2. For any numbering `e`: the wires of `[α]` and the menu `Γ_β`
+-- ============================================================================================
+
 /-- The names of the internal wires of `[α]`, shifted by `K` (page 89), for any numbering `e` of the
 symbols. -/
-def codeWiresE (α : S.Sym) (K : ℕ) : Fin (codeNetE e side α).internal → ℕ :=
+def codeWiresE
+    -- the symbol, and the shift
+    (α : S.Sym)
+    (K : ℕ) :
+    Fin (codeNetE e side α).internal → ℕ :=
   fun w => K + ((wireNum (S.arity α) (codeTreeE e side α)).symm w).1
 
 /-- **The instance of `[α]` of Fig. 10 with its wires shifted** (page 89): with the names `xs` on
 its ports and its internal wires named by `codeWiresE`, `[α]` is its tree renamed by `codeRen`. -/
-theorem inst_codeNetE_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem inst_codeNetE_fresh
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
     (codeNetE e side α).inst (fun i => var (xs i)) (codeWiresE e side α K) =
       (codeTreeE e side α).bind fun x => var (codeRen xs K x) :=
   treePNet_inst_codeRen _ _ _ _ xs K
 
 /-- The internal wires named by `codeWiresE` are distinct. -/
-theorem codeWiresE_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWiresE e side α K) := by
+theorem codeWiresE_injective
+    -- the symbol, and the shift
+    (α : S.Sym)
+    (K : ℕ) :
+    Function.Injective (codeWiresE e side α K) := by
   intro a b h
   have h' : ((wireNum (S.arity α) (codeTreeE e side α)).symm a).1 =
       ((wireNum (S.arity α) (codeTreeE e side α)).symm b).1 := by
@@ -97,28 +146,41 @@ theorem codeWiresE_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWi
   exact (wireNum (S.arity α) (codeTreeE e side α)).symm.injective (Subtype.ext h')
 
 /-- The internal wires named by `codeWiresE` are at least `K`. -/
-theorem le_codeWiresE (α : S.Sym) (K : ℕ) (w : Fin (codeNetE e side α).internal) :
+theorem le_codeWiresE
+    -- the symbol, the shift, and an internal wire of `[α]`
+    (α : S.Sym)
+    (K : ℕ)
+    (w : Fin (codeNetE e side α).internal) :
     K ≤ codeWiresE e side α K w :=
   Nat.le_add_right _ _
 
 /-- The internal wires named by `codeWiresE` are below `K` plus a bound of the names of the tree. -/
-theorem codeWiresE_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNetE e side α).internal) :
+theorem codeWiresE_lt
+    -- the symbol, the shift, and an internal wire of `[α]`
+    (α : S.Sym)
+    (K : ℕ)
+    (w : Fin (codeNetE e side α).internal) :
     codeWiresE e side α K w < K + ((codeTreeE e side α).vars.sup + 1) := by
   have hm := Finset.mem_filter.1 ((wireNum (S.arity α) (codeTreeE e side α)).symm w).2
   have := Multiset.le_sup (Multiset.mem_toFinset.1 hm.1)
   simp only [codeWiresE]
   omega
 
-/-! ## The entry `Γ_{α,β}` of the menu `Γ_β` -/
-
 /-- The menu `Γ_β` of Fig. 10 has one package per symbol (page 89). -/
-theorem length_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
+theorem length_codeCellMenuE
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     (codeCellMenuE e side β k₀).length = n :=
   List.length_ofFn
 
 /-- **The entry of `Γ_β` at the number of `α` is `Γ_{α,β}`** (Fig. 10, page 89): the package built
 from the side of `α` against `β`, on its block of names. -/
-theorem getElem_codeCellMenuE (α β : S.Sym) (k₀ : ℕ)
+theorem getElem_codeCellMenuE
+    -- the two symbols, and the first name of the menu `Γ_β`
+    (α β : S.Sym)
+    (k₀ : ℕ)
+    -- the number of `α` is an index of the menu
     (h : (e α : ℕ) < (codeCellMenuE e side β k₀).length) :
     (codeCellMenuE e side β k₀)[(e α : ℕ)]'h =
       codeGammaOpt n (fun γ => e γ) (side α β)
@@ -127,14 +189,20 @@ theorem getElem_codeCellMenuE (α β : S.Sym) (k₀ : ℕ)
   congr 2 <;> exact e.symm_apply_apply α
 
 /-- The packages of the menu `Γ_β` (page 89): each `Γ_{j,β}` is a package. -/
-theorem codeCellMenuE_isPackage (β : S.Sym) (k₀ : ℕ) :
+theorem codeCellMenuE_isPackage
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     ∀ π ∈ codeCellMenuE e side β k₀, π.IsPackage := by
   intro π hπ
   obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
   exact isPackage_of_vars_eq (vars_codeGammaOpt _ _ _ _)
 
 /-- The names of the packages of the menu `Γ_β` are above `k₀`. -/
-theorem le_of_mem_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
+theorem le_of_mem_codeCellMenuE
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     ∀ π ∈ codeCellMenuE e side β k₀, ∀ x ∈ π.vars, k₀ ≤ x := by
   intro π hπ x hx
   obtain ⟨i, rfl⟩ := List.mem_ofFn.1 hπ
@@ -142,18 +210,29 @@ theorem le_of_mem_codeCellMenuE (β : S.Sym) (k₀ : ℕ) :
   have := (Multiset.mem_Ico.1 (Multiset.mem_of_mem_nsmul hx)).1
   omega
 
-/-! ## The two cells meet -/
+-- ============================================================================================
+-- 3. For any numbering `e`: the two cells meet
+-- ============================================================================================
 
 /-- The tree of `[α]` renamed by `codeRen` is the cell of Fig. 6 with the renamed menu `Γ_α`, the
 renamed code `!Γ`, the ports `xs` and the loop `K + n` (page 89). -/
-theorem codeTreeE_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem codeTreeE_bind_codeRen
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
+    -- the renamed tree of `[α]` is the cell of Fig. 6 with: the renamed menu `Γ_α`,
     (codeTreeE e side α).bind (fun x => var (codeRen xs K x)) =
       cellSkel (menu ((codeCellMenuE e side α (S.arity α + 1)).map
           (·.bind fun x => var (codeRen xs K x))))
+        -- the selector of the number of `α` among `n`,
         n (e α)
+        -- the leaves of the multiplexor: the renamed code `!Γ` and the ports `xs`,
         ((code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
             (fun x => var (codeRen xs K x)) ::
-          List.ofFn fun j => var (xs j)) (K + S.arity α) := by
+          List.ofFn fun j => var (xs j))
+        -- and the loop
+        (K + S.arity α) := by
   rw [codeTreeE, bind_cellSkel, menu, bind_mux, ← menu, List.map_cons, List.map_ofFn]
   have hn : codeRen xs K (S.arity α) = K + S.arity α := by simp [codeRen]
   rw [hn]
@@ -163,7 +242,11 @@ theorem codeTreeE_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K :
 
 /-- The packages of the renamed menu `Γ_α` of `[α]` are packages (page 89): `codeRen` is
 injective above the ports. -/
-theorem codeCellMenuE_bind_isPackage (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem codeCellMenuE_bind_isPackage
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
     ∀ π ∈ (codeCellMenuE e side α (S.arity α + 1)).map (·.bind fun x => var (codeRen xs K x)),
       π.IsPackage := by
   intro π hπ
@@ -186,21 +269,38 @@ net, by `codeRen xs K` (the name `x` of the tree of `[α]` becomes `K + x`), and
 above again, by `codeRen ys K'`. The loop is `ℓ = K + S.arity α`. The side `side` is any choice of
 expanded sides, and the `n` symbols are numbered by any `e : S.Sym ≃ Fin n` (page 90: no order on
 the symbols is needed). -/
-theorem codeCells_meetE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-    (f : Fin (codeNetE e side α).internal → ℕ) (g : Fin (codeNetE e side β).internal → ℕ) (Δ : CNet)
+theorem codeCells_meetE
+    -- the two symbols, and the names on the ports of `[α]` and of `[β]`
+    (α β : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (ys : Fin (S.arity β) → ℕ)
+    -- any names of the internal wires of `[α]` and of `[β]`
+    (f : Fin (codeNetE e side α).internal → ℕ)
+    (g : Fin (codeNetE e side β).internal → ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net we start from is linear: `[α]` and `[β]` plugged by their roots, and `Δ`
     (hlin : Net.Linear (s((codeNetE e side α).inst (fun i => var (xs i)) f,
       (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    -- there are shifts `K`, `K'` of the internal wires and a net `M` such that
     ∃ (K K' : ℕ) (M : CNet),
+      -- the net reduces, up to wires, to `M`,
       StepsE system (s((codeNetE e side α).inst (fun i => var (xs i)) f,
         (codeNetE e side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      -- and `M` is the same graph as: the multiplexor of `[α]` (leaves: its renamed code `!Γ`,
+      -- the ports `xs`, the loop `K + S.arity α`) against `Γ_{α,β}`, renamed as in `[β]`;
       Equiv M
-        (s(mux ((code (codeKeyE e side α) (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
+        (s(mux ((code (codeKeyE e side α)
+                  (menu (codeMenusE e side (codeMenuBaseE e side α)))).bind
                 (fun x => var (codeRen xs K x)) ::
               List.ofFn (fun i => (var (xs i) : Term sig ℕ)) ++ [var (K + S.arity α)]),
             (codeGammaOpt n (fun γ => e γ) (side α β)
               (S.arity β + 1 + off (codeCellSizesE e side β) (e α))).bind
                 (fun x => var (codeRen ys K' x))) ::ₘ
-          s(mux ((code (codeKeyE e side β) (menu (codeMenusE e side (codeMenuBaseE e side β)))).bind
+          -- the multiplexor of `[β]` (leaves: its renamed code, the ports `ys`, the same loop)
+          -- against `Γ_{β,α}`, renamed as in `[α]`; and `Δ`
+          s(mux ((code (codeKeyE e side β)
+                  (menu (codeMenusE e side (codeMenuBaseE e side β)))).bind
                 (fun x => var (codeRen ys K' x)) ::
               List.ofFn (fun j => (var (ys j) : Term sig ℕ)) ++ [var (K + S.arity α)]),
             (codeGammaOpt n (fun γ => e γ) (side β α)
@@ -259,43 +359,73 @@ theorem codeCells_meetE (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fi
 
 end Enum
 
-/-! ## For the enumeration `symEnum S` -/
+-- ============================================================================================
+-- 4. The same for the numbering `symEnum S`
+-- ============================================================================================
 
+-- finitely many symbols, numbered by `symEnum S`, and the choice `side` of expanded sides
 variable [Finite S.Sym] (side : ∀ α : S.Sym, S.Sym → Option (ExpSide S (S.arity α)))
 
 /-- The names of the internal wires of `[α]`, shifted by `K` (page 89). -/
-noncomputable def codeWires (α : S.Sym) (K : ℕ) : Fin (codeNet side α).internal → ℕ :=
+noncomputable def codeWires
+    -- the symbol, and the shift
+    (α : S.Sym)
+    (K : ℕ) :
+    Fin (codeNet side α).internal → ℕ :=
   codeWiresE (symEnum S) side α K
 
 /-- **The instance of `[α]` of Fig. 10 with its wires shifted** (page 89): with the names `xs` on
 its ports and its internal wires named by `codeWires`, `[α]` is its tree renamed by `codeRen`. -/
-theorem inst_codeNet_fresh (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem inst_codeNet_fresh
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
     (codeNet side α).inst (fun i => var (xs i)) (codeWires side α K) =
       (codeTree side α).bind fun x => var (codeRen xs K x) :=
   inst_codeNetE_fresh (symEnum S) side α xs K
 
 /-- The internal wires named by `codeWires` are distinct. -/
-theorem codeWires_injective (α : S.Sym) (K : ℕ) : Function.Injective (codeWires side α K) :=
+theorem codeWires_injective
+    -- the symbol, and the shift
+    (α : S.Sym)
+    (K : ℕ) :
+    Function.Injective (codeWires side α K) :=
   codeWiresE_injective (symEnum S) side α K
 
 /-- The internal wires named by `codeWires` are at least `K`. -/
-theorem le_codeWires (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
+theorem le_codeWires
+    -- the symbol, the shift, and an internal wire of `[α]`
+    (α : S.Sym)
+    (K : ℕ)
+    (w : Fin (codeNet side α).internal) :
     K ≤ codeWires side α K w :=
   le_codeWiresE (symEnum S) side α K w
 
 /-- The internal wires named by `codeWires` are below `K` plus a bound of the names of the tree. -/
-theorem codeWires_lt (α : S.Sym) (K : ℕ) (w : Fin (codeNet side α).internal) :
+theorem codeWires_lt
+    -- the symbol, the shift, and an internal wire of `[α]`
+    (α : S.Sym)
+    (K : ℕ)
+    (w : Fin (codeNet side α).internal) :
     codeWires side α K w < K + ((codeTree side α).vars.sup + 1) :=
   codeWiresE_lt (symEnum S) side α K w
 
 /-- The menu `Γ_β` of Fig. 10 has one package per symbol (page 89). -/
-theorem length_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
+theorem length_codeCellMenu
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     (codeCellMenu side β k₀).length = Nat.card S.Sym :=
   length_codeCellMenuE (symEnum S) side β k₀
 
 /-- **The entry of `Γ_β` at the number of `α` is `Γ_{α,β}`** (Fig. 10, page 89): the package built
 from the side of `α` against `β`, on its block of names. -/
-theorem getElem_codeCellMenu (α β : S.Sym) (k₀ : ℕ)
+theorem getElem_codeCellMenu
+    -- the two symbols, and the first name of the menu `Γ_β`
+    (α β : S.Sym)
+    (k₀ : ℕ)
+    -- the number of `α` is an index of the menu
     (h : (symEnum S α : ℕ) < (codeCellMenu side β k₀).length) :
     (codeCellMenu side β k₀)[(symEnum S α : ℕ)]'h =
       codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side α β)
@@ -303,33 +433,56 @@ theorem getElem_codeCellMenu (α β : S.Sym) (k₀ : ℕ)
   getElem_codeCellMenuE (symEnum S) side α β k₀ h
 
 /-- The packages of the menu `Γ_β` (page 89): each `Γ_{j,β}` is a package. -/
-theorem codeCellMenu_isPackage (β : S.Sym) (k₀ : ℕ) :
+theorem codeCellMenu_isPackage
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     ∀ π ∈ codeCellMenu side β k₀, π.IsPackage :=
   codeCellMenuE_isPackage (symEnum S) side β k₀
 
 /-- The names of the packages of the menu `Γ_β` are above `k₀`. -/
-theorem le_of_mem_codeCellMenu (β : S.Sym) (k₀ : ℕ) :
+theorem le_of_mem_codeCellMenu
+    -- the symbol, and the first name of the menu
+    (β : S.Sym)
+    (k₀ : ℕ) :
     ∀ π ∈ codeCellMenu side β k₀, ∀ x ∈ π.vars, k₀ ≤ x :=
   le_of_mem_codeCellMenuE (symEnum S) side β k₀
 
 /-- The tree of `[α]` renamed by `codeRen` is the cell of Fig. 6 with the renamed menu `Γ_α`, the
 renamed code `!Γ`, the ports `xs` and the loop `K + n` (page 89). -/
-theorem codeTree_bind_codeRen (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem codeTree_bind_codeRen
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
+    -- the renamed tree of `[α]` is the cell of Fig. 6 with: the renamed menu `Γ_α`,
     (codeTree side α).bind (fun x => var (codeRen xs K x)) =
       cellSkel (menu ((codeCellMenu side α (S.arity α + 1)).map
           (·.bind fun x => var (codeRen xs K x))))
+        -- the selector of the number of `α` among the symbols,
         (Nat.card S.Sym) (symEnum S α)
+        -- the leaves of the multiplexor: the renamed code `!Γ` and the ports `xs`,
         ((code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).bind
             (fun x => var (codeRen xs K x)) ::
-          List.ofFn fun j => var (xs j)) (K + S.arity α) :=
+          List.ofFn fun j => var (xs j))
+        -- and the loop
+        (K + S.arity α) :=
   codeTreeE_bind_codeRen (symEnum S) side α xs K
 
 /-- The packages of the renamed menu `Γ_α` of `[α]` are packages (page 89): `codeRen` is
 injective above the ports. -/
-theorem codeCellMenu_bind_isPackage (α : S.Sym) (xs : Fin (S.arity α) → ℕ) (K : ℕ) :
+theorem codeCellMenu_bind_isPackage
+    -- the symbol, the names on its ports, and the shift of the internal wires
+    (α : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (K : ℕ) :
     ∀ π ∈ (codeCellMenu side α (S.arity α + 1)).map (·.bind fun x => var (codeRen xs K x)),
       π.IsPackage :=
   codeCellMenuE_bind_isPackage (symEnum S) side α xs K
+
+-- ============================================================================================
+-- 5. Main result: the two cells meet
+-- ============================================================================================
 
 /-- **Two cells `[α]`, `[β]` of Fig. 10 plugged by their roots meet** (Lafont 1997, Fig. 10,
 pages 89–90; the analogue of Fig. 7, rows 1–2, page 86). With the names `xs`, `ys` on their ports,
@@ -343,13 +496,26 @@ The renamings are explicit: the internal wires of `[α]` are first renamed above
 net, by `codeRen xs K` (the name `x` of the tree of `[α]` becomes `K + x`), and those of `[β]`
 above again, by `codeRen ys K'`. The loop is `ℓ = K + n` with `n` the arity of `α`. The side
 `side` is any choice of expanded sides. -/
-theorem codeCells_meet (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin (S.arity β) → ℕ)
-    (f : Fin (codeNet side α).internal → ℕ) (g : Fin (codeNet side β).internal → ℕ) (Δ : CNet)
+theorem codeCells_meet
+    -- the two symbols, and the names on the ports of `[α]` and of `[β]`
+    (α β : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (ys : Fin (S.arity β) → ℕ)
+    -- any names of the internal wires of `[α]` and of `[β]`
+    (f : Fin (codeNet side α).internal → ℕ)
+    (g : Fin (codeNet side β).internal → ℕ)
+    -- the rest of the net
+    (Δ : CNet)
+    -- the net we start from is linear: `[α]` and `[β]` plugged by their roots, and `Δ`
     (hlin : Net.Linear (s((codeNet side α).inst (fun i => var (xs i)) f,
       (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ)) :
+    -- there are shifts `K`, `K'` of the internal wires and a net `M` such that
     ∃ (K K' : ℕ) (M : CNet),
+      -- the net reduces, up to wires, to `M`,
       StepsE system (s((codeNet side α).inst (fun i => var (xs i)) f,
         (codeNet side β).inst (fun j => var (ys j)) g) ::ₘ Δ) M ∧
+      -- and `M` is the same graph as: the multiplexor of `[α]` (leaves: its renamed code `!Γ`,
+      -- the ports `xs`, the loop `K + S.arity α`) against `Γ_{α,β}`, renamed as in `[β]`;
       Equiv M
         (s(mux ((code (codeKey side α) (menu (codeMenus side (codeMenuBase side α)))).bind
                 (fun x => var (codeRen xs K x)) ::
@@ -357,6 +523,8 @@ theorem codeCells_meet (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin
             (codeGammaOpt (Nat.card S.Sym) (fun γ => symEnum S γ) (side α β)
               (S.arity β + 1 + off (codeCellSizes side β) (symEnum S α))).bind
                 (fun x => var (codeRen ys K' x))) ::ₘ
+          -- the multiplexor of `[β]` (leaves: its renamed code, the ports `ys`, the same loop)
+          -- against `Γ_{β,α}`, renamed as in `[α]`; and `Δ`
           s(mux ((code (codeKey side β) (menu (codeMenus side (codeMenuBase side β)))).bind
                 (fun x => var (codeRen ys K' x)) ::
               List.ofFn (fun j => (var (ys j) : Term sig ℕ)) ++ [var (K + S.arity α)]),
@@ -365,11 +533,15 @@ theorem codeCells_meet (α β : S.Sym) (xs : Fin (S.arity α) → ℕ) (ys : Fin
                 (fun x => var (codeRen xs K x))) ::ₘ Δ) :=
   codeCells_meetE (symEnum S) side α β xs ys f g Δ hlin
 
-
-/-! ## The multiplexor of `[α]` against `Γ_{α,β}` -/
+-- ============================================================================================
+-- 6. Main result: the multiplexor of `[α]` against `Γ_{α,β}`
+-- ============================================================================================
 
 /-- Pairing two lists of trees given by functions on `Fin n`. -/
-theorem zipWith_ofFn_ofFn {n : ℕ} (ps qs : Fin n → Term sig ℕ) :
+theorem zipWith_ofFn_ofFn
+    -- the two lists of `n` trees
+    {n : ℕ}
+    (ps qs : Fin n → Term sig ℕ) :
     List.zipWith (fun t u => s(t, u)) (List.ofFn ps) (List.ofFn qs) =
       List.ofFn fun i => s(ps i, qs i) := by
   apply List.ext_getElem (by simp)
@@ -379,9 +551,17 @@ theorem zipWith_ofFn_ofFn {n : ℕ} (ps qs : Fin n → Term sig ℕ) :
 /-- **`M_{n+2}` against `M*_{n+2}`, first leaf, `n` middle leaves and last leaf** (page 82): the
 multiplexor with leaves `c`, `ps`, `t` against the dual multiplexor with leaves `C`, `qs`, `T`
 joins `c` to `C`, each `ps i` to `qs i`, and `t` to `T`, in any context `Δ`. -/
-theorem mux_muxStar_cons_ofFn {n : ℕ} (c C t T : Term sig ℕ) (ps qs : Fin n → Term sig ℕ)
+theorem mux_muxStar_cons_ofFn
+    -- the first and last leaves of the multiplexor (`c`, `t`) and of the dual one (`C`, `T`)
+    {n : ℕ}
+    (c C t T : Term sig ℕ)
+    -- the `n` middle leaves of the multiplexor and of the dual one
+    (ps qs : Fin n → Term sig ℕ)
+    -- the rest of the net
     (Δ : CNet) :
+    -- the multiplexor against the dual multiplexor reduces to
     Red (s(mux (c :: List.ofFn ps ++ [t]), muxStar (C :: List.ofFn qs ++ [T])) ::ₘ Δ)
+      -- `c` against `C`, `t` against `T`, each `ps i` against `qs i`, and `Δ`
       (s(c, C) ::ₘ s(t, T) ::ₘ ((↑(List.ofFn fun i => s(ps i, qs i)) : CNet) + Δ)) := by
   refine (mux_muxStar _ _ Δ (by simp)).cast rfl ?_
   rw [List.cons_append, List.cons_append, List.zipWith_cons_cons,
@@ -390,6 +570,7 @@ theorem mux_muxStar_cons_ofFn {n : ℕ} (c C t T : Term sig ℕ) (ps qs : Fin n 
     ← Multiset.coe_add, Multiset.cons_add]
   rw [Multiset.coe_nil, Multiset.add_cons, add_zero, Multiset.cons_add]
 
+-- the interaction system, and the arity `a` and number `k` of middle ports of a side
 variable {S : Signature} {a k : ℕ}
 
 /-- **The multiplexor of `[α]` against `Γ_{α,β}`** (Fig. 10, page 89; the analogue of Fig. 7,
@@ -398,14 +579,32 @@ the loop `ℓ`, against the package `Γ_{α,β}` of a side `φ` (renamed by any 
 `Δ`, reduces by `mux_muxStar` to the code `c` against the copier `C_p` on the extra ports of the
 cells of `⟨φ⟩`, each port `xs i` against the tree of `⟨φ⟩` at the port `i` of `α`, and the loop `ℓ`
 against the transpositor `T_σ` on the trees of `⟨φ⟩` at the middle ports. -/
-theorem codeCells_meet_gamma (m : ℕ) (idx : S.Sym → ℕ) (φ : Rule S a k) (σ : Equiv.Perm (Fin k))
-    (hσ : Function.Involutive σ) (k₀ : ℕ) (ρ : ℕ → ℕ) (c : Term sig ℕ) (xs : Fin a → ℕ) (ℓ : ℕ)
+theorem codeCells_meet_gamma
+    -- the number `m` of symbols, and their numbering `idx`
+    (m : ℕ)
+    (idx : S.Sym → ℕ)
+    -- the side `φ`, and the involution `σ` of its middle ports
+    (φ : Rule S a k)
+    (σ : Equiv.Perm (Fin k))
+    (hσ : Function.Involutive σ)
+    -- the first name `k₀` of the package `Γ_{α,β}`, and its renaming `ρ`
+    (k₀ : ℕ)
+    (ρ : ℕ → ℕ)
+    -- the leaves of the multiplexor: the code `c`, the ports `xs` and the loop `ℓ`
+    (c : Term sig ℕ)
+    (xs : Fin a → ℕ)
+    (ℓ : ℕ)
+    -- the rest of the net
     (Δ : CNet) :
+    -- the multiplexor against the renamed package `Γ_{α,β}` reduces to
     Red (s(mux (c :: List.ofFn (fun i => (var (xs i) : Term sig ℕ)) ++ [var ℓ]),
         (codeGamma m idx φ σ hσ k₀).bind fun x => var (ρ x)) ::ₘ Δ)
+      -- the code `c` against the copier `C_p` on the extra ports of the cells of `⟨φ⟩`,
       (s(c, (copier (codeGammaExtras m idx φ k₀)).bind fun x => var (ρ x)) ::ₘ
+        -- the loop `ℓ` against the transpositor `T_σ` on the trees of `⟨φ⟩` at the middle ports,
         s(var ℓ, transpositorPerm σ hσ fun j => (codePort m idx φ k₀ (.inr j)).bind
           fun x => var (ρ x)) ::ₘ
+        -- each port `xs i` against the tree of `⟨φ⟩` at the port `i` of `α`, and `Δ`
         ((↑(List.ofFn fun i => s(var (xs i), (codePort m idx φ k₀ (.inl i)).bind
           fun x => var (ρ x))) : CNet) + Δ)) := by
   rw [codeGamma, bind_muxStar, List.map_cons, List.map_append, List.map_ofFn, List.map_cons,
