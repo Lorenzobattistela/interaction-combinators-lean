@@ -24,15 +24,30 @@ wires (page 80): if `Φ(α)` is the wire from the root to the port, `x = α(x)` 
 equation `x = x` is linear and no wire substitution applies to it, so it stays in the net as a
 closed loop.
 
-* `Net.HasVicious` — some net equivalent to `N` has an equation `x = t` with `x` a leaf of `t`.
-* `Net.IsReduced` — no cut and no vicious circle.
-* `Net.ChainVicious` — a vicious circle on the text itself: equations `x₀ = t₀, x₁ = t₁, …,
-  xₖ = tₖ` with `xᵢ₊₁` a leaf of `tᵢ` and `x₀` a leaf of `tₖ`. A wire substitution, in either
-  direction, keeps it (`Vicious.Wire.chainVicious`, `Vicious.Wire.chainVicious_symm`), and for a
-  linear net it is the same as `Net.HasVicious` (`Net.hasVicious_iff_chainVicious`).
-* `Net.isReduced_tree` — a tree plugged into a free port is reduced.
-* `Translation.NetTr.hasVicious` — the fourth point of the proof of Proposition 3: if `N` has a
-  vicious circle, so has `Φ(N)`, for any translation.
+Contents, in the order of the file:
+
+1. Definitions: `Net.HasVicious` (some net equivalent to `N` has an equation `x = t` with `x` a
+   leaf of `t`); `Net.IsReduced` (no cut and no vicious circle); `Vicious.Path`, a principal path
+   written out; `Vicious.IsCircle`, a closed one; `Net.ChainVicious`, a vicious circle on the
+   text itself: equations `x₀ = t₀, x₁ = t₁, …, xₖ = tₖ` with `xᵢ₊₁` a leaf of `tᵢ` and `x₀` a
+   leaf of `tₖ`.
+2. Auxiliary lemmas, vicious circles and reduced nets up to wires: `Net.hasVicious_of_mem`,
+   `Net.HasVicious.of_equiv`, `Net.hasVicious_iff_of_equiv`, `Net.IsReduced.of_equiv`,
+   `Net.isReduced_iff_of_equiv`.
+3. Auxiliary lemmas, principal paths: `Vicious.mem_subst_of_ne`, `Vicious.mem_subst_of_mem`,
+   `Vicious.Path.append`, `Vicious.Path.mem_vars`, `Vicious.Path.eq_of_zero`,
+   `Vicious.Path.split`, `Vicious.Path.snoc`, `Vicious.Path.sub`, `Vicious.IsCircle.rotate`,
+   `Vicious.circle_count`.
+4. Auxiliary lemmas, written circles: `Net.chainVicious_of_mem`, `Net.ChainVicious.add_right`,
+   `Net.hasVicious_contract`, `Net.ChainVicious.hasVicious` (in a linear net a written circle is
+   a vicious circle).
+5. Auxiliary lemmas, wire substitution: a wire substitution, in either direction, keeps a
+   written circle (`Vicious.Wire.chainVicious`, `Vicious.chainVicious_unsub`,
+   `Vicious.Wire.chainVicious_symm`, `Vicious.Equiv.chainVicious_iff`).
+6. Main results: `Net.HasVicious.chainVicious` and `Net.hasVicious_iff_chainVicious` (for a
+   linear net, a vicious circle is the same as a written one); `Net.isReduced_tree` (a tree
+   plugged into a free port is reduced); `Translation.NetTr.hasVicious`, the fourth point of the
+   proof of Proposition 3: if `N` has a vicious circle, so has `Φ(N)`, for any translation.
 -/
 
 namespace INet
@@ -41,50 +56,149 @@ variable {S S' : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
 namespace Net
 
 /-- A net has a vicious circle (Lafont 1997, page 79): some net that is the same graph as `N` has
 an equation `x = t` whose name `x` is a leaf of `t`. The leaves of `t` reach its root by a principal
 path, so the root of `t`, plugged into `x`, closes it. With `t = x` it is a cyclic wire, a vicious
 circle of length 0. -/
-def HasVicious (N : Net S ℕ) : Prop :=
-  ∃ N', Equiv N N' ∧ ∃ (x : ℕ) (t : Term S ℕ), x ∈ t.vars ∧ s(var x, t) ∈ N'
-
-/-- An equation `x = t` with `x` a leaf of `t` is a vicious circle (Lafont 1997, page 79). -/
-theorem hasVicious_of_mem {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (hx : x ∈ t.vars)
-    (h : s(var x, t) ∈ N) : N.HasVicious :=
-  ⟨N, Equiv.refl N, x, t, hx, h⟩
-
-/-- Having a vicious circle is a property of the graph (Lafont 1997, page 79): it does not change
-under wire substitution. -/
-theorem HasVicious.of_equiv {N M : Net S ℕ} (h : N.HasVicious) (e : Equiv N M) : M.HasVicious := by
-  obtain ⟨N', hE, rest⟩ := h
-  exact ⟨N', e.symm.trans hE, rest⟩
-
-/-- Equivalent nets have a vicious circle together (Lafont 1997, page 79). -/
-theorem hasVicious_iff_of_equiv {N M : Net S ℕ} (e : Equiv N M) : N.HasVicious ↔ M.HasVicious :=
-  ⟨fun h => h.of_equiv e, fun h => h.of_equiv e.symm⟩
+def HasVicious
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  -- there is a net `N'`, the same graph as `N`,
+  ∃ N', Equiv N N' ∧
+    -- with an equation `x = t` where `x` is a leaf of `t`
+    ∃ (x : ℕ) (t : Term S ℕ), x ∈ t.vars ∧ s(var x, t) ∈ N'
 
 /-- A reduced net (Lafont 1997, page 79): it contains no cut and no vicious circle. (Not to be
 confused with `Rule.Reduced`, a syntactic form of the right members of rules.) -/
-def IsReduced (N : Net S ℕ) : Prop := ¬ N.HasCut ∧ ¬ N.HasVicious
-
-/-- Being reduced is a property of the graph (Lafont 1997, page 79). -/
-theorem IsReduced.of_equiv {N M : Net S ℕ} (h : N.IsReduced) (e : Equiv N M) : M.IsReduced :=
-  ⟨fun hc => h.1 (hc.of_equiv e.symm), fun hv => h.2 (hv.of_equiv e.symm)⟩
-
-/-- Equivalent nets are reduced together (Lafont 1997, page 79). -/
-theorem isReduced_iff_of_equiv {N M : Net S ℕ} (e : Equiv N M) : N.IsReduced ↔ M.IsReduced :=
-  ⟨fun h => h.of_equiv e, fun h => h.of_equiv e.symm⟩
+def IsReduced
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  -- no cut and no vicious circle
+  ¬ N.HasCut ∧ ¬ N.HasVicious
 
 end Net
 
 namespace Vicious
 
-/-! ## Principal paths written out -/
+/-- A principal path written out, between the names `x` and `z` (Lafont 1997, page 79): equations
+`x = t₁, y₁ = t₂, …, yₖ₋₁ = tₖ` with `y₁` a leaf of `t₁`, `y₂` a leaf of `t₂`, …, and `z` a leaf
+of `tₖ`. Read backwards it climbs from `z` to `x`: from a leaf of each tree to its root, then along
+the wire to a leaf of the previous tree. With no equation, `x = z`. -/
+inductive Path : Net S ℕ → ℕ → ℕ → Prop
+  -- no equation: a path from `x` to itself
+  | nil (x : ℕ) : Path 0 x x
+  -- an equation `x = t` with `y` a leaf of `t`, followed by a path `C` from `y` to `z`
+  | cons {x y z : ℕ} {t : Term S ℕ} {C : Net S ℕ} : y ∈ t.vars → Path C y z →
+      Path (s(var x, t) ::ₘ C) x z
+
+/-- A vicious circle written out (Lafont 1997, page 79): a closed path, `x = t` followed by a path
+from a leaf `y` of `t` back to `x`. -/
+def IsCircle
+    -- the equations of the circle
+    (K : Net S ℕ) :
+    Prop :=
+  -- there are an equation `x = t` and a leaf `y` of `t`
+  ∃ x y t C, y ∈ t.vars ∧
+    -- and a path `C` from `y` back to `x`
+    Path C y x ∧
+    -- and the circle is `x = t` followed by `C`
+    K = s(var x, t) ::ₘ C
+
+end Vicious
+
+open Vicious
+
+namespace Net
+
+/-- A vicious circle written out on the text (Lafont 1997, page 79): equations
+`x₀ = t₀, x₁ = t₁, …, xₖ = tₖ` among those of `N`, with `xᵢ₊₁` a leaf of `tᵢ` and `x₀` a leaf of
+`tₖ`. -/
+def ChainVicious
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  -- `N` is a written circle `K` together with the rest `D` of the net
+  ∃ K D, IsCircle K ∧ N = K + D
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: vicious circles and reduced nets up to wires
+-- ============================================================================================
+
+/-- An equation `x = t` with `x` a leaf of `t` is a vicious circle (Lafont 1997, page 79). -/
+theorem hasVicious_of_mem
+    -- the net
+    {N : Net S ℕ}
+    -- an equation `x = t` of `N`, with `x` a leaf of `t`
+    {x : ℕ}
+    {t : Term S ℕ}
+    (hx : x ∈ t.vars)
+    (h : s(var x, t) ∈ N) :
+    N.HasVicious :=
+  ⟨N, Equiv.refl N, x, t, hx, h⟩
+
+/-- Having a vicious circle is a property of the graph (Lafont 1997, page 79): it does not change
+under wire substitution. -/
+theorem HasVicious.of_equiv
+    -- two nets, the first with a vicious circle
+    {N M : Net S ℕ}
+    (h : N.HasVicious)
+    -- they are the same graph
+    (e : Equiv N M) :
+    M.HasVicious := by
+  obtain ⟨N', hE, rest⟩ := h
+  exact ⟨N', e.symm.trans hE, rest⟩
+
+/-- Equivalent nets have a vicious circle together (Lafont 1997, page 79). -/
+theorem hasVicious_iff_of_equiv
+    -- two nets that are the same graph
+    {N M : Net S ℕ}
+    (e : Equiv N M) :
+    N.HasVicious ↔ M.HasVicious :=
+  ⟨fun h => h.of_equiv e, fun h => h.of_equiv e.symm⟩
+
+/-- Being reduced is a property of the graph (Lafont 1997, page 79). -/
+theorem IsReduced.of_equiv
+    -- two nets, the first reduced
+    {N M : Net S ℕ}
+    (h : N.IsReduced)
+    -- they are the same graph
+    (e : Equiv N M) :
+    M.IsReduced :=
+  ⟨fun hc => h.1 (hc.of_equiv e.symm), fun hv => h.2 (hv.of_equiv e.symm)⟩
+
+/-- Equivalent nets are reduced together (Lafont 1997, page 79). -/
+theorem isReduced_iff_of_equiv
+    -- two nets that are the same graph
+    {N M : Net S ℕ}
+    (e : Equiv N M) :
+    N.IsReduced ↔ M.IsReduced :=
+  ⟨fun h => h.of_equiv e, fun h => h.of_equiv e.symm⟩
+
+end Net
+
+-- ============================================================================================
+-- 3. Auxiliary lemmas: principal paths
+-- ============================================================================================
+
+namespace Vicious
 
 /-- A leaf of `r` other than `w` stays a leaf when a tree is plugged into `w`. -/
-theorem mem_subst_of_ne {r : Term S ℕ} {w y : ℕ} (u : Term S ℕ) (hy : y ∈ r.vars) (h : y ≠ w) :
+theorem mem_subst_of_ne
+    -- the tree `r`, the name `w`, and a leaf `y` of `r` other than `w`
+    {r : Term S ℕ}
+    {w y : ℕ}
+    -- the tree plugged into `w`
+    (u : Term S ℕ)
+    (hy : y ∈ r.vars)
+    (h : y ≠ w) :
     y ∈ (r.subst w u).vars := by
   have h1 := Multiset.one_le_count_iff_mem.2 hy
   refine Multiset.one_le_count_iff_mem.1 ?_
@@ -92,7 +206,12 @@ theorem mem_subst_of_ne {r : Term S ℕ} {w y : ℕ} (u : Term S ℕ) (hy : y �
   omega
 
 /-- Plugging `u` into a leaf `w` of `r` makes the leaves of `u` leaves of the result. -/
-theorem mem_subst_of_mem {r u : Term S ℕ} {w y : ℕ} (hw : w ∈ r.vars) (hy : y ∈ u.vars) :
+theorem mem_subst_of_mem
+    -- the tree `r` with a leaf `w`, and the tree `u` with a leaf `y`
+    {r u : Term S ℕ}
+    {w y : ℕ}
+    (hw : w ∈ r.vars)
+    (hy : y ∈ u.vars) :
     y ∈ (r.subst w u).vars := by
   have h1 := Multiset.one_le_count_iff_mem.2 hw
   have h2 := Multiset.one_le_count_iff_mem.2 hy
@@ -101,24 +220,27 @@ theorem mem_subst_of_mem {r u : Term S ℕ} {w y : ℕ} (hw : w ∈ r.vars) (hy 
   rw [Term.count_vars_subst]
   omega
 
-/-- A principal path written out, between the names `x` and `z` (Lafont 1997, page 79): equations
-`x = t₁, y₁ = t₂, …, yₖ₋₁ = tₖ` with `y₁` a leaf of `t₁`, `y₂` a leaf of `t₂`, …, and `z` a leaf
-of `tₖ`. Read backwards it climbs from `z` to `x`: from a leaf of each tree to its root, then along
-the wire to a leaf of the previous tree. With no equation, `x = z`. -/
-inductive Path : Net S ℕ → ℕ → ℕ → Prop
-  | nil (x : ℕ) : Path 0 x x
-  | cons {x y z : ℕ} {t : Term S ℕ} {C : Net S ℕ} : y ∈ t.vars → Path C y z →
-      Path (s(var x, t) ::ₘ C) x z
-
 /-- Two paths, end to end. -/
-theorem Path.append {C' : Net S ℕ} {y z : ℕ} (h' : Path C' y z) :
+theorem Path.append
+    -- the second path, from `y` to `z`
+    {C' : Net S ℕ}
+    {y z : ℕ}
+    (h' : Path C' y z) :
+    -- a path from `x` to `y`, followed by it, is a path from `x` to `z`
     ∀ {C : Net S ℕ} {x : ℕ}, Path C x y → Path (C + C') x z
   | _, _, .nil _ => by simpa using h'
   | _, _, .cons hy h => by rw [Multiset.cons_add]; exact .cons hy (Path.append h' h)
 
 /-- The ends of a path are names of it, unless it is empty. -/
-theorem Path.mem_vars {C : Net S ℕ} {y z : ℕ} (h : Path C y z) :
-    (C = 0 ∧ y = z) ∨ (y ∈ Net.vars C ∧ z ∈ Net.vars C) := by
+theorem Path.mem_vars
+    -- a path from `y` to `z`
+    {C : Net S ℕ}
+    {y z : ℕ}
+    (h : Path C y z) :
+    -- either it is empty and `y = z`,
+    (C = 0 ∧ y = z)
+    -- or `y` and `z` are names of it
+      ∨ (y ∈ Net.vars C ∧ z ∈ Net.vars C) := by
   induction h with
   | nil x => exact Or.inl ⟨rfl, rfl⟩
   | @cons x y z t C hy _ ih =>
@@ -128,15 +250,29 @@ theorem Path.mem_vars {C : Net S ℕ} {y z : ℕ} (h : Path C y z) :
     · simp [hz]
 
 /-- An empty path has equal ends. -/
-theorem Path.eq_of_zero {y z : ℕ} (h : Path (0 : Net S ℕ) y z) : y = z := by
+theorem Path.eq_of_zero
+    -- an empty path from `y` to `z`
+    {y z : ℕ}
+    (h : Path (0 : Net S ℕ) y z) :
+    y = z := by
   rcases h.mem_vars with ⟨-, h⟩ | ⟨h, -⟩
   · exact h
   · simp at h
 
 /-- Cutting a path at one of its equations `x₁ = t₁`: a path before it, ending at `x₁`, and a path
 after it, starting at a leaf `y₁` of `t₁`. -/
-theorem Path.split {e : Sym2 (Term S ℕ)} {C : Net S ℕ} {x z : ℕ} (h : Path C x z) (he : e ∈ C) :
-    ∃ x₁ y₁ t C₁ C₂, e = s(var x₁, t) ∧ y₁ ∈ t.vars ∧ Path C₁ x x₁ ∧ Path C₂ y₁ z ∧
+theorem Path.split
+    -- an equation `e` of a path `C` from `x` to `z`
+    {e : Sym2 (Term S ℕ)}
+    {C : Net S ℕ}
+    {x z : ℕ}
+    (h : Path C x z)
+    (he : e ∈ C) :
+    -- `e` is an equation `x₁ = t` with a leaf `y₁` of `t`,
+    ∃ x₁ y₁ t C₁ C₂, e = s(var x₁, t) ∧ y₁ ∈ t.vars ∧
+      -- `C₁` is a path from `x` to `x₁` and `C₂` a path from `y₁` to `z`,
+      Path C₁ x x₁ ∧ Path C₂ y₁ z ∧
+      -- and `C` is made of `e`, `C₁` and `C₂`
       C = e ::ₘ (C₁ + C₂) := by
   induction h with
   | nil x => simp at he
@@ -148,8 +284,18 @@ theorem Path.split {e : Sym2 (Term S ℕ)} {C : Net S ℕ} {x z : ℕ} (h : Path
       rw [Multiset.cons_swap, Multiset.cons_add]
 
 /-- The last equation of a nonempty path. -/
-theorem Path.snoc {C : Net S ℕ} {y z : ℕ} (h : Path C y z) (hC : C ≠ 0) :
-    ∃ x₁ t C₁, z ∈ t.vars ∧ Path C₁ y x₁ ∧ C = s(var x₁, t) ::ₘ C₁ := by
+theorem Path.snoc
+    -- a nonempty path from `y` to `z`
+    {C : Net S ℕ}
+    {y z : ℕ}
+    (h : Path C y z)
+    (hC : C ≠ 0) :
+    -- there is an equation `x₁ = t` with `z` a leaf of `t`,
+    ∃ x₁ t C₁, z ∈ t.vars ∧
+      -- after a path `C₁` from `y` to `x₁`,
+      Path C₁ y x₁ ∧
+      -- and `C` is `C₁` with that equation
+      C = s(var x₁, t) ::ₘ C₁ := by
   induction h with
   | nil x => exact absurd rfl hC
   | @cons x y z t C hy hC' ih =>
@@ -160,8 +306,17 @@ theorem Path.snoc {C : Net S ℕ} {y z : ℕ} (h : Path C y z) (hC : C ≠ 0) :
       rw [e, Multiset.cons_swap]
 
 /-- Plugging a tree into a name of a path that is neither an end nor a link keeps the path. -/
-theorem Path.sub {C : Net S ℕ} {y z w : ℕ} (u : Term S ℕ) (h : Path C y z) (hy : w ≠ y)
-    (hz : w ≠ z) (hc : (Net.vars C).count w ≤ 1) : Path (Cut.sub C w u) y z := by
+theorem Path.sub
+    -- a path from `y` to `z`, and the tree `u` plugged into `w`
+    {C : Net S ℕ}
+    {y z w : ℕ}
+    (u : Term S ℕ)
+    (h : Path C y z)
+    -- `w` is not an end of the path, and occurs at most once in it
+    (hy : w ≠ y)
+    (hz : w ≠ z)
+    (hc : (Net.vars C).count w ≤ 1) :
+    Path (Cut.sub C w u) y z := by
   induction h with
   | nil x => simpa [Cut.sub] using Path.nil (S := S) x
   | @cons x y' z t C hy' hC ih =>
@@ -176,24 +331,36 @@ theorem Path.sub {C : Net S ℕ} {y z w : ℕ} (u : Term S ℕ) (h : Path C y z)
     rw [Cut.sub_cons, Cut.subst_var_ne (Ne.symm hy)]
     exact .cons (mem_subst_of_ne u hy' hyw) (ih (Ne.symm hyw) hz (by omega))
 
-/-! ## Vicious circles written out -/
-
-/-- A vicious circle written out (Lafont 1997, page 79): a closed path, `x = t` followed by a path
-from a leaf `y` of `t` back to `x`. -/
-def IsCircle (K : Net S ℕ) : Prop :=
-  ∃ x y t C, y ∈ t.vars ∧ Path C y x ∧ K = s(var x, t) ::ₘ C
-
 /-- A circle can start at any of its equations. -/
-theorem IsCircle.rotate {K : Net S ℕ} {e : Sym2 (Term S ℕ)} (h : IsCircle K) (he : e ∈ K) :
-    ∃ x y t C, e = s(var x, t) ∧ y ∈ t.vars ∧ Path C y x ∧ K = e ::ₘ C := by
+theorem IsCircle.rotate
+    -- an equation `e` of a circle `K`
+    {K : Net S ℕ}
+    {e : Sym2 (Term S ℕ)}
+    (h : IsCircle K)
+    (he : e ∈ K) :
+    -- `e` is an equation `x = t` with a leaf `y` of `t`,
+    ∃ x y t C, e = s(var x, t) ∧ y ∈ t.vars ∧
+      -- `C` is a path from `y` back to `x`,
+      Path C y x ∧
+      -- and the circle is `e` followed by `C`
+      K = e ::ₘ C := by
   obtain ⟨x, y, t, C, hy, hC, rfl⟩ := h
   obtain ⟨x₁, y₁, t₁, C₁, C₂, rfl, hy₁, hC₁, hC₂, e⟩ := (Path.cons hy hC).split he
   exact ⟨x₁, y₁, t₁, C₂ + C₁, rfl, hy₁, hC₁.append hC₂, by rw [e, add_comm C₁]⟩
 
 /-- The two names of the first equation `x = t` of a circle, its root `x` and the next link `y`,
 occur twice in the circle. -/
-theorem circle_count {x y : ℕ} {t : Term S ℕ} {C : Net S ℕ} (hy : y ∈ t.vars) (hC : Path C y x) :
-    2 ≤ (Net.vars (s(var x, t) ::ₘ C)).count x ∧ 2 ≤ (Net.vars (s(var x, t) ::ₘ C)).count y := by
+theorem circle_count
+    -- the circle: an equation `x = t`, a leaf `y` of `t`, and a path `C` from `y` back to `x`
+    {x y : ℕ}
+    {t : Term S ℕ}
+    {C : Net S ℕ}
+    (hy : y ∈ t.vars)
+    (hC : Path C y x) :
+    -- `x` occurs at least twice in the circle,
+    2 ≤ (Net.vars (s(var x, t) ::ₘ C)).count x
+    -- and so does `y`
+      ∧ 2 ≤ (Net.vars (s(var x, t) ::ₘ C)).count y := by
   have h1 := Multiset.one_le_count_iff_mem.2 hy
   rcases hC.mem_vars with ⟨rfl, rfl⟩ | ⟨hm, hm'⟩
   · simp only [Net.vars_cons, eqVars_mk, Term.vars_var, Multiset.count_add,
@@ -207,30 +374,45 @@ theorem circle_count {x y : ℕ} {t : Term S ℕ} {C : Net S ℕ} (hy : y ∈ t.
 
 end Vicious
 
-open Vicious
+-- ============================================================================================
+-- 4. Auxiliary lemmas: written circles
+-- ============================================================================================
 
 namespace Net
 
-/-- A vicious circle written out on the text (Lafont 1997, page 79): equations
-`x₀ = t₀, x₁ = t₁, …, xₖ = tₖ` among those of `N`, with `xᵢ₊₁` a leaf of `tᵢ` and `x₀` a leaf of
-`tₖ`. -/
-def ChainVicious (N : Net S ℕ) : Prop := ∃ K D, IsCircle K ∧ N = K + D
-
 /-- An equation `x = t` with `x` a leaf of `t` is a written vicious circle. -/
-theorem chainVicious_of_mem {N : Net S ℕ} {x : ℕ} {t : Term S ℕ} (hx : x ∈ t.vars)
-    (h : s(var x, t) ∈ N) : N.ChainVicious := by
+theorem chainVicious_of_mem
+    -- the net
+    {N : Net S ℕ}
+    -- an equation `x = t` of `N`, with `x` a leaf of `t`
+    {x : ℕ}
+    {t : Term S ℕ}
+    (hx : x ∈ t.vars)
+    (h : s(var x, t) ∈ N) :
+    N.ChainVicious := by
   obtain ⟨D, rfl⟩ := Multiset.exists_cons_of_mem h
   exact ⟨{s(var x, t)}, D, ⟨x, x, t, 0, hx, .nil x, rfl⟩, by simp⟩
 
 /-- A written vicious circle stays one when equations are added. -/
-theorem ChainVicious.add_right {N : Net S ℕ} (h : N.ChainVicious) (D' : Net S ℕ) :
+theorem ChainVicious.add_right
+    -- a net with a written vicious circle
+    {N : Net S ℕ}
+    (h : N.ChainVicious)
+    -- the equations added
+    (D' : Net S ℕ) :
     (N + D').ChainVicious := by
   obtain ⟨K, D, hK, rfl⟩ := h
   exact ⟨K, D + D', hK, by rw [add_assoc]⟩
 
 /-- Contracting a written circle into one equation. -/
-theorem hasVicious_contract {x : ℕ} :
-    ∀ {C : Net S ℕ} {y : ℕ}, Path C y x → ∀ (t : Term S ℕ) (D : Net S ℕ), y ∈ t.vars →
+theorem hasVicious_contract
+    -- the root of the circle
+    {x : ℕ} :
+    -- for a path `C` from `y` back to `x`,
+    ∀ {C : Net S ℕ} {y : ℕ}, Path C y x →
+      -- an equation `x = t` with `y` a leaf of `t`, and the rest `D` of the net,
+      ∀ (t : Term S ℕ) (D : Net S ℕ), y ∈ t.vars →
+      -- if the net is linear, it has a vicious circle
       Net.Linear (s(var x, t) ::ₘ (C + D)) → HasVicious (s(var x, t) ::ₘ (C + D)) := by
   intro C y hC
   induction hC with
@@ -255,7 +437,12 @@ theorem hasVicious_contract {x : ℕ} :
 /-- A written vicious circle of a linear net is a vicious circle (Lafont 1997, page 79): its
 equations are contracted, by wire substitutions, into one equation `x = t` with `x` a leaf of
 `t`. -/
-theorem ChainVicious.hasVicious {N : Net S ℕ} (h : N.ChainVicious) (hN : N.Linear) :
+theorem ChainVicious.hasVicious
+    -- a net with a written vicious circle
+    {N : Net S ℕ}
+    (h : N.ChainVicious)
+    -- the net is linear
+    (hN : N.Linear) :
     N.HasVicious := by
   obtain ⟨K, D, ⟨x, y, t, C, hy, hC, rfl⟩, rfl⟩ := h
   rw [Multiset.cons_add] at hN ⊢
@@ -263,14 +450,21 @@ theorem ChainVicious.hasVicious {N : Net S ℕ} (h : N.ChainVicious) (hN : N.Lin
 
 end Net
 
-namespace Vicious
+-- ============================================================================================
+-- 5. Auxiliary lemmas: a wire substitution keeps a written vicious circle
+-- ============================================================================================
 
-/-! ## A wire substitution keeps a written vicious circle -/
+namespace Vicious
 
 /-- **A wire substitution keeps a written vicious circle** (Lafont 1997, page 79). If the wire
 `w = u` is an equation of the circle, the circle gets shorter by one equation; otherwise `u` is
 plugged into a leaf of a tree of the circle that is not a link of it. -/
-theorem Wire.chainVicious {N M : Net S ℕ} (h : Wire N M) (hc : N.ChainVicious) :
+theorem Wire.chainVicious
+    -- `M` is `N` after one wire substitution
+    {N M : Net S ℕ}
+    (h : Wire N M)
+    -- `N` has a written vicious circle
+    (hc : N.ChainVicious) :
     M.ChainVicious := by
   obtain ⟨w, u, a, b, Δ, hlin, hw⟩ := h
   have hcw := hlin w
@@ -355,8 +549,16 @@ theorem Wire.chainVicious {N M : Net S ℕ} (h : Wire N M) (hc : N.ChainVicious)
 
 /-- A wire substitution undone keeps a written vicious circle, when `w` occurs in the left side
 `a` of the equation it was plugged into. -/
-theorem chainVicious_unsub {w : ℕ} {u a b : Term S ℕ} {Δ : Net S ℕ} (hwa : w ∈ a.vars)
+theorem chainVicious_unsub
+    -- the wire `w = u`, the equation `a = b` and the rest `Δ` of the net
+    {w : ℕ}
+    {u a b : Term S ℕ}
+    {Δ : Net S ℕ}
+    -- `w` is a leaf of the left side `a`
+    (hwa : w ∈ a.vars)
+    -- the net after the substitution has a written vicious circle
     (hc : Net.ChainVicious (s(a.subst w u, b) ::ₘ Δ)) :
+    -- so has the net before it
     Net.ChainVicious (s(var w, u) ::ₘ s(a, b) ::ₘ Δ) := by
   obtain ⟨K, D, hK, hN⟩ := hc
   by_cases hE : s(a.subst w u, b) ∈ K
@@ -399,7 +601,12 @@ theorem chainVicious_unsub {w : ℕ} {u a b : Term S ℕ} {Δ : Net S ℕ} (hwa 
 /-- **A wire substitution undone keeps a written vicious circle** (Lafont 1997, page 79). If `M`
 is `N` with the wire `w = u` contracted and `M` has a written vicious circle, so has `N`: the
 circle gets the wire as a new equation, or keeps its equations with `u` unplugged. -/
-theorem Wire.chainVicious_symm {N M : Net S ℕ} (h : Wire N M) (hc : M.ChainVicious) :
+theorem Wire.chainVicious_symm
+    -- `M` is `N` after one wire substitution
+    {N M : Net S ℕ}
+    (h : Wire N M)
+    -- `M` has a written vicious circle
+    (hc : M.ChainVicious) :
     N.ChainVicious := by
   obtain ⟨w, u, a, b, Δ, hlin, hw⟩ := h
   have hcw := hlin w
@@ -419,7 +626,10 @@ theorem Wire.chainVicious_symm {N M : Net S ℕ} (h : Wire N M) (hc : M.ChainVic
     exact chainVicious_unsub hwb hc
 
 /-- Equivalent nets have a written vicious circle together. -/
-theorem Equiv.chainVicious_iff {N M : Net S ℕ} (h : Equiv N M) :
+theorem Equiv.chainVicious_iff
+    -- two nets that are the same graph
+    {N M : Net S ℕ}
+    (h : Equiv N M) :
     N.ChainVicious ↔ M.ChainVicious := by
   induction h with
   | rel _ _ h => exact ⟨Wire.chainVicious h, Wire.chainVicious_symm h⟩
@@ -429,26 +639,41 @@ theorem Equiv.chainVicious_iff {N M : Net S ℕ} (h : Equiv N M) :
 
 end Vicious
 
+-- ============================================================================================
+-- 6. Main results
+-- ============================================================================================
+
 namespace Net
 
 /-- A vicious circle up to wires is written out in the net itself (Lafont 1997, page 79): a
 closed chain of equations `x₀ = t₀, …, xₖ = tₖ`, each name a leaf of the previous tree. No linearity
 is needed. -/
-theorem HasVicious.chainVicious {N : Net S ℕ} (h : N.HasVicious) : N.ChainVicious := by
+theorem HasVicious.chainVicious
+    -- a net with a vicious circle
+    {N : Net S ℕ}
+    (h : N.HasVicious) :
+    N.ChainVicious := by
   obtain ⟨N', hE, x, t, hx, hm⟩ := h
   exact (Vicious.Equiv.chainVicious_iff hE).2 (chainVicious_of_mem hx hm)
 
 /-- **A vicious circle up to wires is a closed chain** (Lafont 1997, page 79). For a linear net, a
 vicious circle of the graph is the same as equations `x₀ = t₀, x₁ = t₁, …, xₖ = tₖ` of the net
 with `xᵢ₊₁` a leaf of `tᵢ` and `x₀` a leaf of `tₖ`. -/
-theorem hasVicious_iff_chainVicious {N : Net S ℕ} (hN : N.Linear) :
+theorem hasVicious_iff_chainVicious
+    -- a linear net
+    {N : Net S ℕ}
+    (hN : N.Linear) :
     N.HasVicious ↔ N.ChainVicious :=
   ⟨HasVicious.chainVicious, fun h => h.hasVicious hN⟩
 
 /-- **A tree plugged into a free port is reduced** (Lafont 1997, page 79: "trees […] are typical
 examples of reduced nets"). The net `x = t`, with `x` not a leaf of `t`, has no cut and no vicious
 circle. -/
-theorem isReduced_tree {x : ℕ} {t : Term S ℕ} (hx : x ∉ t.vars) :
+theorem isReduced_tree
+    -- the tree `t` and the free port `x`, not a leaf of `t`
+    {x : ℕ}
+    {t : Term S ℕ}
+    (hx : x ∉ t.vars) :
     IsReduced ({s(var x, t)} : Net S ℕ) := by
   refine ⟨fun hc => ?_, fun hv => ?_⟩
   · obtain ⟨a, b, xs, D, ha, hb, h⟩ := hc.chainCut
@@ -490,8 +715,15 @@ is `x = t'`, and `x` is still a leaf of `t'`: a translation keeps the names. Thi
 paper uses Lemma 1 (the root of `Φ(α)` reaches each auxiliary port by a principal path): here
 `Φ(α)` is a tree, so the path is the branch of the tree from the port to the root. If the cells of
 `t` all become wires, `x = t'` is the cyclic wire `x = x`. -/
-theorem Translation.NetTr.hasVicious {Φ : Translation S S'} {N : Net S ℕ} {N' : Net S' ℕ}
-    (h : Φ.NetTr N N') (hv : N.HasVicious) : N'.HasVicious := by
+theorem Translation.NetTr.hasVicious
+    -- a translation, a net `N` and its translation `N'`
+    {Φ : Translation S S'}
+    {N : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Φ.NetTr N N')
+    -- `N` has a vicious circle
+    (hv : N.HasVicious) :
+    N'.HasVicious := by
   obtain ⟨N₁, hE, x, t, hx, hm⟩ := hv
   obtain ⟨N₁', h₁, hE'⟩ := h.of_equiv hE
   obtain ⟨Δ, rfl⟩ := Multiset.exists_cons_of_mem hm
