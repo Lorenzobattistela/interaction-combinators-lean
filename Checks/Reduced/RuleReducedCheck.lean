@@ -3,7 +3,7 @@ import InteractionCombinators.Core.Combinators
 import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 
 /-!
-# Check of `Lafont/RuleReduced.lean`
+# Check of `InteractionCombinators/Reduced/RuleReduced.lean`
 
 Lafont 1997, page 79 (reduced nets) and page 72 (right members are reduced).
 

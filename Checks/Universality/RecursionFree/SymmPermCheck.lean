@@ -4,11 +4,13 @@ import Checks.Universality.RecursionFree.DecompositionSymmReview
 /-!
 # `Rule.SymmPerm` is strictly weaker than symmetry up to wires (page 73)
 
-Issue #236, item 5. The rule `twin` of `Checks/DecompositionSymmReview.lean` (two `β` cells whose
-auxiliary ports are crossed) is symmetric in the sense of page 73: read from the other cell, it is
-the same net with its two internal wires exchanged (`twin_swap`). So it is `Rule.SymmPerm`, while
-it is not `Equiv` to its swap (`twin_not_symm`). The two lemmas of `Lafont/SymmPerm.lean` apply to
-it; versions of them that ask for `Equiv r.swap.net r.net` would not.
+Issue #236, item 5. The rule `twin` of
+`Checks/Universality/RecursionFree/DecompositionSymmReview.lean` (two `β` cells whose auxiliary
+ports are crossed) is symmetric in the sense of page 73: read from the other cell, it is the same
+net with its two internal wires exchanged (`twin_swap`). So it is `Rule.SymmPerm`, while it is not
+`Equiv` to its swap (`twin_not_symm`). The two lemmas of
+`InteractionCombinators/Universality/RecursionFree/SymmPerm.lean` apply to it; versions of them that
+ask for `Equiv r.swap.net r.net` would not.
 -/
 
 namespace INet.DecompositionSymmReview

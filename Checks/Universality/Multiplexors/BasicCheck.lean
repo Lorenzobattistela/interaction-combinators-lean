@@ -1,7 +1,7 @@
 import InteractionCombinators.Universality.Duplication.Duplication
 
 /-!
-# Checks of `Lafont/Basic.lean` against the paper
+# Checks of erasing and of the multiplexors against the paper
 
 A review (issue 7) compared `erase_tree`, `mux`, `muxStar` and `mux_muxStar` with Lafont 1997,
 pages 82 to 85. This file records the cases worked by hand, as statements that Lean checks.

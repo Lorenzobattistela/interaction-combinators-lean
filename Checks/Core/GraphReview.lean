@@ -4,7 +4,7 @@ import InteractionCombinators.Core.Combinators
 /-!
 # Review of `Graph.lean` against Lafont 1997, Section 1.1, page 71
 
-Attempts to refute the definitions of `InteractionCombinators/Graph.lean`, on small graphs and
+Attempts to refute the definitions of `InteractionCombinators/Core/Graph.lean`, on small graphs and
 texts of the interaction combinators.
 
 * `Graph.WF` is decided through `WFb`, an equivalent condition that quantifies only over the

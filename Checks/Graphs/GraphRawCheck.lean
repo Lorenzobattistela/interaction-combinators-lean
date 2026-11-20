@@ -2,7 +2,7 @@ import InteractionCombinators.Graphs.GraphRaw
 import InteractionCombinators.Core.Combinators
 
 /-!
-# Check of `Lafont/GraphRaw.lean` on one text
+# Check of `InteractionCombinators/Graphs/GraphRaw.lean` on one text
 
 The text `0 = con(1, 1)`, `2 = dup(3, 0)`: a `con` cell whose two auxiliary ports are joined by
 the name `1`, and a `dup` cell. Each result of `GraphRaw.lean` is applied to it, and its conclusion

@@ -1,7 +1,8 @@
 import InteractionCombinators.Universality.General.CodeCell
 
 /-!
-# Review of `Lafont/CodeCell.lean` against Fig. 10 (page 89) and page 90
+# Review of `InteractionCombinators/Universality/General/CodeCell.lean` against Fig. 10 (page 89)
+and page 90
 
 Checks of the cell `⟨α_k⟩` and of the extraction `codeCell_code`, beyond `CodeCellCheck.lean`
 (whose menu `ε & ε` has no names, so there the renamings `f`, `g`, `g'` act on nothing).

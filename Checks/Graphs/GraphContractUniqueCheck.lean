@@ -2,7 +2,7 @@ import InteractionCombinators.Graphs.GraphContractUnique
 import Checks.Core.GraphReview
 
 /-!
-# Check of `Lafont/GraphContractUnique.lean`
+# Check of `InteractionCombinators/Graphs/GraphContractUnique.lean`
 
 * The chain `a = x, x = y, y = b`, with `a, x, y, b = 0, 1, 2, 3`: the names `x` and `y` share the
   wire `s(x, y)`. Erasing `x` first gives the wire `s(a, b)`, erasing `y` first gives `s(b, a)`;

@@ -23,7 +23,7 @@ tree plugged into it on texts, while the interaction on graphs keeps that tree, 
 port, so the two results have different cells. (This is an informal remark; no refutation of the
 statement without the hypothesis is formalized.)
 
-The example on the combinators is in `Checks/GraphStepECheck.lean`.
+The example on the combinators is in `Checks/Graphs/GraphStepECheck.lean`.
 
 Contents, in the order of the file:
 

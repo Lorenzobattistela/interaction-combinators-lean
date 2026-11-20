@@ -3,7 +3,7 @@ import InteractionCombinators.Core.Combinators
 import Checks.Core.GraphReview
 
 /-!
-# Check of `Lafont/GraphStep.lean`
+# Check of `InteractionCombinators/Graphs/GraphStep.lean`
 
 Worked examples of `Graph.Interact` on the interaction combinators (Lafont 1997, Section 1.2,
 page 73). In each, the two cells are `0` and `1`, `port c 0` is the principal port of `c` and

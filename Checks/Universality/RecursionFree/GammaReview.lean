@@ -4,7 +4,7 @@ import Checks.Universality.RecursionFree.GammaCheck
 # Review of the package `Γ_{i,j}` (`gamma`) against Fig. 6, page 86
 
 Lafont 1997, Section 2.4, Fig. 6 and Fig. 7, journal page 86 (PDF page 18). Review of
-`Lafont/Gamma.lean` (issue #96).
+`InteractionCombinators/Universality/RecursionFree/Gamma.lean` (issue #96).
 
 ## Against the figure
 

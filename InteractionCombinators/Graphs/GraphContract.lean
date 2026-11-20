@@ -9,7 +9,7 @@ formed.
 
 Linearity is not used: a name that occurs three times leaves, after one contraction, a single
 end, which is a free port. For a text that is not linear the graph is then not unique
-(`Checks/GraphReview.lean`, `threeText`); uniqueness is where linearity matters.
+(`Checks/Core/GraphReview.lean`, `threeText`); uniqueness is where linearity matters.
 
 Contents, in the order of the file:
 

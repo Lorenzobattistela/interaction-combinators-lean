@@ -54,7 +54,7 @@ interaction system in the sense of page 73. When this review was written, `Syste
 asked for `Equiv r.swap.net r.net`, and `sysT` was therefore not well-formed, so that the target
 theorem said nothing about it. The owner has since changed the condition to symmetry up to a
 permutation of the internal wires (issue #136); `sysT` is now well-formed
-(`sysT_wellFormed` in `Checks/SymmPermCheck.lean`).
+(`sysT_wellFormed` in `Checks/Universality/RecursionFree/SymmPermCheck.lean`).
 -/
 
 namespace INet.Comb.DecompositionSymmReview

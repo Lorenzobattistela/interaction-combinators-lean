@@ -3,13 +3,13 @@ import Checks.Graphs.GraphStepReview
 import Checks.Universality.Codes.CodeCheck
 
 /-!
-# Check of `Lafont/GraphStepE.lean`
+# Check of `InteractionCombinators/Graphs/GraphStepE.lean`
 
 `Net.Linear.stepE_interact` applied to two interactions of the combinators (Lafont 1997,
 Section 1.2, page 73), so that its hypotheses are shown to hold.
 
 * `dupDupShared_stepE_interact`: the literal step of `dup(x, 1) = dup(x, 2)`, with its concrete
-  graph `dupDupShared` (from `Checks/GraphStepCheck.lean`).
+  graph `dupDupShared` (from `Checks/Graphs/GraphStepCheck.lean`).
 * `wireText_stepE_interact`: `4 = con(0, 1), 4 = con(2, 3)`, two `con` cells whose principal
   ports are joined by the named wire `4`. The step needs a wire substitution first, so this is a
   `StepE` that is not a `Step`; the graph is any graph of the text.

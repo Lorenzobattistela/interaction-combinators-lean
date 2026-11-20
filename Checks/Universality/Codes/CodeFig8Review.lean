@@ -16,7 +16,7 @@ left to right. **A cell drawn pointing up has its port 1 (Lean port 0) on the ri
 picture `γγ` joins, by straight wires, the upper `1` to the lower `2` and the upper `2` to the lower
 `1`; `δδ` crosses the wires, joining `1` to `1` and `2` to `2`. `ruleConCon` joins `l 0` to `r 1`
 and `l 1` to `r 0`, `ruleDupDup` joins `l 0` to `r 0` and `l 1` to `r 1`
-(`InteractionCombinators/Combinators.lean`): both agree with this reading (`conCon_page82`,
+(`InteractionCombinators/Core/Combinators.lean`): both agree with this reading (`conCon_page82`,
 `dupDup_page82`). (The issue points to pages 70 and 72 for the pictures of the combinators; the
 cell pictures are on page 71, the rules in Fig. 2, page 81, and the numbered picture on page 82.)
 

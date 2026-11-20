@@ -6,9 +6,9 @@ import InteractionCombinators.Universality.RecursionFree.ExpandedIso
 /-!
 # Review of the decomposition data without an order (pages 85–86, 90)
 
-Review of `System.DecData` and of the side `System.DecData.side` (`Lafont/CodeData.lean`, PR #164)
-against Lafont 1997, pages 85–86 (PDF pages 17–18) and page 90 (Section 2.7, Fig. 10, on PDF
-page 21). Issue #165.
+Review of `System.DecData` and of the side `System.DecData.side`
+(`InteractionCombinators/Universality/General/CodeData.lean`, PR #164) against Lafont 1997, pages
+85–86 (PDF pages 17–18) and page 90 (Section 2.7, Fig. 10, on PDF page 21). Issue #165.
 
 ## What page 86 asks
 
@@ -67,7 +67,8 @@ namespace System.DecData
 
 variable {I : System S} (D : I.DecData)
 
-/-! `rawψ_self`, `rawSide_swap_of_rule` and `sides_of_rule` are in `Lafont/CodeDataSides.lean`. -/
+/-! `rawψ_self`, `rawSide_swap_of_rule` and `sides_of_rule` are in
+`InteractionCombinators/Universality/General/CodeDataSides.lean`. -/
 
 /-- For `α ≠ β`, the permutation carried by both sides of the rule `α`–`β` is the identity
 (page 86). -/

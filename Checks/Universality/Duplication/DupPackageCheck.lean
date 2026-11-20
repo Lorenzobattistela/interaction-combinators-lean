@@ -5,9 +5,9 @@ import Checks.Universality.Menus.PackageCheck
 /-!
 # Checks of `dup_package` against the paper
 
-`dup_package` (`Lafont/DupPackage.lean`) is the corollary of Lemma 3 on page 87: a package `π`
-without `dup`, plugged into the principal port of a `dup`, reduces to two copies of `π`. These
-checks test the statement.
+`dup_package` (`InteractionCombinators/Universality/Duplication/DupPackage.lean`) is the corollary
+of Lemma 3 on page 87: a package `π` without `dup`, plugged into the principal port of a `dup`,
+reduces to two copies of `π`. These checks test the statement.
 
 * `dup_package_separate` — the two copies are separate graphs. The statement only asks that `f`
   and `g` be injective on the names of `π`; it does not say that the images of `f` and `g` are
@@ -21,8 +21,8 @@ checks test the statement.
   an invariant of reduction (`stepsE_free_iff`), and a copy of a tree with a free leaf has a free
   port too many.
 
-That `DupFree` is needed is shown in `Checks/DupDupCheck.lean` (`dup_package_needs_dupFree`), on
-the paper's example `π = dup(0, 0)` (page 87: "δ cannot duplicate δ").
+That `DupFree` is needed is shown in `Checks/Misc/DupDupCheck.lean` (`dup_package_needs_dupFree`),
+on the paper's example `π = dup(0, 0)` (page 87: "δ cannot duplicate δ").
 -/
 
 namespace INet.Comb.DupPackageCheck

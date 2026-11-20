@@ -2,7 +2,7 @@ import InteractionCombinators.Universality.Menus.Package
 import InteractionCombinators.Text.NetLemmas
 
 /-!
-# Checks of `Lafont/Package.lean` against the paper
+# Checks of `InteractionCombinators/Universality/Menus/Package.lean` against the paper
 
 A review (issue 22) compared `Term.IsPackage`, `erase_wiring` and `erase_package` with Lafont
 1997, pages 79, 80, 84 and 85. This file records what was checked, as statements that Lean checks.

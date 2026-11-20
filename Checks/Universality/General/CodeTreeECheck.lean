@@ -4,11 +4,11 @@ import InteractionCombinators.Universality.General.CodeTr
 /-!
 # Check: the tree of `[α]` of Fig. 10 for a hand-written enumeration of the symbols
 
-`codeTreeE e side α` (`Lafont/CodeTr.lean`) takes the numbering `e : S.Sym ≃ Fin n` of the symbols
-as an argument and is computable. For the interaction combinators, with the numbering
-`con, dup, era ↦ 0, 1, 2` (`combEnum`) and the side `sideConDup` (the rule `con`–`dup` and no other
-side), the bounds `codeMenuBaseE`, `codeKeyE` and the number of names of each tree are computed by
-`decide` and by the compiler (Fig. 10, page 89).
+`codeTreeE e side α` (`InteractionCombinators/Universality/General/CodeTr.lean`) takes the numbering
+`e : S.Sym ≃ Fin n` of the symbols as an argument and is computable. For the interaction
+combinators, with the numbering `con, dup, era ↦ 0, 1, 2` (`combEnum`) and the side `sideConDup`
+(the rule `con`–`dup` and no other side), the bounds `codeMenuBaseE`, `codeKeyE` and the number of
+names of each tree are computed by `decide` and by the compiler (Fig. 10, page 89).
 
 The menu `Γ_dup` has the `24` names of `Γ_{con,dup}`, the others none; the menu `Γ` has `24` names;
 its code `!Γ` has `15` cut names. So, for `α` of arity `n`, `[α]` has `n` ports and twice the

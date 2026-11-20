@@ -2,7 +2,7 @@ import InteractionCombinators.Universality.Codes.Decode
 import Checks.Universality.Codes.CodeCheck
 
 /-!
-# Checks of `Lafont/Decode.lean` (Fig. 9, page 89)
+# Checks of `InteractionCombinators/Universality/Codes/Decode.lean` (Fig. 9, page 89)
 
 * The hypotheses of `code_decoder_package` hold on the package `π₂` of `CodeCheck.lean`, which has
   two `dup` cells with different left and right trees: `π₂` on the free port `2`, new names of the

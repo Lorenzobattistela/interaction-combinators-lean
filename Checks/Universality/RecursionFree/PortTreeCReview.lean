@@ -3,7 +3,8 @@ import Checks.Universality.RecursionFree.PortTreeCCheck
 /-!
 # Review of the computable tree at a port `Rule.portTreeC` (Fig. 6, page 86)
 
-Checks that try to refute `Rule.portTreeC` (`Lafont/PortTreeC.lean`) and its stated properties.
+Checks that try to refute `Rule.portTreeC`
+(`InteractionCombinators/Universality/RecursionFree/PortTreeC.lean`) and its stated properties.
 
 * `Expanded` is not needed: `portTree_eq_of_linear` and `portTreeC_eq_portTree_of_linear` prove
   `Rule.portTree_eq` and `Rule.portTreeC_eq_portTree` from linearity alone. In a linear side the

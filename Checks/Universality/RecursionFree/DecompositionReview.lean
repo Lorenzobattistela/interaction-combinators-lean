@@ -5,9 +5,10 @@ import InteractionCombinators.Text.Instance
 /-!
 # Review of the canonical decomposition (page 85)
 
-Review of `Lafont/Decomposition.lean` against Lafont 1997, page 85 (PDF page 17). The figure
-draws `ν_{i,j}` as `φ_{i,j}` (on the `n_i` auxiliary ports of `α_i`, on the left) and `ψ_{i,j}`
-(on the `n_j` ports of `α_j`, on the right) above a box `σ_{i,j}` that joins their lower wires.
+Review of `InteractionCombinators/Universality/RecursionFree/Decomposition.lean` against Lafont
+1997, page 85 (PDF page 17). The figure draws `ν_{i,j}` as `φ_{i,j}` (on the `n_i` auxiliary ports
+of `α_i`, on the left) and `ψ_{i,j}` (on the `n_j` ports of `α_j`, on the right) above a box
+`σ_{i,j}` that joins their lower wires.
 
 ## An invariant of `Equiv`
 

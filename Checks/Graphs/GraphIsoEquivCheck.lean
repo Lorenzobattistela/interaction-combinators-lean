@@ -3,7 +3,7 @@ import Checks.Core.GraphReview
 import Checks.Graphs.GraphEquivCheck
 
 /-!
-# Check of `Lafont/GraphIsoEquiv.lean`
+# Check of `InteractionCombinators/Graphs/GraphIsoEquiv.lean`
 
 Lafont 1997, Section 1.1, page 71. Names `a, b, c, d, x = 0, 1, 2, 3, 4`.
 

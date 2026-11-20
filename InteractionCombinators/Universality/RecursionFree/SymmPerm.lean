@@ -21,7 +21,7 @@ conclusions:
 
 `Rule.SymmPerm.of_equiv` shows that the condition is weaker than `Equiv r.swap.net r.net`; the
 example `twin`, which is `SymmPerm` without being `Equiv` to its swap, is in
-`Checks/SymmPermCheck.lean`.
+`Checks/Universality/RecursionFree/SymmPermCheck.lean`.
 
 Contents, in the order of the file:
 

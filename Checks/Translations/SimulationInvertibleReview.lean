@@ -5,7 +5,8 @@ import InteractionCombinators.Core.Combinators
 /-!
 # Review of `L = M = 1` for an invertible translation (page 81)
 
-Checks of `Lafont/SimulationInvertible.lean` and `Lafont/PairStepE.lean`.
+Checks of `InteractionCombinators/Translations/SimulationInvertible.lean` and
+`InteractionCombinators/Translations/PairStepE.lean`.
 
 * `Translation.Invertible.length_eq_one` — the reading of the paper where `L` and `M` are the
   minimal and maximal lengths of *all* the reductions of a pair to a translation of the right

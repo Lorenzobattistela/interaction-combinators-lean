@@ -3,7 +3,7 @@ import InteractionCombinators.Core.Combinators
 import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 
 /-!
-# Review of `Lafont/RuleReduced.lean` (issue #370; Lafont 1997, pages 72 and 79)
+# Review of `Reduced/RuleReduced.lean` (issue #370; Lafont 1997, pages 73 and 79)
 
 **Verdict: no defect.** `Net.IsReduced` is the paper's "reduced" (no cut, no vicious circle,
 page 79), the forward theorems say that a right member in the syntactic form `Rule.Reduced` is
@@ -52,8 +52,8 @@ form). The paper has distinct free ports, so `hx` is the faithful hypothesis eit
 
 * A wire between two auxiliary ports, `l₀ = r₀` (`wireRule_rewritten`).
 * An internal wire between two leaves, `l₀ = con(w, era), r₀ = dup(w, era)`
-  (`leafRule_rewritten`), and, already in `Checks/RuleReducedCheck.lean`, an internal wire from a
-  root to a leaf (`bad_rewritten`, a rule not in the form).
+  (`leafRule_rewritten`), and, already in `Checks/Reduced/RuleReducedCheck.lean`, an internal wire
+  from a root to a leaf (`bad_rewritten`, a rule not in the form).
 * An internal wire between two roots, `w = con(l₀, l₁), w = dup(r₀, r₁)`, is a cut: the instance
   is not reduced (`rootRule_not_isReduced`) and the converse does not apply.
 * A vicious circle, `w = con(w, l₀)`, and a cyclic wire, `w = w`: the instances are not reduced

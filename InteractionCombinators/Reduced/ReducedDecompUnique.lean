@@ -13,10 +13,10 @@ whose leaves are joined by a wiring `ω`. The existence is `Net.IsReduced.exists
 
 The form `Net.IsTreesOnWiring` (every equation is `x = t` with `x` a free port) is not unique up
 to renaming: `0 = 7, 2 = con(7, 3)` and `2 = con(0, 3)` are both in it, one wire substitution
-apart (`Checks/ReducedDecompReview.lean`, `pendant_merged`). The extra freedom is an equation
-`x = y` with `y` internal: in the picture, a tree with no cell joined by `ω` to a leaf of another
-tree, and the text may as well plug `x` into that leaf. `Net.IsTreesOnWiringN` forbids it: an
-equation between two names joins two free ports. Then every equation is either `x = t` with `t` a
+apart (`Checks/Reduced/ReducedDecompReview.lean`, `pendant_merged`). The extra freedom is an
+equation `x = y` with `y` internal: in the picture, a tree with no cell joined by `ω` to a leaf of
+another tree, and the text may as well plug `x` into that leaf. `Net.IsTreesOnWiringN` forbids it:
+an equation between two names joins two free ports. Then every equation is either `x = t` with `t` a
 tree with a cell, or `x = y` with both free (a wire of `ω` between two trees with no cell); every
 other free port is a leaf of a tree, and every internal name joins two leaves.
 

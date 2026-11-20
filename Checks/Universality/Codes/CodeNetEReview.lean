@@ -5,18 +5,21 @@ import Checks.Universality.General.CodeTrReview
 /-!
 # Review of `codeNetE` and `codeWiresE`, the principal net `[α]` of Fig. 10 for any `e` (page 89)
 
-Review of `codeNetE`, `codeNetE_inst`, `codeNetE_strict` (`Lafont/CodeTr.lean`), `codeWiresE`,
-`inst_codeNetE_fresh`, `codeWiresE_injective`, `le_codeWiresE`, `codeWiresE_lt`
-(`Lafont/CodeCellsMeet.lean`) and `codeNetE_inst_eq`, `menu_codeCellMenuE_shift`,
-`menu_codeMenusE_shift` (`Lafont/CodeShift.lean`), added by PR #324, against Fig. 10 (journal
-page 89, PDF page 21, top left, rendered alone at 600 dpi).
+Review of `codeNetE`, `codeNetE_inst`, `codeNetE_strict`
+(`InteractionCombinators/Universality/General/CodeTr.lean`), `codeWiresE`, `inst_codeNetE_fresh`,
+`codeWiresE_injective`, `le_codeWiresE`, `codeWiresE_lt`
+(`InteractionCombinators/Universality/General/CodeCellsMeet.lean`) and `codeNetE_inst_eq`,
+`menu_codeCellMenuE_shift`, `menu_codeMenusE_shift`
+(`InteractionCombinators/Universality/General/CodeShift.lean`), added by PR #324, against Fig. 10
+(journal page 89, PDF page 21, top left, rendered alone at 600 dpi).
 
 **No defect found.**
 
 **Against the paper.** Fig. 10 draws `[α_i]` as a principal net whose root is the root of
 `T_{1,1}` and whose auxiliary ports, from left to right, are the leaves of `M_{n_i+2}` between
-`!Γ` and the loop. The tree `codeTreeE` was reviewed in `Checks/CodeTreeEReview.lean`; what
-`codeNetE` adds is the passage to a `PNet`, by `treePNet`.
+`!Γ` and the loop. The tree `codeTreeE` was reviewed in
+`Checks/Universality/General/CodeTreeEReview.lean`; what `codeNetE` adds is the passage to a `PNet`,
+by `treePNet`.
 
 * `codeNetE_tree`, `codeNetE_internal` — by `rfl`, the tree of `codeNetE e side α` is the tree of
   Fig. 10 with each name `x < k` replaced by the port `x` and each other name by its rank among the
@@ -24,7 +27,7 @@ page 89, PDF page 21, top left, rendered alone at 600 dpi).
 * `codeNetE_inst_args` — for every `e`, the instance of `[α]` with any trees `args` on its ports is
   the tree of Fig. 10 with `args 0, …, args (k - 1)` on the leaves of `M_{k+2}` between `!Γ` and
   the loop, in this order: the ports are in the order of the figure (and of page 72). This is
-  `codeNet_inst_args` of `Checks/CodeTrReview.lean`, now for any `e`.
+  `codeNet_inst_args` of `Checks/Universality/General/CodeTrReview.lean`, now for any `e`.
 * `codeNetE_tree_eq_mkDup` — the root of the principal net is the `dup` cell of `T_{1,1}`.
 * Concrete, by `#guard`, for `sig` with the two numberings `combEnum` (`con, dup, era ↦ 0, 1, 2`)
   and `combEnum₂` (`dup, con, era ↦ 0, 1, 2`) and the two choices of sides `sideConDup`,

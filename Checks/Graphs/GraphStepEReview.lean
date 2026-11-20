@@ -5,11 +5,11 @@ import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 # Review of `Net.Linear.stepE_interact` (Lafont 1997, Section 1.2, page 73)
 
 **Verdict: no defect.** The hypothesis `hI` (every rule of `I` is linear) of
-`Net.Linear.stepE_interact` (`Lafont/GraphStepE.lean`, PR #366) is *necessary*: without it the
-statement is false (`stepE_interact_needs_linear`). It is not a weakening. Lafont's rules are
-linear by definition (page 72: the right member `ν_{i,j}` is a net with exactly `n_i + n_j` free
-ports, each a port of the net, so it occurs once), and `System.WellFormed.linear` says the same.
-Issue #368 (the converse) may keep it.
+`Net.Linear.stepE_interact` (`InteractionCombinators/Graphs/GraphStepE.lean`, PR #366) is
+*necessary*: without it the statement is false (`stepE_interact_needs_linear`). It is not a
+weakening. Lafont's rules are linear by definition (page 72: the right member `ν_{i,j}` is a net
+with exactly `n_i + n_j` free ports, each a port of the net, so it occurs once), and
+`System.WellFormed.linear` says the same. Issue #368 (the converse) may keep it.
 
 What was checked, item by item of issue #369:
 
@@ -31,7 +31,7 @@ What was checked, item by item of issue #369:
    the upper cells drawn upside down (their first auxiliary port is on the right), and it is
    `ruleConDup`.
    * `con`–`con`: for every graph `G` of `4 = con(0, 1), 4 = con(2, 3)` (`wireText`, from
-     `Checks/GraphStepECheck.lean`) and every `H` the theorem can produce, `H` is exactly the
+     `Checks/Graphs/GraphStepECheck.lean`) and every `H` the theorem can produce, `H` is exactly the
      graph with the wires `0–3`, `1–2` (`wireText_result_eq`), and `0–2` is not a wire
      (`wireText_not_in_order`): Lafont's exchange. Such `H` exist (`wireText_result_exists`).
    * `con`–`dup`: the graph `conDupResult` of the reduct `0 = dup(4, 5), 1 = dup(6, 7),

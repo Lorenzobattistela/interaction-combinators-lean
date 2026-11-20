@@ -4,9 +4,10 @@ import InteractionCombinators.Translations.SimulationUniform
 # Checks for the uniform bounds of page 81
 
 `Translation.Compatible.exists_compatibleWithin` and `Comb.codeTranslation_compatibleWithin`
-(`Lafont/SimulationUniform.lean`) applied to the translation of Fig. 10 of the combinators into
-themselves. That translation is not the identity: `[γ]`, `[δ]`, `[ε]` are the trees of Fig. 10,
-and each rule of Fig. 2 is simulated by the reduction of Fig. 7, not by one interaction.
+(`InteractionCombinators/Translations/SimulationUniform.lean`) applied to the translation of Fig. 10
+of the combinators into themselves. That translation is not the identity: `[γ]`, `[δ]`, `[ε]` are
+the trees of Fig. 10, and each rule of Fig. 2 is simulated by the reduction of Fig. 7, not by one
+interaction.
 -/
 
 namespace INet.Comb.SimulationUniformCheck

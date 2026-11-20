@@ -3,7 +3,7 @@ import InteractionCombinators.Core.Combinators
 import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 
 /-!
-# Check of `Lafont/GraphEquiv.lean`
+# Check of `InteractionCombinators/Graphs/GraphEquiv.lean`
 
 Lafont 1997, Section 1.1, page 71. Names `x, y, z, w, u = 0, 1, 2, 3, 4`.
 

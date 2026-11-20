@@ -2,11 +2,11 @@ import InteractionCombinators.Graphs.GraphStepEConverse
 import Checks.Graphs.GraphStepECheck
 
 /-!
-# Check of `Lafont/GraphStepEConverse.lean`
+# Check of `InteractionCombinators/Graphs/GraphStepEConverse.lean`
 
 `Net.Linear.interact_stepE` applied to two interactions of the combinators from
-`Checks/GraphStepCheck.lean` (Lafont 1997, Section 1.2, page 73), so that its hypotheses are shown
-to hold: a linear net, a graph of it, and an interaction of that graph.
+`Checks/Graphs/GraphStepCheck.lean` (Lafont 1997, Section 1.2, page 73), so that its hypotheses are
+shown to hold: a linear net, a graph of it, and an interaction of that graph.
 
 * `conConFree_interact_stepE`: `con(0, 1) = con(2, 3)`, its graph `conConFree` and the
   interaction `conCon_free`.

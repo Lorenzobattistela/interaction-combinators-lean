@@ -3,7 +3,7 @@ import Checks.Core.GraphReview
 import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 
 /-!
-# Check of `Lafont/GraphIso.lean`
+# Check of `InteractionCombinators/Graphs/GraphIso.lean`
 
 The net `con(a, b) = x, x = dup(c, d)`, with `a, b, c, d, x = 0, 1, 2, 3, 4`, written as two lists
 of equations: `text1` in this order, cells numbered from `0`; `text2` as

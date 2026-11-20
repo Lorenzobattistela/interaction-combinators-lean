@@ -2,7 +2,7 @@ import InteractionCombinators.Universality.RecursionFree.ExpandedIso
 import Checks.Universality.RecursionFree.DecompositionReview
 
 /-!
-# Checks for `Lafont/ExpandedIso.lean`
+# Checks for `InteractionCombinators/Universality/RecursionFree/ExpandedIso.lean`
 
 The non-vacuity check of `Rule.exists_perm_of_equiv`: two texts of the expanded `con`–`con` rule
 (page 86, with the rule of Fig. 3), `a₀ = x₀, b₁ = x₀, a₁ = x₁, b₀ = x₁` and the same with `x₀`

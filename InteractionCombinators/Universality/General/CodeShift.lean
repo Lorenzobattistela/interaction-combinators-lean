@@ -260,7 +260,7 @@ theorem codeNetE_inst_eq
     (args : Fin (S.arity β) → Term sig ℕ) :
     -- some naming `F` of the internal wires makes the instance of `[β]` with `args` on its ports
     ∃ F, (codeNetE e side β).inst args F
-      -- equal to the cell `⟨β⟩` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
+      -- equal to the cell `[β]` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
       = cellSkel ((menu (codeCellMenuE e side β B)).bind fun x => var (g x)) n
           (e β) (((code K (menu (codeMenusE e side k₀))).bind fun x => var (g' x)) ::
             List.ofFn args) ℓ := by
@@ -372,7 +372,7 @@ theorem codeNet_inst_eq
     (args : Fin (S.arity β) → Term sig ℕ) :
     -- some naming `F` of the internal wires makes the instance of `[β]` with `args` on its ports
     ∃ F, (codeNet side β).inst args F
-      -- equal to the cell `⟨β⟩` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
+      -- equal to the cell `[β]` with the renamed `Γ_β`, the renamed `!Γ`, `args` and the loop
       = cellSkel ((menu (codeCellMenu side β B)).bind fun x => var (g x)) (Nat.card S.Sym)
           (symEnum S β) (((code K (menu (codeMenus side k₀))).bind fun x => var (g' x)) ::
             List.ofFn args) ℓ :=

@@ -5,10 +5,10 @@ import InteractionCombinators.Graphs.GraphIso
 /-!
 # Review of `Graph.Interact` (Lafont 1997, Section 1.2, page 73)
 
-**Verdict: no defect.** `Graph.Interact` (`Lafont/GraphStep.lean`) says what page 73 says, in the
-port convention of `Step` on texts, and its docstrings are accurate. Part 2 of Stage C.5 can be
-built on it. Its statement must be "up to `Iso`": `Interact` renumbers the cells of the rule by
-an arbitrary `σ`.
+**Verdict: no defect.** `Graph.Interact` (`InteractionCombinators/Graphs/GraphStep.lean`) says what
+page 73 says, in the port convention of `Step` on texts, and its docstrings are accurate. Part 2 of
+Stage C.5 can be built on it. Its statement must be "up to `Iso`": `Interact` renumbers the cells of
+the rule by an arbitrary `σ`.
 
 The figure of page 73 draws `α_i` and `α_j` side by side, both with their auxiliary ports on top,
 and `ν_{i,j}` with the `n_i` ports of `α_i` first, then the `n_j` ports of `α_j`, each in order.
@@ -607,7 +607,7 @@ theorem conSelf_wf : conSelf.WF := (wf_iff _).2 (by decide)
 `con(x, x) = con(0, 1)` the result is the single wire `0–1`: the rule joins `l0–r1` and `l1–r0`,
 and `x` joins `l0–l1`. Fresh names `2, 3` and `4, 5`; the contractions erase `2, 3, 5, 4`. The
 other degenerate wirings, an auxiliary port of `c` wired to one of `d`, are `dupDup_shared` and
-`conCon_closed` of `Checks/GraphStepCheck.lean`. -/
+`conCon_closed` of `Checks/Graphs/GraphStepCheck.lean`. -/
 theorem conSelf_interact : Interact system conSelf freeWire := by
   refine Interact.mk (I := system) 0 1 Comb.con Comb.con 0 (s(.port 0 1, .port 0 2) ::ₘ
     s(.port 1 1, .name 0) ::ₘ {s(.port 1 2, .name 1)}) 0 ruleConCon rfl

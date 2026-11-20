@@ -4,8 +4,8 @@ import Checks.Reduced.ViciousCheck
 /-!
 # Checks of the third point of Proposition 3 and of Proposition 3 (page 80)
 
-The setting of `Checks/ViciousCheck.lean`: a symbol `o` with no auxiliary port, a symbol `w` with
-one, and the non-strict translation `Φ` that keeps `o` and turns `w` into a wire (it is not the
+The setting of `Checks/Reduced/ViciousCheck.lean`: a symbol `o` with no auxiliary port, a symbol `w`
+with one, and the non-strict translation `Φ` that keeps `o` and turns `w` into a wire (it is not the
 identity: `CutCheck.not_strict`).
 
 * `Translation.NetTr.hasVicious_reflect` is not vacuous: the circle of length 2

@@ -9,7 +9,8 @@ Checks written for the review of `StepE.Normal` and `StepsEN.normal_unique`.
 * `not_both_orders` — no well-formed system with two distinct symbols has a rule in *both*
   orders, the hypothesis that `Net.HasCut.stepE` used to take. The library now takes "one order
   or the other" (`Net.HasCut.stepE`, `StepE.Normal.iff_not_hasCut`, `Comb.system_complete` in
-  `Lafont/Cut.lean` and `Lafont/NormalFormCut.lean`), and a check below applies it.
+  `InteractionCombinators/Reduced/Cut.lean` and
+  `InteractionCombinators/Reduction/NormalFormCut.lean`), and a check below applies it.
 * `emptySys` — a well-formed system without rules: the cut `era = era` is irreducible there, so
   without completeness "irreducible" and "no cut" differ. In that system no counted reduction has
   a positive length (`emptySys_stepsEN_zero`), although wire substitutions exist: `StepsEN` counts

@@ -1,7 +1,8 @@
 import InteractionCombinators.Universality.RecursionFree.RecursionFreeTerminates
 
 /-!
-# Checks of `Lafont/RecursionFreeTerminates.lean` (page 86)
+# Checks of `InteractionCombinators/Universality/RecursionFree/RecursionFreeTerminates.lean` (page
+86)
 
 * The two theorems apply to the example of page 87, the combinators without `con`–`dup`
   (`systemNoConDup_recursionFree`).

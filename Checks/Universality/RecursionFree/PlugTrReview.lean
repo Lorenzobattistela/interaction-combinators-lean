@@ -6,7 +6,7 @@ import Checks.Universality.RecursionFree.Fig7EndReview
 
 Lafont 1997, Section 2.4, journal pages 85–86 (PDF pages 17–18), the decomposition of a right
 member as `φ_{i,j}`, `ψ_{i,j}` above the permutation box `σ_{i,j}`, and the end of Fig. 7. Review
-of `Lafont/PlugTr.lean` (issue #121).
+of `InteractionCombinators/Universality/RecursionFree/PlugTr.lean` (issue #121).
 
 ## Against the paper
 

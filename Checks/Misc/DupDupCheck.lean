@@ -7,9 +7,10 @@ import InteractionCombinators.Universality.Codes.PackageDecomp
 /-!
 # `dup` cannot duplicate `dup` (page 87)
 
-`dup_package` (`Lafont/DupPackage.lean`) and `copier_package` (`Lafont/Copier.lean`) assume
-`DupFree π`. Lafont, page 87, after the corollary of Lemma 3: "δ cannot duplicate δ". This file
-shows that the hypothesis is needed, on the paper's example `π = dup(0, 0)`.
+`dup_package` (`InteractionCombinators/Universality/Duplication/DupPackage.lean`) and
+`copier_package` (`InteractionCombinators/Universality/Codes/Copier.lean`) assume `DupFree π`.
+Lafont, page 87, after the corollary of Lemma 3: "δ cannot duplicate δ". This file shows that the
+hypothesis is needed, on the example `π = dup(0, 0)`.
 
 The net `dup(1, 2) – dup(0, 0)` reduces in one `dup`–`dup` interaction, which joins the auxiliary
 ports in order, to `1 – 0, 2 – 0`: the wire joins `1` to `2` and no cell is left. Two copies
@@ -29,7 +30,7 @@ namespace INet.Comb.DupDupCheck
 
 open Term Cut
 
-/-- The paper's example of a package with a `dup` (page 87): `dup(0, 0)`. -/
+/-- A package with a `dup`: `dup(0, 0)`. The paper (page 87) gives no example; this one is ours. -/
 abbrev π₀ : Term sig ℕ := mkDup (var 0) (var 0)
 
 /-- The net `dup(1, 2) – dup(0, 0)`. -/

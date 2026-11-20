@@ -4,12 +4,12 @@ import Checks.Universality.General.CodeGammaMeetCheck
 /-!
 # Checks for `System.DecData.sides_expand` (pages 85–86, 90)
 
-Non-vacuity of `System.DecData.sides_expand` (`Lafont/CodeDataSides.lean`) on the combinators
-`Comb.system`, with the decomposition data `decData system_wellFormed`: for the rule `con`–`dup`
-(`α ≠ β`), for the rule `con`–`con` (`α = β`), and for the rule `dup`–`dup`, where the result
-feeds `codeCells_meet_end` on a net whose linearity is proved (`linear_netDupDup`). In each case
-the sides it gives are exactly the hypotheses `hs`, `hs'` of `codeCells_meet_end` (Fig. 10,
-pages 89–90).
+Non-vacuity of `System.DecData.sides_expand`
+(`InteractionCombinators/Universality/General/CodeDataSides.lean`) on the combinators `Comb.system`,
+with the decomposition data `decData system_wellFormed`: for the rule `con`–`dup` (`α ≠ β`), for the
+rule `con`–`con` (`α = β`), and for the rule `dup`–`dup`, where the result feeds
+`codeCells_meet_end` on a net whose linearity is proved (`linear_netDupDup`). In each case the sides
+it gives are exactly the hypotheses `hs`, `hs'` of `codeCells_meet_end` (Fig. 10, pages 89–90).
 -/
 
 namespace INet.Comb.CodeDataSidesCheck

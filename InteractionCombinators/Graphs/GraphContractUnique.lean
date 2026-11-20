@@ -8,7 +8,7 @@ occurs twice ends two wires, and it is erased by joining them (`Graph.Contract`)
 that when every name ends at most two wires, as in the raw graph of a linear text, the graph
 obtained by erasing names does not depend on the order in which they are erased.
 
-The hypothesis "at most two ends" is needed: `Checks/GraphReview.lean`, `threeText`.
+The hypothesis "at most two ends" is needed: `Checks/Core/GraphReview.lean`, `threeText`.
 
 Contents, in the order of the file:
 

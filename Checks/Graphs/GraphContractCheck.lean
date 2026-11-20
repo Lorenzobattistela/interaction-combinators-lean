@@ -2,7 +2,7 @@ import InteractionCombinators.Graphs.GraphContract
 import Checks.Core.GraphReview
 
 /-!
-# Check of `Lafont/GraphContract.lean` on two texts
+# Check of `InteractionCombinators/Graphs/GraphContract.lean` on two texts
 
 * `con(a, b) = x, x = y, y = dup(b, a)`, with `a, b, x, y = 0, 1, 2, 3`: the names `x` and `y`
   form a chain between two principal ports, and `a`, `b` join auxiliary ports of the two cells.

@@ -11,7 +11,7 @@ applied inside a net."
 This file gives that interaction on graphs. The theorem that `StepE` on texts is this
 interaction on their graphs is not proved here.
 
-The examples on the combinators are in `Checks/GraphStepCheck.lean`.
+The examples on the combinators are in `Checks/Graphs/GraphStepCheck.lean`.
 
 Contents, in the order of the file:
 

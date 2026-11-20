@@ -4,8 +4,8 @@ import Checks.Reduced.CutCheck
 /-!
 # Checks of vicious circles and reduced nets (pages 79–80)
 
-The signature of `Checks/CutCheck.lean`: a symbol `o` with no auxiliary port, a symbol `w` with
-one, and the non-strict translation `Φ` that keeps `o` and turns `w` into a wire.
+The signature of `Checks/Reduced/CutCheck.lean`: a symbol `o` with no auxiliary port, a symbol `w`
+with one, and the non-strict translation `Φ` that keeps `o` and turns `w` into a wire.
 
 * `Net.HasVicious` is not vacuous: the cyclic wire `x = x`, the circle `w(x) = x` of length 1, and
   the circle `x₀ = w(x₁), x₁ = w(x₀)` of length 2, written with two equations, have one.

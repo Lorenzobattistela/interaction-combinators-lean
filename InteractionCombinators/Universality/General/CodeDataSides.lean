@@ -9,8 +9,8 @@ Lafont 1997, pages 85–86 (PDF pages 17–18): "one can assume that in all case
 Fig. 10): the general translation uses the same decomposition, with no order.
 
 The well-formedness hypothesis is needed: `Comb.CodeDataReview.sysBoth_sides_disagree`
-(`Checks/CodeDataReview.lean`) gives decomposition data of a system that is not well formed whose
-two sides disagree.
+(`Checks/Universality/General/CodeDataReview.lean`) gives decomposition data of a system that is not
+well formed whose two sides disagree.
 
 Contents, in the order of the file:
 

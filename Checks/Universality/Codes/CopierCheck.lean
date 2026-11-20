@@ -4,9 +4,10 @@ import Checks.Universality.Duplication.DupPackageCheck
 /-!
 # Checks of the copier `C_n` against the paper
 
-`copier` and `copier_package` (`Lafont/Copier.lean`) are the copier of page 88, first picture of
-Section 2.6: a package without `dup` plugged into the root of `C_n` reduces to `n` copies, one on
-each auxiliary port. These checks test the definition and the statement.
+`copier` and `copier_package` (`InteractionCombinators/Universality/Codes/Copier.lean`) are the
+copier of page 88, first picture of Section 2.6: a package without `dup` plugged into the root of
+`C_n` reduces to `n` copies, one on each auxiliary port. These checks test the definition and the
+statement.
 
 * `copier_nil`, `copier_one`, `copier_three`, `vars_copier` — the shape of `C_n`: `era` for
   `n = 0`, a wire for `n = 1`, `dup` cells nested to the right otherwise, with the `n` auxiliary

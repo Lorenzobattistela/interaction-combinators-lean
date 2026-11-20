@@ -4,7 +4,8 @@ import Checks.Universality.RecursionFree.DecompositionCheck
 /-!
 # Checks of `TranslationExists.lean`
 
-Equality of trees is decided with the instance of `Checks/DecompositionCheck.lean`.
+Equality of trees is decided with the instance of
+`Checks/Universality/RecursionFree/DecompositionCheck.lean`.
 
 * The identity translation: `trTerm` returns the tree unchanged, and uses no new name.
 * A translation with internal wires (`con` becomes two `con` cells joined by one wire): the

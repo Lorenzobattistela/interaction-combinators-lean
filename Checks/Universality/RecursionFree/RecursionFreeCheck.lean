@@ -3,8 +3,9 @@ import InteractionCombinators.Universality.RecursionFree.DecompositionAbsorb
 /-!
 # Review of `System.RecursionFreeData` (pages 85–87)
 
-Checks produced by the review of `Lafont/RecursionFree.lean` against Lafont 1997, pages 85–87
-(PDF pages 17–19, Fig. 6 and Fig. 7).
+Checks produced by the review of
+`InteractionCombinators/Universality/RecursionFree/RecursionFree.lean` against Lafont 1997, pages
+85–87 (PDF pages 17–19, Fig. 6 and Fig. 7).
 
 ## The normalisations of page 86 cost nothing
 

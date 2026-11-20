@@ -1,7 +1,7 @@
 import InteractionCombinators.Universality.Multiplexors.AutoMux
 
 /-!
-# Checks of `Lafont/AutoMux.lean` against the paper
+# Checks of `InteractionCombinators/Universality/Multiplexors/AutoMux.lean` against the paper
 
 A review (issue 21) compared `autoMux` and `autoMux_autoMux` with Lafont 1997, page 83 (Fig. 5 and
 the picture above it). This file records the cases worked by hand, as statements that Lean checks.

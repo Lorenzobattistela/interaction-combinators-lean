@@ -5,10 +5,10 @@ import Demo.Print
 # Check: the printer of `Demo/Print.lean` on the trees of Fig. 10
 
 The trees `[con]`, `[dup]`, `[era]` of Fig. 10 (page 89), for the hand-written numbering
-`combEnum` and the side `sideConDup` of `Checks/CodeTreeECheck.lean`, are printed and their cells
-counted by the compiler. The printed tree of `[era]` is about a thousand characters long; it begins
-with the `dup` cell of the transpositor `T_{1,1}` at the root (`codeTreeE_eq_mkDup`) and ends with
-the loop `0` (the arity of `era` is `0`).
+`combEnum` and the side `sideConDup` of `Checks/Universality/General/CodeTreeECheck.lean`, are
+printed and their cells counted by the compiler. The printed tree of `[era]` is about a thousand
+characters long; it begins with the `dup` cell of the transpositor `T_{1,1}` at the root
+(`codeTreeE_eq_mkDup`) and ends with the loop `0` (the arity of `era` is `0`).
 -/
 
 namespace INet.Comb.PrintCheck

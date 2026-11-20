@@ -5,9 +5,10 @@ import Checks.Universality.General.CodeGammaMeetCheck
 # Checks for `System.SidesPlug` (pages 86, 89–90)
 
 Non-vacuity of the hypothesis of `codeTranslation_compatible_of_sides`
-(`Lafont/CodeCompatibleSides.lean`): on the combinators `Comb.system`, which are well formed, the
-sides of the decomposition data `decData system_wellFormed` satisfy `System.SidesPlug`, and the
-property says something about an actual rule, `con`–`dup`.
+(`InteractionCombinators/Universality/General/CodeCompatibleSides.lean`): on the combinators
+`Comb.system`, which are well formed, the sides of the decomposition data `decData
+system_wellFormed` satisfy `System.SidesPlug`, and the property says something about an actual rule,
+`con`–`dup`.
 -/
 
 namespace INet.Comb.CodeCompatibleSidesCheck

@@ -3,12 +3,12 @@ import Checks.Universality.General.CodeGammaReview
 /-!
 # Check: the menus of Fig. 10 for a hand-written enumeration of the symbols
 
-`codeMenusE e side` (`Lafont/CodeGamma.lean`) takes the numbering `e : S.Sym ≃ Fin n` of the
-symbols as an argument and is computable. For the interaction combinators, with the numbering
-`con, dup, era ↦ 0, 1, 2` written by hand and the side `sideConDup` (the rule `con`–`dup`, four
-cells, and no other side), the number of menus and the number of names of the menus are computed by
-`decide` and by the compiler, with no lemma about `symEnum` (Fig. 10, page 89; page 90: "no order on
-the symbols is needed").
+`codeMenusE e side` (`InteractionCombinators/Universality/General/CodeGamma.lean`) takes the
+numbering `e : S.Sym ≃ Fin n` of the symbols as an argument and is computable. For the interaction
+combinators, with the numbering `con, dup, era ↦ 0, 1, 2` written by hand and the side `sideConDup`
+(the rule `con`–`dup`, four cells, and no other side), the number of menus and the number of names
+of the menus are computed by `decide` and by the compiler, with no lemma about `symEnum` (Fig. 10,
+page 89; page 90: "no order on the symbols is needed").
 -/
 
 namespace INet.Comb.CodeMenusECheck

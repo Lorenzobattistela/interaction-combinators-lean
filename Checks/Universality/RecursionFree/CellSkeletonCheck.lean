@@ -1,7 +1,8 @@
 import InteractionCombinators.Universality.RecursionFree.CellSkeleton
 
 /-!
-# Checks of `Lafont/CellSkeleton.lean` against Fig. 6 and Fig. 7 (page 86)
+# Checks of `InteractionCombinators/Universality/RecursionFree/CellSkeleton.lean` against Fig. 6 and
+Fig. 7 (page 86)
 
 * `cellSkel_two` — the cell `[αᵢ]` of Fig. 6 for `m = 2`, `i = 0`, one auxiliary port: the tree
   drawn by hand.

@@ -6,8 +6,8 @@ import Demo.Print
 
 Lafont 1997, page 86 (normal form of a decomposition) and Fig. 10, pages 89–90 (the principal
 net `[α]`). `Demo/Arithmetic.lean` proves `2 + 2 = 4` in the combinators through the translation
-of Theorem 1, which uses choice. Here the same translation is built from data written by hand,
-so it is computed.
+of Theorem 1, which uses choice. Here the same construction (Fig. 10) is carried out on data written
+by hand, so it is computed.
 
 * `arithEnum` — the symbols numbered `zero, succ, add ↦ 0, 1, 2`.
 * `arithSide` — the expanded sides of the two rules, in both orientations:
@@ -315,7 +315,7 @@ theorem arithTr_compatible :
     (Comb.codeTranslationE arithEnum arithSide).Compatible system Comb.system :=
   Comb.codeTranslationE_compatible_of_sides arithEnum arith_sidesPlug
 
-/-- **`2 + 2 = 4` in the combinators, through the computed translation** (Theorem 1, page 89,
+/-- **`2 + 2 = 4` in the combinators, through the computed translation** (Theorem 1, page 82,
 applied to unary addition): every translation `N'` of the net of `2 + 2` by
 `codeTranslationE arithEnum arithSide` reduces, by the rules of `con`, `dup` and `era` and up to
 wires, to a net that is the same graph as a translation of the net of `4`. -/

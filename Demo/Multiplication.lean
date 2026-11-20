@@ -31,7 +31,7 @@ port on the principal port of the `+`. The first auxiliary port of the `+` is on
 port of the `δ`, its port 0, and its second auxiliary port is the result `r`. Hence
 `y ~ δ(w₁, w₀)`: the two ports of the `δ` are not in the order of `mul(w₀, add(w₁, r))`. The
 other order is a different rule, not a renaming of the internal wires
-(`Checks/MultiplicationReview.lean`, `ruleMulSuccSwapped_ne`).
+(`Checks/Misc/MultiplicationReview.lean`, `ruleMulSuccSwapped_ne`).
 
 This file shows:
 
@@ -1118,7 +1118,7 @@ def twoTimesTwo : Net sig ℕ := times 2 2
 /-- The net of `4` on the free port `0`. -/
 def four : Net sig ℕ := numNet 4
 
-/-- **`2 × 2 = 4`** (Lafont 1997, pages 76-77): the net of `2 × 2` reduces, by interactions up to
+/-- **`2 × 2 = 4`** (Lafont 1997, Fig. 1, page 78): the net of `2 × 2` reduces, by interactions up to
 wires, to a net that is the same graph as the net of `4`. -/
 theorem two_times_two :
     -- the net of `2 × 2` reduces to a net that is the same graph as the net of `4`

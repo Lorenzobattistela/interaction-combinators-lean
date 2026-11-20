@@ -19,7 +19,7 @@ The renamings plus permutations (`PNet.permCell`, `Translation.renPermTr`), the 
 (`Translation.net_eq_renPermTr`, `Translation.sym_renPermTr`, `Translation.symEquiv_renPermTr`,
 `Translation.Invertible.sym_eq_of_tree`, `Translation.Invertible.symEquiv_symm_eq`,
 `Translation.Invertible.sym_inverse_unique`) were first proved here; they are now in the library,
-in `InteractionCombinators/Lafont/TranslationRenPerm.lean`. This file keeps:
+in `InteractionCombinators/Translations/TranslationRenPerm.lean`. This file keeps:
 
 * `permNet_eq_permCell`, `permTr_eq_renPermTr` — the permutations of `TranslationCompReview` are
   renamings plus permutations, with the same direction.

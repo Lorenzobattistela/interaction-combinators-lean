@@ -17,8 +17,9 @@ page 86. The checks below argue that it is harmless.
   `ruleDupDup` are not (each equation joins two ports); the construction of `Rule.exists_expanded`
   (`Expand.stepRule`, applied twice) is computed on them and gives the expected expanded rules
   (`conCon_two_steps`, `dupDup_two_steps`). The rules of `systemNoConDup` are among these.
-* One tree per port: `Rule.Expanded.existsUnique_root` (`Lafont/ExpandedRoot.lean`). On
-  `ruleConDup`, the root tree of each port is computed (`ruleConDup_root`).
+* One tree per port: `Rule.Expanded.existsUnique_root`
+  (`InteractionCombinators/Universality/RecursionFree/ExpandedRoot.lean`). On `ruleConDup`, the root
+  tree of each port is computed (`ruleConDup_root`).
 * Attempts to refute `Rule.exists_expanded`:
   - a cycle of port-to-port equations `a₀ = b₀, b₀ = a₀` is not linear (`cycle_not_linear`), and in
     a linear reduced rule every equation has its own root port, so no cycle can occur;

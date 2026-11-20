@@ -7,9 +7,10 @@ import Checks.Universality.RecursionFree.DecompositionReview
 The hypotheses of `Rule.SymmLit.exists_symm_decomposition` hold for two concrete rules of a symbol
 with itself.
 
-* `selfRule` (`Checks/DecompositionReview.lean`) is already in expanded form, and is literally
-  symmetric with `π` the exchange of `w₀` and `w₂`. It is the rule whose *canonical*
-  decomposition is not symmetric (its `σ` is a 3-cycle); the theorem gives a symmetric one.
+* `selfRule` (`Checks/Universality/RecursionFree/DecompositionReview.lean`) is already in expanded
+  form, and is literally symmetric with `π` the exchange of `w₀` and `w₂`. It is the rule whose
+  *canonical* decomposition is not symmetric (its `σ` is a 3-cycle); the theorem gives a symmetric
+  one.
 * `conConExp`, the expanded form of `ruleConCon`: `a₀ = x₀, b₁ = x₀, a₁ = x₁, b₀ = x₁`, literally
   symmetric with `π` the exchange of `x₀` and `x₁`.
 -/

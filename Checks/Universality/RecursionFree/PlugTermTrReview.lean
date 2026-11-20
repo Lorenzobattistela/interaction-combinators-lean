@@ -7,9 +7,9 @@ import InteractionCombinators.Universality.General.CodeGammaMeet
 
 Lafont 1997, Section 2.4, journal pages 85–86 (PDF pages 17–18: the plugged rule and the end of
 Fig. 7) and page 90 (Fig. 10, where the same argument is "left to the reader"). Review of
-`Lafont/PlugTermTr.lean` (issue #190). `PlugTermTrCheck` already applies `netTr_plug_termTr` with
-`σ = swap 0 1`, trees renamed away from `gammaPort`, and `hlin` proved; this file adds what that
-check cannot see.
+`InteractionCombinators/Universality/RecursionFree/PlugTermTr.lean` (issue #190). `PlugTermTrCheck`
+already applies `netTr_plug_termTr` with `σ = swap 0 1`, trees renamed away from `gammaPort`, and
+`hlin` proved; this file adds what that check cannot see.
 
 ## Against the paper
 

@@ -2,7 +2,8 @@ import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 import InteractionCombinators.Core.Combinators
 
 /-!
-# Checks of `Lafont/Decomposition.lean` on the rules of the combinators
+# Checks of `InteractionCombinators/Universality/RecursionFree/Decomposition.lean` on the rules of
+the combinators
 
 The canonical decomposition of page 85 (PDF page 17), computed by Lean (`decide`, `rfl`) on three
 rules of `Comb.system` and compared with the rules by hand.

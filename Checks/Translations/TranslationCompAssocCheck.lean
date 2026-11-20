@@ -2,7 +2,7 @@ import Checks.Translations.TranslationCompReview
 import InteractionCombinators.Translations.TranslationCompAssoc
 
 /-!
-# Checks for `Lafont/TranslationCompAssoc.lean`
+# Checks for `InteractionCombinators/Translations/TranslationCompAssoc.lean`
 
 The translations `permTr σ` of `TranslationCompReview.lean` send the single symbol of `sigN 3` to
 itself with its three auxiliary ports permuted by `σ`. For `σ` the rotation of the ports, `permTr σ`

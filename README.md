@@ -39,15 +39,17 @@ is stated with the latter.
 ## Layout
 
 - `InteractionCombinators/` — the library.
-  - `Term.lean`, `Net.lean`, `System.lean`, `Translation.lean`, `Combinators.lean`: the setting.
-    These are the definitions the theorem depends on, and the ones to read first.
-  - `Lafont/`: the results of the paper. `Universality.lean` has the theorem.
+  - `Core/`: the setting (`Term`, `Net`, `System`, `Translation`, `Combinators`, `Graph`). These
+    are the definitions the theorem depends on, and the ones to read first.
+  - `Text/`, `Reduction/`, `Reduced/`, `Translations/`, `Graphs/`: the general theory of
+    Section 1 of the paper, and the correspondence with nets as graphs.
+  - `Universality/`: Section 2 of the paper. `Theorem1.lean` has the theorem.
+  - `Results.lean`: the main results, in the order and with the numbering of the paper. Start
+    here.
 - `Checks/` — examples, non-vacuity tests and attempts to refute the statements of the library.
   The library never imports them.
 - `Demo/` — worked examples. `Arithmetic.lean` translates unary addition, a recursive
   interaction system, into the combinators, and runs `2 + 2`.
-- `InteractionCombinators/Results.lean` — the main results, in the order and with the numbering of
-  the paper. Start here.
 - `PAPER.md` — a map from each definition, lemma, figure and theorem of the paper to the code.
 - `docs/` — a reading guide and the draft of a paper about this development.
 - `history/` — the roadmap, the plans and the progress notes of the agents.

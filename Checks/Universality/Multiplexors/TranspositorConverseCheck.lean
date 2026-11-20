@@ -3,7 +3,7 @@ import InteractionCombinators.Universality.General.CodeTr
 import InteractionCombinators.Universality.RecursionFree.RecursionFreeFig7
 
 /-!
-# Checks of `Lafont/TranspositorConverse.lean` (page 84)
+# Checks of `InteractionCombinators/Universality/Multiplexors/TranspositorConverse.lean` (page 84)
 
 `involutive_of_transpositor` says: if two copies of a principal net `p`, plugged by their roots,
 reduce up to wires to the wiring σ, then σ is involutive (Lafont 1997, page 84).

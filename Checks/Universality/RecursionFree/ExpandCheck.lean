@@ -2,7 +2,7 @@ import InteractionCombinators.Universality.RecursionFree.Expand
 import Checks.Universality.RecursionFree.ExpandedIsoCheck
 
 /-!
-# Checks for `Lafont/Expand.lean`
+# Checks for `InteractionCombinators/Universality/RecursionFree/Expand.lean`
 
 Non-vacuity of `Rule.exists_expanded` (page 86). Its hypotheses hold for two rules that are not
 expanded:

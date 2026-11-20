@@ -4,8 +4,8 @@ import Checks.Universality.RecursionFree.GammaReview
 /-!
 # Review of the end of Fig. 7 (`Fig7End.lean`) against rows 3 and 4 of Fig. 7 (page 86)
 
-Lafont 1997, Section 2.4, Fig. 7, journal page 86 (PDF page 18). Review of `Lafont/Fig7End.lean`
-(issue #110).
+Lafont 1997, Section 2.4, Fig. 7, journal page 86 (PDF page 18). Review of
+`InteractionCombinators/Universality/RecursionFree/Fig7End.lean` (issue #110).
 
 ## Against the figure
 
@@ -23,8 +23,8 @@ Lafont 1997, Section 2.4, Fig. 7, journal page 86 (PDF page 18). Review of `Lafo
   `[φ_{j,i}]`. The statement joins the middle port `l` of the first to the middle port `σ l` of the
   second, which is `Rule.plug` (`GammaReview.plugR_middle`). Both packages carry the same `σ`, as on
   page 86 (`σ_{j,i} = σ_{i,j}`) and in the translation (`RecursionFreeTrReview.rawSide_pair`). Since
-  `σ` is involutive, `l ↔ σ l` is the same relation as `σ l ↔ l`: which side `σ` is drawn on does not
-  matter (`middle_symm` below states this on the conclusion).
+  `σ` is involutive, `l ↔ σ l` is the same relation as `σ l ↔ l`: which side `σ` is drawn on does
+  not matter (`middle_symm` below states this on the conclusion).
 
 ## Refutation attempts
 
@@ -45,10 +45,10 @@ The conclusion has the shape of `Rule.plug φ ψ σ`: the trees of the cell with
 that selects `Gj[i] = Γ` of `φ`, `a` ports) meet the trees of `[φ]` at `.inl p`, those of the other
 cell meet the trees of `[ψ]` at `.inl q`, and the middle trees are joined `φ l = ψ (σ l)`, which is
 `plugL (.inr (.inl l)) = plugR σ (.inr (.inl (σ l)))`. This was confirmed while the review was
-written: `Lafont/PlugTr.lean` (merged meanwhile) takes this conclusion as it is
-(`mux_gamma_mux_gamma_ofFn`, `plugTarget`) and proves it `Equiv` to a translation of an instance of
-`Rule.plug φ ψ σ` (`netTr_plug_gamma`), for linear expanded sides. What remains after that, and is
-not a defect of the statement:
+written: `InteractionCombinators/Universality/RecursionFree/PlugTr.lean` (merged meanwhile) takes
+this conclusion as it is (`mux_gamma_mux_gamma_ofFn`, `plugTarget`) and proves it `Equiv` to a
+translation of an instance of `Rule.plug φ ψ σ` (`netTr_plug_gamma`), for linear expanded sides.
+What remains after that, and is not a defect of the statement:
 
 * `[ψ]` here is the expanded side `D.side β α`, chosen by `Rule.exists_expanded` separately for each
   side; relating `plug` of the expanded sides to `plug` of `D.dec`, and that to the rule, goes

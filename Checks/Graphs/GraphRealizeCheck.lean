@@ -2,7 +2,7 @@ import InteractionCombinators.Graphs.GraphRealize
 import Checks.Core.GraphReview
 
 /-!
-# Check of `Lafont/GraphRealize.lean`
+# Check of `InteractionCombinators/Graphs/GraphRealize.lean`
 
 Lafont 1997, Section 1.1, page 71. `Graph.WF.exists_net_free` applied to two well-formed graphs
 written by hand, with cells numbered out of prefix order, so its hypothesis can hold.

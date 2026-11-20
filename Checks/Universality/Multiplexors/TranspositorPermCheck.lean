@@ -1,7 +1,8 @@
 import InteractionCombinators.Universality.Multiplexors.TranspositorPerm
 
 /-!
-# Checks of `Lafont/TranspositorPerm.lean` against the paper
+# Checks of `InteractionCombinators/Universality/Multiplexors/TranspositorPerm.lean` against the
+paper
 
 A review (issue 50) compared `transpositorPerm`, `portList`, `involutive_decomp` and
 `transpositorPerm_transpositorPerm` with Lafont 1997, page 84 (PDF page 16): the picture of the

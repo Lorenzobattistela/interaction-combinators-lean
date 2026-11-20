@@ -5,14 +5,15 @@ import InteractionCombinators.Universality.General.CodeCellsMeet
 /-!
 # Check: the principal net `[α]` of Fig. 10 and the meeting of two cells, for `combEnum`
 
-`codeNetE e side α` (`Lafont/CodeTr.lean`) is the principal net `[α]` of Fig. 10 (page 89) with the
-symbols numbered by `e`, and `codeCells_meetE` (`Lafont/CodeCellsMeet.lean`) the analogue of
-Fig. 7, rows 1–2, for any `e`. Here they are used at the hand-written numbering
-`con, dup, era ↦ 0, 1, 2` (`combEnum`) with the side `sideConDup`, without `symEnum`.
+`codeNetE e side α` (`InteractionCombinators/Universality/General/CodeTr.lean`) is the principal net
+`[α]` of Fig. 10 (page 89) with the symbols numbered by `e`, and `codeCells_meetE`
+(`InteractionCombinators/Universality/General/CodeCellsMeet.lean`) the analogue of Fig. 7, rows 1–2,
+for any `e`. Here they are used at the hand-written numbering `con, dup, era ↦ 0, 1, 2` (`combEnum`)
+with the side `sideConDup`, without `symEnum`.
 
 The internal wires of `[α]` are its names other than the ports, each of which occurs twice
-(`Checks/CodeTreeECheck.lean`): `(82 - 2) / 2 = 40` for `con`, `(130 - 2) / 2 = 64` for `dup`,
-`80 / 2 = 40` for `era`.
+(`Checks/Universality/General/CodeTreeECheck.lean`): `(82 - 2) / 2 = 40` for `con`, `(130 - 2) / 2 =
+64` for `dup`, `80 / 2 = 40` for `era`.
 -/
 
 namespace INet.Comb.CodeCellsMeetECheck

@@ -2,7 +2,7 @@ import InteractionCombinators.Universality.Menus.Menu
 import Checks.Universality.Menus.PackageCheck
 
 /-!
-# Checks of `Lafont/Menu.lean` against the paper
+# Checks of `InteractionCombinators/Universality/Menus/Menu.lean` against the paper
 
 A review (issue 36) compared `menu`, `selector`, `menu_selector` and `IsPackage.menu` with Lafont
 1997, page 84 (and pages 82–83 for `M_n`, `M_n*`). This file records the cases worked by hand, as

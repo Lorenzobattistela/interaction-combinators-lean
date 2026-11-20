@@ -63,8 +63,8 @@ theorem of_equiv
     StepE.Normal I K :=
   fun M hs => h M (StepE.of_equiv hE hs)
 
-/-- **A net without a cut is irreducible** (Lafont 1997, page 72: an interaction rewrites a cut;
-page 80: the definition of a cut). -/
+/-- **A net without a cut is irreducible** (Lafont 1997, page 73: an interaction rewrites a cut;
+page 77: the definition of a cut). -/
 theorem of_not_hasCut
     -- the net has no cut
     (h : ¬ N.HasCut) :

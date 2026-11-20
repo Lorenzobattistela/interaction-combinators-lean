@@ -3,7 +3,8 @@ import Checks.Universality.General.CodeCompatibleSidesCheck
 /-!
 # Review of `System.SidesPlug` (pages 86, 89–90)
 
-Checks written for the review of issue #262 (PR #261, `Lafont/CodeCompatibleSides.lean`).
+Checks written for the review of issue #262 (PR #261,
+`InteractionCombinators/Universality/General/CodeCompatibleSides.lean`).
 
 * **Self-rules.** For a rule `α`–`α`, `SidesPlug` asks `side α α` to be both the side `φ` of the
   first cell and the side `ψ` of the second, so it forces `φ = ψ` (`sidesPlug_self`). This is

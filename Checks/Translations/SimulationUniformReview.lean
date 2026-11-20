@@ -4,8 +4,8 @@ import InteractionCombinators.Universality.RecursionFree.DecompositionLemmas
 /-!
 # Review of the uniform bounds `L`, `M` (page 81)
 
-Review of `Lafont/SimulationUniform.lean` (issue #233). Lafont 1997, page 81: "let `L` (resp.
-`M`) be the minimal (resp. the maximal) length of all those reductions".
+Review of `InteractionCombinators/Translations/SimulationUniform.lean` (issue #233). Lafont 1997,
+page 81: "let `L` (resp. `M`) be the minimal (resp. the maximal) length of all those reductions".
 
 * **Degenerate cases.**
   - `exists_distinct_linear_naming`: every pair `Φ(α)(xs) = Φ(β)(ys)` has a linear naming with

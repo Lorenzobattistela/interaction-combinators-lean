@@ -1,7 +1,8 @@
 import Checks.Universality.RecursionFree.CellSkeletonCheck
 
 /-!
-# Review of `Lafont/CellSkeleton.lean` against Figs. 6 and 7 (page 86)
+# Review of `InteractionCombinators/Universality/RecursionFree/CellSkeleton.lean` against Figs. 6
+and 7 (page 86)
 
 Attempts to refute `cellSkel_cellSkel` on instances that `cellSkel_cellSkel_instance` does not
 cover, and checks on the two loops.

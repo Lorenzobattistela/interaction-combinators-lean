@@ -5,11 +5,11 @@ import Checks.Reduction.StrongConfluenceECheck
 
 Checks written for the review of issue #257.
 
-* The net `N` of `Checks/StrongConfluenceECheck.lean` (`x = con(1, 2), x = con(3, 4), era = era`)
-  has two `StepE` to nets that are not the same graph (`not_equiv`: `Equiv` keeps the cells,
-  `Equiv.cells_eq`). The theorem then gives its second branch (`second_branch`), so it is not
-  only used through its first one; the common reduct is given by hand as well (`common`), and is
-  reached from `M₁` only through the wire `0`.
+* The net `N` of `Checks/Reduction/StrongConfluenceECheck.lean` (`x = con(1, 2), x = con(3, 4), era
+  = era`) has two `StepE` to nets that are not the same graph (`not_equiv`: `Equiv` keeps the cells,
+  `Equiv.cells_eq`). The theorem then gives its second branch (`second_branch`), so it is not only
+  used through its first one; the common reduct is given by hand as well (`common`), and is reached
+  from `M₁` only through the wire `0`.
 * An active pair fired in its two orientations: for `con`–`con` (which exchanges the auxiliary
   ports) and for `dup`–`dup` (which does not), the two results are the same net, so the first
   branch is the one that holds (`con_con_orientations`, `dup_dup_orientations`).

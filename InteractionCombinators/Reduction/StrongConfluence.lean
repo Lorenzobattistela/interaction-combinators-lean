@@ -3,11 +3,11 @@ import InteractionCombinators.Universality.RecursionFree.SymmPerm
 /-!
 # Proposition 1: strong confluence (Lafont 1997, page 73)
 
-The statement and its proof, moved here from `Lafont/Confluence2.lean`, which keeps the lemmas
+The statement and its proof, kept apart from `RuleInstances.lean`, which has the lemmas
 about instances of a rule. The proof uses the symmetry of a rule of a symbol with itself
 (`System.WellFormed.symm`), which is symmetry up to a permutation of the internal wires
-(`Rule.SymmPerm`, `Lafont/SymmPerm.lean`); that file is built on `Confluence2.lean`, hence the
-separate file.
+(`Rule.SymmPerm`, `InteractionCombinators/Universality/RecursionFree/SymmPerm.lean`); that file is
+built on `RuleInstances.lean`, hence the separate file.
 
 Contents, in the order of the file:
 

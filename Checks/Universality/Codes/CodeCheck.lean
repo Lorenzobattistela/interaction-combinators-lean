@@ -3,7 +3,7 @@ import InteractionCombinators.Universality.Codes.Code
 import Checks.Universality.RecursionFree.DecompositionCheck
 
 /-!
-# Review of `Lafont/Code.lean` against Fig. 8 (page 88) and Fig. 9 (page 89)
+# Review of `Universality/Codes/Code.lean` against Fig. 8 (page 88) and Fig. 9 (page 89)
 
 Checks of the code `!π` and the decoder `D`, all proved in Lean.
 
@@ -16,9 +16,9 @@ Checks of the code `!π` and the decoder `D`, all proved in Lean.
   the first cell has `l = 0`, `r = con(1, ε)`, the second `l = 1`, `r = 0`, so a swap of the trees
   on port 0 and on port 1 would show. `code_decoder_π₂` is the first stage of Fig. 9 on it: `M_2`
   faces the `dup` cell of the decoder, the `M_2*` on its port 0, `k = 12`, carries the trees `0, 1`
-  on port 0, the one on its port 1, `k + 1 = 13`, the trees `con(1, ε), 0` on port 1. `decode_π₂` carries out
-  the whole of Fig. 9 by hand: the `con`–`dup` commutation, the two annihilations of the copies of
-  `M_2` with the `M_2*`, and the wires; what is left is `Equiv` to `π₂` on the free port.
+  on port 0, the one on its port 1, `k + 1 = 13`, the trees `con(1, ε), 0` on port 1. `decode_π₂`
+  carries out the whole of Fig. 9 by hand: the `con`–`dup` commutation, the two annihilations of the
+  copies of `M_2` with the `M_2*`, and the wires; what is left is `Equiv` to `π₂` on the free port.
 -/
 
 namespace INet.Comb.CodeCheck

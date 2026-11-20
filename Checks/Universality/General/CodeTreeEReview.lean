@@ -4,9 +4,9 @@ import Checks.Universality.Codes.CodeMenusEReview
 /-!
 # Review of the tree `[α]` of Fig. 10 for a given enumeration `e : S.Sym ≃ Fin n` (pages 89-90)
 
-Review of `codeMenuBaseE`, `codeKeyE` and `codeTreeE` (`Lafont/CodeTr.lean`, section `Enum`)
-against Fig. 10 (journal page 89, PDF page 21, top left, rendered alone at 600 dpi) and the text of
-page 90.
+Review of `codeMenuBaseE`, `codeKeyE` and `codeTreeE`
+(`InteractionCombinators/Universality/General/CodeTr.lean`, section `Enum`) against Fig. 10 (journal
+page 89, PDF page 21, top left, rendered alone at 600 dpi) and the text of page 90.
 
 Fig. 10 draws `[α_i]` as the transpositor `T_{1,1}` whose three auxiliary ports carry, from left
 to right, the menu `Γ_i`, the selector `S^i_m` and a wire that goes up on the right and comes back
@@ -40,8 +40,8 @@ of the cell, and the loop. Here `m` is the number of symbols.
   differ in two more ways than the issue says: the cut names above, and the packages `⟨α_k⟩`
   inside each `Γ_{i,j}`, which carry the selector `S^{e α_k}_m` (already found in the review of
   the menus, `codeGamma_idx_ne`). This is harmless: `[β]` selects with the same number `e β`.
-  Page 90 does not say in words that the numbering is harmless; nothing in Fig. 10 needs an order on the symbols (see
-  `Checks/CodeMenusEReview.lean`).
+  Page 90 does not say in words that the numbering is harmless; nothing in Fig. 10 needs an order on
+  the symbols (see `Checks/Universality/Codes/CodeMenusEReview.lean`).
 * The theorems `vars_codeTreeE`, `codeTreeE_wires`, `codeTreeE_hyps`, `codeTreeE_eq_mkDup`,
   `codeTreeE_ne_var` have no hypotheses beyond `e`, `side`, `α`; they are instantiated on
   `combEnum`, `combEnum₂` and `sideConDup`, `sideAsym`.

@@ -10,7 +10,8 @@ such that `Φ⁻¹ ∘ Φ = id_Σ` and `Φ ∘ Φ⁻¹ = id_Σ'`. In that case, 
 ports]".
 
 The general lemmas on the tree of `Ψ(p)` over `ℕ` (`Translation.natTree_trPNet`,
-`Translation.cells_trPNet`, …) are in `Lafont/TranslationCompBasic.lean`.
+`Translation.cells_trPNet`, …) are in
+`InteractionCombinators/Translations/TranslationCompBasic.lean`.
 
 * `permTr σ` — the translation of a symbol of arity `k` to itself with its auxiliary ports
   permuted by `σ`, the form of the figure of page 81. `comp_permTr`: `permTr τ ∘ permTr σ` is

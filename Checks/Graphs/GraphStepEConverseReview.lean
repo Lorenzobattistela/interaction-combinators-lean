@@ -60,7 +60,7 @@ What was checked, against page 73 (Section 1.2, the figure of an interaction rul
    `hN` was not tested. The conclusion
    `∃ M H', StepE I N M ∧ M.HasGraph H' ∧ H.Iso H'` is the converse of
    `Net.Linear.stepE_interact` with the same notion of equality of graphs. Its hypotheses hold in
-   `Checks/GraphStepEConverseCheck.lean` (`conConFree_interact_stepE`,
+   `Checks/Graphs/GraphStepEConverseCheck.lean` (`conConFree_interact_stepE`,
    `dupDupShared_interact_stepE`). Nothing was found to refute it; it was not tested on a net with
    more than one active pair.
 -/

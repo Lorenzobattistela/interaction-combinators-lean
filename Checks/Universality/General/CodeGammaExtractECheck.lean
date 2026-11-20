@@ -6,10 +6,11 @@ import InteractionCombinators.Universality.General.CodeGammaMeet
 /-!
 # Check: `codeGamma_extractE` and `codeCells_meet_endE` at `combEnum` (Fig. 10, pages 89–90)
 
-`codeGamma_extractE` (`Lafont/CodeGammaExtract.lean`) and `codeCells_meet_endE`
-(`Lafont/CodeGammaMeet.lean`) are the statements of `codeGamma_extract` and `codeCells_meet_end`
-for any numbering `e : S.Sym ≃ Fin n` of the symbols. Here they are used at the hand-written
-numbering `con, dup, era ↦ 0, 1, 2` (`combEnum`, from `CodeMenusECheck`), without `symEnum`.
+`codeGamma_extractE` (`InteractionCombinators/Universality/General/CodeGammaExtract.lean`) and
+`codeCells_meet_endE` (`InteractionCombinators/Universality/General/CodeGammaMeet.lean`) are the
+statements of `codeGamma_extract` and `codeCells_meet_end` for any numbering `e : S.Sym ≃ Fin n` of
+the symbols. Here they are used at the hand-written numbering `con, dup, era ↦ 0, 1, 2` (`combEnum`,
+from `CodeMenusECheck`), without `symEnum`.
 
 * `gamma_extractE_conDup` — `codeGamma_extractE` on the rule `con`–`dup` read as a side (four
   cells), with the menus built from `sideConDup`: the hypothesis is proved, so the statement is not

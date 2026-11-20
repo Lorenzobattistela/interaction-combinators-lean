@@ -4,14 +4,14 @@ import Checks.Universality.General.CodeTermExtractCheck
 /-!
 # Check: `codeTerm_extractE` for a hand-written enumeration of the symbols (Fig. 10, page 90)
 
-`codeTerm_extractE` (`Lafont/CodeTermExtract.lean`) takes the numbering `e : S.Sym ≃ Fin n` of the
-symbols as an argument. Here it is applied, with no lemma about `symEnum`, to the interaction
-combinators with the numbering `combEnum` (`con, dup, era ↦ 0, 1, 2`, from `CodeMenusECheck`), the
-side `sideConDup` (the rule `con`–`dup`, from `CodeGammaReview`), and the concrete tree
-`con(dup(0, 1), 2)` of two cells (`tConDup`, from `CodeTermExtractCheck`): `⟨t⟩` with a copy of
-`!Γ` on each of its two extra ports reduces to a translation of `t` by `codeTranslationE`. The
-hypotheses of `codeTerm_extractE` are met by `codeTerm_extract_hyps`, which does not mention the
-enumeration.
+`codeTerm_extractE` (`InteractionCombinators/Universality/General/CodeTermExtract.lean`) takes the
+numbering `e : S.Sym ≃ Fin n` of the symbols as an argument. Here it is applied, with no lemma about
+`symEnum`, to the interaction combinators with the numbering `combEnum` (`con, dup, era ↦ 0, 1, 2`,
+from `CodeMenusECheck`), the side `sideConDup` (the rule `con`–`dup`, from `CodeGammaReview`), and
+the concrete tree `con(dup(0, 1), 2)` of two cells (`tConDup`, from `CodeTermExtractCheck`): `⟨t⟩`
+with a copy of `!Γ` on each of its two extra ports reduces to a translation of `t` by
+`codeTranslationE`. The hypotheses of `codeTerm_extractE` are met by `codeTerm_extract_hyps`, which
+does not mention the enumeration.
 -/
 
 namespace INet.Comb.CodeTermExtractECheck

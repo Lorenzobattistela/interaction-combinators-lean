@@ -1,7 +1,7 @@
 import InteractionCombinators.Universality.Multiplexors.Transpositor
 
 /-!
-# Checks of `Lafont/Transpositor.lean` against the paper
+# Checks of `InteractionCombinators/Universality/Multiplexors/Transpositor.lean` against the paper
 
 A review (issue 38) compared `pairCon`, `transpositor`, `swapPairs` and `transpositor_transpositor`
 with Lafont 1997, page 83 (PDF page 15): the picture of the property of `T_{p,q}` and the picture

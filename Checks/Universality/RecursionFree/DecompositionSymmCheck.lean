@@ -8,9 +8,9 @@ The hypotheses of `Rule.exists_symm_decomposition_of_symmPerm` (linear, reduced,
 here through `Rule.SymmPerm.of_equiv` from `Equiv r.swap.net r.net`) hold for concrete rules of a
 symbol with itself, which therefore get a symmetric decomposition.
 
-* `selfRule` (`Checks/DecompositionReview.lean`): symmetric only up to `Equiv`
-  (`selfRule_symm`), and its *canonical* decomposition is not symmetric (its `σ` is a 3-cycle,
-  `selfRule_σ`).
+* `selfRule` (`Checks/Universality/RecursionFree/DecompositionReview.lean`): symmetric only up to
+  `Equiv` (`selfRule_symm`), and its *canonical* decomposition is not symmetric (its `σ` is a
+  3-cycle, `selfRule_σ`).
 * `ruleConCon` (`a₀ = b₁, a₁ = b₀`): not in expanded form (`ExpandCheck.ruleConCon_not_expanded`),
   so the expansion step of the proof is used.
 * `ruleDupDup` and `ruleEraEra`, the other rules `α`–`α` of the combinators.

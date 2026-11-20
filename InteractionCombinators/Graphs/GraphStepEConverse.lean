@@ -19,7 +19,7 @@ the flat text as fresh names: erasing the names of the ports of the other cells 
 them back into the wires, and the auxiliary ports of the two cells stay as names, which is the
 cut. The uniqueness of the result of an interaction (`Graph.interact_unique`) gives the theorem.
 
-The example on the combinators is in `Checks/GraphStepEConverseCheck.lean`.
+The example on the combinators is in `Checks/Graphs/GraphStepEConverseCheck.lean`.
 
 Contents, in the order of the file:
 
