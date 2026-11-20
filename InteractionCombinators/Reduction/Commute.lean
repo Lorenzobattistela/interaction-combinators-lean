@@ -8,11 +8,15 @@ Its proof has two cases. If the two interactions fire two different active pairs
 disjoint and the interactions commute. This file is that case (`Step.commute`); the case where the
 same active pair is fired is not treated here.
 
-* `Rule.facts_of_linear` — in a linear net, the internal wires of an instance of a linear rule
-  have distinct names, used nowhere else.
-* `Rule.equiv_inst` — the names of the internal wires of an instance do not matter.
-* `Step.commute` — after firing one of two active pairs, the other can still be fired, and both
-  orders give the same net up to wires.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas on the instances of a rule, and a bound on names: `Rule.mem_vars_inst`;
+   `Rule.facts_of_linear`, in a linear net the internal wires of an instance of a linear rule
+   have distinct names, used nowhere else; `Rule.equiv_inst`, the names of these wires do not
+   matter; `Net.exists_below`.
+2. Main result: `Step.commute`, after firing one of two active pairs, the other can still be
+   fired, and both orders give the same net up to wires.
+3. Examples showing that the hypotheses of `Step.commute` can hold, in the combinators.
 -/
 
 namespace INet
@@ -21,15 +25,31 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: the instances of a rule, and a bound on names
+-- ============================================================================================
+
 namespace Rule
 
 variable {a b : ℕ}
 
 /-- A name of an instance of a rule is a name of a tree plugged into a port, or one of the wires
 created by the rule. -/
-theorem mem_vars_inst {r : Rule S a b} {as : Fin a → Term S ℕ} {bs : Fin b → Term S ℕ}
-    {f : Fin r.internal → ℕ} {x : ℕ} (hx : x ∈ (r.inst as bs f).vars) :
-    (∃ i, x ∈ (as i).vars) ∨ (∃ j, x ∈ (bs j).vars) ∨ ∃ w, x = f w := by
+theorem mem_vars_inst
+    -- the rule and its instance: the trees on the ports, the names of the new wires
+    {r : Rule S a b}
+    {as : Fin a → Term S ℕ}
+    {bs : Fin b → Term S ℕ}
+    {f : Fin r.internal → ℕ}
+    -- a name of the instance
+    {x : ℕ}
+    (hx : x ∈ (r.inst as bs f).vars) :
+    -- it is a name of a tree on a port of the first cell,
+    (∃ i, x ∈ (as i).vars)
+      -- or of a tree on a port of the second cell,
+      ∨ (∃ j, x ∈ (bs j).vars)
+      -- or the name of a new wire
+      ∨ ∃ w, x = f w := by
   rw [inst, Net.vars_bind, Multiset.mem_bind] at hx
   obtain ⟨p, -, hp⟩ := hx
   rcases p with i | j | w
@@ -40,11 +60,30 @@ theorem mem_vars_inst {r : Rule S a b} {as : Fin a → Term S ℕ} {bs : Fin b �
 /-- In a linear net, the internal wires of an instance of a linear rule have pairwise distinct
 names, which occur in no tree plugged into the ports and nowhere in the rest of the net
 (Lafont 1997, page 72: the wires created by an interaction are new). -/
-theorem facts_of_linear (r : Rule S a b) (hr : r.Linear) {as : Fin a → Term S ℕ}
-    {bs : Fin b → Term S ℕ} {f : Fin r.internal → ℕ} {Γ : Net S ℕ}
+theorem facts_of_linear
+    -- a linear rule
+    (r : Rule S a b)
+    (hr : r.Linear)
+    -- its instance: the trees on the ports, the names of the new wires
+    {as : Fin a → Term S ℕ}
+    {bs : Fin b → Term S ℕ}
+    {f : Fin r.internal → ℕ}
+    -- the rest of the net
+    {Γ : Net S ℕ}
+    -- the net is linear
     (hlin : (r.inst as bs f + Γ).Linear) :
-    Function.Injective f ∧ ∀ w, (∀ i, f w ∉ (as i).vars) ∧ (∀ j, f w ∉ (bs j).vars) ∧
-      f w ∉ Γ.vars ∧ (r.inst as bs f + Γ).vars.count (f w) = 2 := by
+    -- the new wires have distinct names,
+    Function.Injective f
+      -- and for each new wire `w`:
+      ∧ ∀ w,
+        -- its name is in no tree on a port of the first cell,
+        (∀ i, f w ∉ (as i).vars)
+        -- nor of the second cell,
+        ∧ (∀ j, f w ∉ (bs j).vars)
+        -- nor in the rest of the net,
+        ∧ f w ∉ Γ.vars
+        -- and it occurs exactly twice in the net
+        ∧ (r.inst as bs f + Γ).vars.count (f w) = 2 := by
   have key : ∀ w, ∑ i, (as i).vars.count (f w) + ∑ j, (bs j).vars.count (f w) +
       2 * (∑ w', if f w = f w' then 1 else 0) + Γ.vars.count (f w) ≤ 2 := by
     intro w
@@ -94,10 +133,23 @@ theorem facts_of_linear (r : Rule S a b) (hr : r.Linear) {as : Fin a → Term S 
 the wires created by an instance of a linear rule to distinct unused names gives the same graph
 (Lafont 1997, pages 70 to 72: a net is a graph, and the right-hand side of a rule is a net whose
 internal wires are new). -/
-theorem equiv_inst (r : Rule S a b) (hr : r.Linear) (as : Fin a → Term S ℕ)
-    (bs : Fin b → Term S ℕ) (f f' : Fin r.internal → ℕ) (Γ : Net S ℕ)
-    (hlin : (r.inst as bs f + Γ).Linear) (hf' : Function.Injective f')
+theorem equiv_inst
+    -- a linear rule
+    (r : Rule S a b)
+    (hr : r.Linear)
+    -- the trees on the ports of the instance
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- the old and the new names of the new wires
+    (f f' : Fin r.internal → ℕ)
+    -- the rest of the net
+    (Γ : Net S ℕ)
+    -- the net with the old names is linear
+    (hlin : (r.inst as bs f + Γ).Linear)
+    -- the new names are distinct, and unused in that net
+    (hf' : Function.Injective f')
     (hfresh : ∀ w, f' w ∉ (r.inst as bs f + Γ).vars) :
+    -- the two nets are the same graph
     Equiv (r.inst as bs f + Γ) (r.inst as bs f' + Γ) := by
   obtain ⟨hf, hff⟩ := r.facts_of_linear hr hlin
   classical
@@ -154,31 +206,58 @@ theorem equiv_inst (r : Rule S a b) (hr : r.Linear) (as : Fin a → Term S ℕ)
 end Rule
 
 /-- Every net has a bound on its names: the names from some `K` on are unused. -/
-theorem Net.exists_below (N : Net S ℕ) : ∃ K, N.Below K :=
+theorem Net.exists_below
+    (N : Net S ℕ) :
+    ∃ K, N.Below K :=
   ⟨N.vars.sup + 1, fun _ hx => Nat.lt_succ_of_le (Multiset.le_sup hx)⟩
+
+-- ============================================================================================
+-- 2. Main result: two interactions on disjoint active pairs commute
+-- ============================================================================================
 
 /-- **Two interactions on disjoint active pairs commute** (Lafont 1997, Proposition 1, page 73,
 the case of two different active pairs). In a linear net with two active pairs
 `α(as) = β(bs)` and `γ(cs) = δ(ds)`, fire the first one (its new wires named by `f`) or the second
 one (its new wires named by `g`). Each result can then fire the other pair, by one literal
 interaction, and the two final nets are the same graph. -/
-theorem Step.commute {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {α β γ δ : S.Sym} {r₁ : Rule S (S.arity α) (S.arity β)}
-    {r₂ : Rule S (S.arity γ) (S.arity δ)} (hr₁ : I.rule α β = some r₁)
+theorem Step.commute
+    -- an interaction system whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the symbols of the two active pairs, `α`–`β` and `γ`–`δ`, and their rules
+    {α β γ δ : S.Sym}
+    {r₁ : Rule S (S.arity α) (S.arity β)}
+    {r₂ : Rule S (S.arity γ) (S.arity δ)}
+    (hr₁ : I.rule α β = some r₁)
     (hr₂ : I.rule γ δ = some r₂)
-    (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ)
-    (cs : Fin (S.arity γ) → Term S ℕ) (ds : Fin (S.arity δ) → Term S ℕ) (Δ : Net S ℕ)
+    -- the trees on the auxiliary ports of the four cells
+    (as : Fin (S.arity α) → Term S ℕ)
+    (bs : Fin (S.arity β) → Term S ℕ)
+    (cs : Fin (S.arity γ) → Term S ℕ)
+    (ds : Fin (S.arity δ) → Term S ℕ)
+    -- the rest of the net
+    (Δ : Net S ℕ)
+    -- the net with the two active pairs is linear
     (hN : Net.Linear
       (s(Term.app α as, Term.app β bs) ::ₘ s(Term.app γ cs, Term.app δ ds) ::ₘ Δ))
-    (f : Fin r₁.internal → ℕ) (hf : Function.Injective f)
+    -- the names `f` of the wires created by the first interaction: distinct and unused
+    (f : Fin r₁.internal → ℕ)
+    (hf : Function.Injective f)
     (hffresh : ∀ i, f i ∉
       Net.vars (s(Term.app α as, Term.app β bs) ::ₘ s(Term.app γ cs, Term.app δ ds) ::ₘ Δ))
-    (g : Fin r₂.internal → ℕ) (hg : Function.Injective g)
+    -- the names `g` of the wires created by the second interaction: distinct and unused
+    (g : Fin r₂.internal → ℕ)
+    (hg : Function.Injective g)
     (hgfresh : ∀ i, g i ∉
       Net.vars (s(Term.app γ cs, Term.app δ ds) ::ₘ s(Term.app α as, Term.app β bs) ::ₘ Δ)) :
-    ∃ P₁ P₂, Step I (r₁.inst as bs f + (s(Term.app γ cs, Term.app δ ds) ::ₘ Δ)) P₁ ∧
-      Step I (r₂.inst cs ds g + (s(Term.app α as, Term.app β bs) ::ₘ Δ)) P₂ ∧
-      Equiv P₁ P₂ := by
+    -- there are two nets `P₁` and `P₂` such that
+    ∃ P₁ P₂,
+      -- the net where the first pair has fired reduces, by firing the second, to `P₁`,
+      Step I (r₁.inst as bs f + (s(Term.app γ cs, Term.app δ ds) ::ₘ Δ)) P₁
+      -- the net where the second pair has fired reduces, by firing the first, to `P₂`,
+      ∧ Step I (r₂.inst cs ds g + (s(Term.app α as, Term.app β bs) ::ₘ Δ)) P₂
+      -- and `P₁` and `P₂` are the same graph
+      ∧ Equiv P₁ P₂ := by
   have hgN := fun w => hgfresh w
   simp only [Net.vars_cons, eqVars_mk, vars_app, Multiset.mem_add, Multiset.mem_sum,
     Finset.mem_univ, true_and, not_or, not_exists] at hgN
@@ -280,18 +359,28 @@ theorem Step.commute {I : System S} (hI : ∀ α β r, I.rule α β = some r →
     · exact (hgN w).2.2 hw)
   refine E₁.trans (E₂.trans (Equiv.of_eq (add_left_comm _ _ _)))
 
+-- ============================================================================================
+-- 3. The hypotheses can hold
+-- ============================================================================================
+
 section Example
 
 open Comb
 
 /-- Non-vacuity, in the combinators: a `con`–`con` pair and an `era`–`era` pair. Both orders of
 reduction meet. -/
-example : ∃ P₁ P₂,
-    Step system (ruleConCon.inst ![var 0, var 1] ![var 2, var 3] Fin.elim0 +
-      (s(mkEra, mkEra) ::ₘ 0)) P₁ ∧
-    Step system (ruleEraEra.inst ![] ![] Fin.elim0 +
-      (s(mkCon (var 0) (var 1), mkCon (var 2) (var 3)) ::ₘ 0)) P₂ ∧
-    Equiv P₁ P₂ := by
+example :
+    ∃ P₁ P₂,
+      -- after the `con`–`con` interaction, the `era`–`era` one fires
+      Step system
+        (ruleConCon.inst ![var 0, var 1] ![var 2, var 3] Fin.elim0
+          + (s(mkEra, mkEra) ::ₘ 0)) P₁
+      -- after the `era`–`era` interaction, the `con`–`con` one fires
+      ∧ Step system
+        (ruleEraEra.inst ![] ![] Fin.elim0
+          + (s(mkCon (var 0) (var 1), mkCon (var 2) (var 3)) ::ₘ 0)) P₂
+      -- and both orders meet
+      ∧ Equiv P₁ P₂ := by
   refine Step.commute (I := system) (α := con) (β := con) (γ := era) (δ := era)
     system_wellFormed.linear rfl rfl ![var 0, var 1] ![var 2, var 3] ![] ![] 0 ?_
     Fin.elim0 (fun i => i.elim0) (fun i => i.elim0) Fin.elim0 (fun i => i.elim0)
@@ -306,12 +395,18 @@ example : ∃ P₁ P₂,
 /-- Non-vacuity where the new wires clash: two `con`–`dup` pairs, each creating four wires, both
 named `10, 11, 12, 13`. After one interaction these names are in use, and the other interaction
 has to pick new ones. Both orders of reduction still meet. -/
-example : ∃ P₁ P₂,
-    Step system (ruleConDup.inst ![var 0, var 1] ![var 2, var 3] ![10, 11, 12, 13] +
-      (s(mkCon (var 4) (var 5), mkDup (var 6) (var 7)) ::ₘ 0)) P₁ ∧
-    Step system (ruleConDup.inst ![var 4, var 5] ![var 6, var 7] ![10, 11, 12, 13] +
-      (s(mkCon (var 0) (var 1), mkDup (var 2) (var 3)) ::ₘ 0)) P₂ ∧
-    Equiv P₁ P₂ := by
+example :
+    ∃ P₁ P₂,
+      -- after the first `con`–`dup` interaction, the second one fires
+      Step system
+        (ruleConDup.inst ![var 0, var 1] ![var 2, var 3] ![10, 11, 12, 13]
+          + (s(mkCon (var 4) (var 5), mkDup (var 6) (var 7)) ::ₘ 0)) P₁
+      -- after the second `con`–`dup` interaction, the first one fires
+      ∧ Step system
+        (ruleConDup.inst ![var 4, var 5] ![var 6, var 7] ![10, 11, 12, 13]
+          + (s(mkCon (var 0) (var 1), mkDup (var 2) (var 3)) ::ₘ 0)) P₂
+      -- and both orders meet
+      ∧ Equiv P₁ P₂ := by
   have hinj : Function.Injective (![10, 11, 12, 13] : Fin 4 → ℕ) := by
     intro i j h
     fin_cases i <;> fin_cases j <;> simp_all
