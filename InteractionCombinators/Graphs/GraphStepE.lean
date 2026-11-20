@@ -7,16 +7,8 @@ import InteractionCombinators.Translations.Simulation
 
 Lafont 1997, Section 1.2, page 73: an interaction rule replaces two cells joined by their
 principal ports by the right-hand side of the rule. On texts this is `StepE`, a wire substitution
-followed by `Step`; on graphs it is `Graph.Interact`. This file proves the forward direction
-(PLAN.md, Stage C, item 5, second half): the graph of the result of a step is, up to `Graph.Iso`,
-the result of one interaction on the graph.
-
-* `Graph.mapEnd` — renaming the ends of the wires of a graph, keeping its cells.
-* `Graph.contracts_mapEnd`, `Graph.contracts_union_left`, `Graph.contracts_union_right` —
-  contraction commutes with renaming the ends and can be done beside another graph.
-* `Graph.raw_bind_var` — the raw graph of a text whose names are renamed.
-* `Graph.Interact.iso` — an interaction of a graph is an interaction of every isomorphic graph.
-* `Net.Linear.stepE_interact` — the theorem.
+followed by `Step`; on graphs it is `Graph.Interact`. This file proves the forward direction: the
+graph of the result of a step is, up to `Graph.Iso`, the result of one interaction on the graph.
 
 The proof expands the active pair twice (`Simulation.equiv_expand`): its auxiliary ports carry
 fresh names `F + i`, which the rest of the net `Γ` plugs into the trees of the pair. The raw graph
@@ -25,13 +17,35 @@ of this text, contracted inside `Γ`, is the graph `G₁` to which the interacti
 result, with the rule renamed and the wires `G' + i = F + i` added, contracted inside `Γ` and
 inside the rule. That text is the result up to wires (`Simulation.equiv_contract_inst`, twice).
 
-The rules are assumed linear, as Lafont's rules are (page 72); `StepE` alone does not give it.
+The rules are assumed linear, as Lafont's rules are (page 73); `StepE` alone does not give it.
 The hypothesis is not decoration: a rule that does not use the auxiliary port of a cell erases the
 tree plugged into it on texts, while the interaction on graphs keeps that tree, attached to a free
 port, so the two results have different cells. (This is an informal remark; no refutation of the
 statement without the hypothesis is formalized.)
 
 The example on the combinators is in `Checks/GraphStepECheck.lean`.
+
+Contents, in the order of the file:
+
+1. Definitions: `Graph.mapEnd`, renaming the ends of the wires of a graph, keeping its cells;
+   `Graph.renameList`, renaming the names of a list of equations.
+2. Auxiliary lemmas, contraction and renaming: `Graph.Contract.mapEnd`, `Graph.contracts_mapEnd`
+   (contraction commutes with renaming the ends), `Graph.Contract.union_right`,
+   `Graph.contracts_union_right`, `Graph.contracts_union_left` (contraction can be done beside
+   another graph).
+3. Auxiliary lemmas, the raw graph of a renamed text: `Term.size_bind_var`,
+   `Term.rawCells_bind_var`, `Term.rootEnd_bind_var`, `Term.rawWires_bind_var`;
+   `Graph.raw_bind_var` (the raw graph of a renamed text is the renamed raw graph),
+   `Graph.ofList_renameList`, `Graph.raw_vars`, `Graph.rawSize_vars`, `Graph.ofList_append`.
+4. Auxiliary lemmas, an interaction of isomorphic graphs: `Graph.mapCell_endMap`,
+   `Graph.mapCell_cutEnd`, `Graph.map_wires_mapCell_congr`; `Graph.Interact.iso`, an interaction
+   of a graph is an interaction of every isomorphic graph.
+5. Auxiliary lemmas, the active pair with names on its auxiliary ports: `Graph.coe_ofFn_eq_sum`,
+   `Graph.size_app_var`, `Graph.rawCells_app_var`, `Graph.rawWires_app_var`,
+   `Graph.map_cutEnd_left`, `Graph.map_cutEnd_right`, `Graph.map_cutEnd_of_ports` (the cut on
+   the wires of the pair and of the rest of the net); `Simulation.mem_vars_expand`.
+6. Main result: `Net.Linear.stepE_interact`, a step `StepE I N M` of a linear net with linear
+   rules is an interaction of the graph of `N`, whose result is isomorphic to a graph of `M`.
 -/
 
 namespace INet
@@ -40,18 +54,46 @@ variable {S : Signature} {ν μ : Type}
 
 open Term
 
-/-! ## Renaming the ends of a graph -/
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
 
 namespace Graph
 
 /-- Renaming the ends of the wires of a graph by `f`; the cells and the cyclic wires are kept. -/
-def mapEnd (f : End ν → End μ) (G : Graph S ν) : Graph S μ :=
+def mapEnd
+    -- the renaming of the ends
+    (f : End ν → End μ)
+    -- the graph
+    (G : Graph S ν) :
+    Graph S μ :=
   ⟨G.cells, G.wires.map (Sym2.map f), G.loops⟩
+
+/-- Renaming the names of the equations of a list. -/
+def renameList
+    -- the renaming of the names
+    (ρ : ν → μ)
+    -- the list of equations
+    (L : List (Term S ν × Term S ν)) :
+    List (Term S μ × Term S μ) :=
+  L.map fun e => (e.1.bind fun x => var (ρ x), e.2.bind fun x => var (ρ x))
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: contraction and renaming
+-- ============================================================================================
 
 /-- **A contraction is a contraction of the renamed graph** (Lafont 1997, page 71), when the
 renaming sends names to names. -/
-theorem Contract.mapEnd {f : End ν → End μ} {h : ν → μ} (hf : ∀ x, f (.name x) = .name (h x))
-    {G H : Graph S ν} (c : Contract G H) : Contract (G.mapEnd f) (H.mapEnd f) := by
+theorem Contract.mapEnd
+    -- a renaming of the ends that sends each name `x` to the name `h x`
+    {f : End ν → End μ}
+    {h : ν → μ}
+    (hf : ∀ x, f (.name x) = .name (h x))
+    -- one contraction from `G` to `H`
+    {G H : Graph S ν}
+    (c : Contract G H) :
+    -- is one contraction of the renamed graphs
+    Contract (G.mapEnd f) (H.mapEnd f) := by
   cases c with
   | join x p q C W n =>
     simp only [Graph.mapEnd, Multiset.map_cons, Sym2.map_mk, hf]
@@ -61,15 +103,28 @@ theorem Contract.mapEnd {f : End ν → End μ} {h : ν → μ} (hf : ∀ x, f (
     exact .loop (h x) C _ n
 
 /-- **Contractions are contractions of the renamed graph** (Lafont 1997, page 71). -/
-theorem contracts_mapEnd {f : End ν → End μ} {h : ν → μ} (hf : ∀ x, f (.name x) = .name (h x))
-    {G H : Graph S ν} (c : Relation.ReflTransGen Contract G H) :
+theorem contracts_mapEnd
+    -- a renaming of the ends that sends each name `x` to the name `h x`
+    {f : End ν → End μ}
+    {h : ν → μ}
+    (hf : ∀ x, f (.name x) = .name (h x))
+    -- contractions from `G` to `H`
+    {G H : Graph S ν}
+    (c : Relation.ReflTransGen Contract G H) :
+    -- are contractions of the renamed graphs
     Relation.ReflTransGen Contract (G.mapEnd f) (H.mapEnd f) := by
   induction c with
   | refl => exact .refl
   | tail _ s ih => exact ih.tail (s.mapEnd hf)
 
 /-- **A contraction can be done beside another graph** (Lafont 1997, page 71). -/
-theorem Contract.union_right {G H : Graph S ν} (c : Contract G H) (K : Graph S ν) :
+theorem Contract.union_right
+    -- one contraction from `G` to `H`
+    {G H : Graph S ν}
+    (c : Contract G H)
+    -- another graph
+    (K : Graph S ν) :
+    -- is one contraction of the unions with `K` on the right
     Contract (G.union K) (H.union K) := by
   cases c with
   | join x p q C W n =>
@@ -81,25 +136,44 @@ theorem Contract.union_right {G H : Graph S ν} (c : Contract G H) (K : Graph S 
     exact .loop x _ _ _
 
 /-- **Contractions can be done beside another graph, on the left** (Lafont 1997, page 71). -/
-theorem contracts_union_right {G H : Graph S ν} (c : Relation.ReflTransGen Contract G H)
-    (K : Graph S ν) : Relation.ReflTransGen Contract (G.union K) (H.union K) := by
+theorem contracts_union_right
+    -- contractions from `G` to `H`
+    {G H : Graph S ν}
+    (c : Relation.ReflTransGen Contract G H)
+    -- another graph
+    (K : Graph S ν) :
+    -- are contractions of the unions with `K` on the right
+    Relation.ReflTransGen Contract (G.union K) (H.union K) := by
   induction c with
   | refl => exact .refl
   | tail _ s ih => exact ih.tail (s.union_right K)
 
 /-- **Contractions can be done beside another graph, on the right** (Lafont 1997, page 71). -/
-theorem contracts_union_left {G H : Graph S ν} (K : Graph S ν)
+theorem contracts_union_left
+    -- contractions from `G` to `H`, and another graph `K`
+    {G H : Graph S ν}
+    (K : Graph S ν)
     (c : Relation.ReflTransGen Contract G H) :
+    -- are contractions of the unions with `K` on the left
     Relation.ReflTransGen Contract (K.union G) (K.union H) := by
   rw [union_comm K G, union_comm K H]
   exact contracts_union_right c K
 
 end Graph
 
-/-! ## The raw graph of a renamed text -/
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the raw graph of a renamed text
+-- ============================================================================================
 
-private theorem map_finsum_multiset {ι α β : Type} (s : Finset ι) (g : ι → Multiset α)
-    (f : α → β) : (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
+-- the image of a finite sum of multisets is the sum of the images
+private theorem map_finsum_multiset
+    -- the multisets `g i`, for `i` in `s`
+    {ι α β : Type}
+    (s : Finset ι)
+    (g : ι → Multiset α)
+    -- the map
+    (f : α → β) :
+    (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
   classical
   induction s using Finset.induction_on with
   | empty => simp
@@ -108,7 +182,11 @@ private theorem map_finsum_multiset {ι α β : Type} (s : Finset ι) (g : ι �
 namespace Term
 
 /-- Renaming the names of a tree keeps its number of cells. -/
-theorem size_bind_var (ρ : ν → μ) (t : Term S ν) : (t.bind fun x => var (ρ x)).size = t.size := by
+theorem size_bind_var
+    -- the renaming and the tree
+    (ρ : ν → μ)
+    (t : Term S ν) :
+    (t.bind fun x => var (ρ x)).size = t.size := by
   induction t with
   | var x => rfl
   | app α ts ih =>
@@ -116,12 +194,24 @@ theorem size_bind_var (ρ : ν → μ) (t : Term S ν) : (t.bind fun x => var (�
     congr 1
     exact Finset.sum_congr rfl fun i _ => ih i
 
-theorem childBase_bind_var (ρ : ν → μ) {n : ℕ} (k : ℕ) (ts : Fin n → Term S ν) (i : Fin n) :
+-- renaming the names of the children keeps the numbers of their first cells
+theorem childBase_bind_var
+    -- the renaming
+    (ρ : ν → μ)
+    -- the children `ts`, numbered from `k`, and one of them
+    {n : ℕ}
+    (k : ℕ)
+    (ts : Fin n → Term S ν)
+    (i : Fin n) :
     childBase k (fun i => (ts i).bind fun x => var (ρ x)) i = childBase k ts i := by
   simp only [childBase, size_bind_var]
 
 /-- Renaming the names of a tree keeps its cells (Lafont 1997, page 71). -/
-theorem rawCells_bind_var (ρ : ν → μ) (t : Term S ν) (k : ℕ) :
+theorem rawCells_bind_var
+    -- the renaming, the tree, and the number of its first cell
+    (ρ : ν → μ)
+    (t : Term S ν)
+    (k : ℕ) :
     (t.bind fun x => var (ρ x)).rawCells k = t.rawCells k := by
   induction t generalizing k with
   | var x => rfl
@@ -129,13 +219,22 @@ theorem rawCells_bind_var (ρ : ν → μ) (t : Term S ν) (k : ℕ) :
     simp only [bind_app, rawCells, childBase_bind_var, ih]
 
 /-- The root of a renamed tree is the renamed root. -/
-theorem rootEnd_bind_var (ρ : ν → μ) (t : Term S ν) (k : ℕ) :
+theorem rootEnd_bind_var
+    -- the renaming, the tree, and the number of its first cell
+    (ρ : ν → μ)
+    (t : Term S ν)
+    (k : ℕ) :
     (t.bind fun x => var (ρ x)).rootEnd k = End.map id ρ (t.rootEnd k) := by
   cases t <;> rfl
 
 /-- The inner wires of a renamed tree are the renamed inner wires (Lafont 1997, page 71). -/
-theorem rawWires_bind_var (ρ : ν → μ) (t : Term S ν) (k : ℕ) :
-    (t.bind fun x => var (ρ x)).rawWires k = (t.rawWires k).map (Sym2.map (End.map id ρ)) := by
+theorem rawWires_bind_var
+    -- the renaming, the tree, and the number of its first cell
+    (ρ : ν → μ)
+    (t : Term S ν)
+    (k : ℕ) :
+    (t.bind fun x => var (ρ x)).rawWires k
+      = (t.rawWires k).map (Sym2.map (End.map id ρ)) := by
   induction t generalizing k with
   | var x => rfl
   | app α ts ih =>
@@ -147,13 +246,13 @@ end Term
 
 namespace Graph
 
-/-- Renaming the names of the equations of a list. -/
-def renameList (ρ : ν → μ) (L : List (Term S ν × Term S ν)) : List (Term S μ × Term S μ) :=
-  L.map fun e => (e.1.bind fun x => var (ρ x), e.2.bind fun x => var (ρ x))
-
 /-- **The raw graph of a renamed text** is the raw graph with its names renamed (Lafont 1997,
 page 71). -/
-theorem raw_bind_var (ρ : ν → μ) (k : ℕ) (L : List (Term S ν × Term S ν)) :
+theorem raw_bind_var
+    -- the renaming, the number of the first cell, and the list of equations
+    (ρ : ν → μ)
+    (k : ℕ)
+    (L : List (Term S ν × Term S ν)) :
     raw k (renameList ρ L) = (raw k L).mapEnd (End.map id ρ) := by
   induction L generalizing k with
   | nil => simp [renameList, raw, mapEnd]
@@ -166,22 +265,31 @@ theorem raw_bind_var (ρ : ν → μ) (k : ℕ) (L : List (Term S ν × Term S �
       Multiset.map_add, Sym2.map_mk]
 
 /-- The text of a renamed list is the renamed text. -/
-theorem ofList_renameList (ρ : ν → μ) (L : List (Term S ν × Term S ν)) :
+theorem ofList_renameList
+    -- the renaming and the list of equations
+    (ρ : ν → μ)
+    (L : List (Term S ν × Term S ν)) :
     Net.ofList (renameList ρ L) = (Net.ofList L).bind fun x => var (ρ x) := by
   simp only [Net.ofList, renameList, Net.bind, Multiset.map_coe, List.map_map]
   congr 1
 
 /-- The raw graph of a list of equations between names: no cell, one wire for each equation. -/
-theorem raw_vars (k : ℕ) (L : List (ν × ν)) :
-    raw (S := S) k (L.map fun e => (var e.1, var e.2)) =
-      ⟨0, ((L.map fun e => s(End.name e.1, End.name e.2) : List _) : Multiset _), 0⟩ := by
+theorem raw_vars
+    -- the number of the first cell, and the list of pairs of names
+    (k : ℕ)
+    (L : List (ν × ν)) :
+    raw (S := S) k (L.map fun e => (var e.1, var e.2))
+      = ⟨0, ((L.map fun e => s(End.name e.1, End.name e.2) : List _) : Multiset _), 0⟩ := by
   induction L with
   | nil => rfl
   | cons e L ih =>
     simp only [List.map_cons, raw, Term.size, add_zero, ih, Term.rawCells, Term.rawWires,
       Term.rootEnd, zero_add, Multiset.cons_coe]
 
-theorem rawSize_vars (L : List (ν × ν)) :
+-- a list of equations between names has no cell
+theorem rawSize_vars
+    -- the list of pairs of names
+    (L : List (ν × ν)) :
     rawSize (S := S) (L.map fun e => (var e.1, var e.2)) = 0 := by
   induction L with
   | nil => rfl
@@ -191,19 +299,37 @@ theorem rawSize_vars (L : List (ν × ν)) :
     rfl
 
 /-- The text of two lists of equations. -/
-theorem ofList_append (A B : List (Term S ν × Term S ν)) :
+theorem ofList_append
+    -- the two lists
+    (A B : List (Term S ν × Term S ν)) :
     Net.ofList (A ++ B) = Net.ofList A + Net.ofList B := by
   simp [Net.ofList]
 
-/-! ## An interaction of isomorphic graphs -/
+-- ============================================================================================
+-- 4. Auxiliary lemmas: an interaction of isomorphic graphs
+-- ============================================================================================
 
-theorem mapCell_endMap (τ σ : ℕ → ℕ) {ν : Type} (g : ν → ℕ) :
+-- renaming the cells after renaming the cells and the names is renaming both at once
+theorem mapCell_endMap
+    -- the two renamings of the cells, and the renaming of the names
+    (τ σ : ℕ → ℕ)
+    {ν : Type}
+    (g : ν → ℕ) :
     End.mapCell τ ∘ End.map σ g = End.map (τ ∘ σ) g := by
   funext z; cases z <;> rfl
 
 /-- An injective renaming of the cells commutes with the cut, the two cells renamed. -/
-theorem mapCell_cutEnd {τ : ℕ → ℕ} (hτ : Function.Injective τ) (c d : ℕ) {a b : ℕ}
-    (u : Fin a → ℕ) (v : Fin b → ℕ) (z : End ℕ) :
+theorem mapCell_cutEnd
+    -- an injective renaming of the cells
+    {τ : ℕ → ℕ}
+    (hτ : Function.Injective τ)
+    -- the two cells of the cut, and the fresh names of their auxiliary ports
+    (c d : ℕ)
+    {a b : ℕ}
+    (u : Fin a → ℕ)
+    (v : Fin b → ℕ)
+    -- an end
+    (z : End ℕ) :
     End.mapCell τ (cutEnd c d u v z) = cutEnd (τ c) (τ d) u v (End.mapCell τ z) := by
   match z with
   | .name x => rfl
@@ -216,7 +342,11 @@ theorem mapCell_cutEnd {τ : ℕ → ℕ} (hτ : Function.Injective τ) (c d : �
 
 /-- Two renamings that agree on the cells of the ports at the ends of some wires rename these
 wires alike. -/
-theorem map_wires_mapCell_congr {W : Multiset (Sym2 (End ν))} {ρ σ : ℕ → ℕ}
+theorem map_wires_mapCell_congr
+    -- the wires
+    {W : Multiset (Sym2 (End ν))}
+    -- two renamings of the cells that agree on every cell with a port at an end of `W`
+    {ρ σ : ℕ → ℕ}
     (h : ∀ c i, End.port c i ∈ W.bind wireEnds → ρ c = σ c) :
     W.map (Sym2.map (End.mapCell ρ)) = W.map (Sym2.map (End.mapCell σ)) := by
   apply Multiset.map_congr rfl
@@ -237,9 +367,19 @@ theorem map_wires_mapCell_congr {W : Multiset (Sym2 (End ν))} {ρ σ : ℕ → 
 Section 1.2, page 73): if `G` has an interaction giving `H` and `G` is isomorphic to `G'`, then
 `G'` has an interaction giving a graph isomorphic to `H`. Every port at an end of a wire of `G`
 is assumed to be a port of a cell of `G`, as in a well-formed graph. -/
-theorem Interact.iso {I : System S} {G G' H : Graph S ℕ} (h : Interact I G H) (hi : G.Iso G')
+theorem Interact.iso
+    -- the interaction system
+    {I : System S}
+    -- an interaction from `G` to `H`, and a graph `G'` isomorphic to `G`
+    {G G' H : Graph S ℕ}
+    (h : Interact I G H)
+    (hi : G.Iso G')
+    -- every port at an end of a wire of `G` is a port of a cell of `G`
     (hG : ∀ c i, End.port c i ∈ G.ends → c ∈ G.cells.map Prod.fst) :
-    ∃ H', Interact I G' H' ∧ H.Iso H' := by
+    -- `G'` has an interaction giving a graph `H'`
+    ∃ H', Interact I G' H' ∧
+      -- isomorphic to `H`
+      H.Iso H' := by
   classical
   obtain ⟨c, d, α, β, C, W, n, r, hr, R, hR, σ, hσ, hσG, g, hg, hgW, H, hH, hH1⟩ := h
   obtain ⟨τ, hτ, hc, hw, hl⟩ := hi
@@ -283,7 +423,8 @@ theorem Interact.iso {I : System S} {G G' H : Graph S ℕ} (h : Interact I G H) 
     rfl
   have hW' : (s(End.port c 0, End.port d 0) ::ₘ W).map (Sym2.map (End.mapCell τ)) =
       s(End.port (τ' c) 0, End.port (τ' d) 0) ::ₘ W.map (Sym2.map (End.mapCell τ')) := by
-    rw [map_wires_mapCell_congr (σ := τ') (fun c' i h => (eq_s c' (hG c' i h)).symm), Multiset.map_cons]
+    rw [map_wires_mapCell_congr (σ := τ') (fun c' i h => (eq_s c' (hG c' i h)).symm),
+      Multiset.map_cons]
     rfl
   rw [hC', hW']
   -- the graph before contraction, renamed
@@ -332,47 +473,88 @@ theorem Interact.iso {I : System S} {G G' H : Graph S ℕ} (h : Interact I G H) 
     rw [iH.count_name]
     exact hH1 x
 
-/-! ## The active pair with names on its auxiliary ports -/
+-- ============================================================================================
+-- 5. Auxiliary lemmas: the active pair with names on its auxiliary ports
+-- ============================================================================================
 
-theorem coe_ofFn_eq_sum {α : Type} {n : ℕ} (φ : Fin n → α) :
+-- the multiset of a list `List.ofFn φ` is the sum of the singletons `{φ i}`
+theorem coe_ofFn_eq_sum
+    -- the vector
+    {α : Type}
+    {n : ℕ}
+    (φ : Fin n → α) :
     ((List.ofFn φ : List α) : Multiset α) = ∑ i, ({φ i} : Multiset α) := by
   rw [← Fin.univ_val_map]
   have := Multiset.sum_map_singleton (Finset.univ.val.map φ)
   rw [Multiset.map_map] at this
   exact this.symm
 
-theorem size_app_var (α : S.Sym) (φ : Fin (S.arity α) → ν) :
+-- a cell with names on its auxiliary ports has one cell
+theorem size_app_var
+    -- the symbol of the cell, and the names on its auxiliary ports
+    (α : S.Sym)
+    (φ : Fin (S.arity α) → ν) :
     (app α fun i => var (φ i)).size = 1 := by
   simp [Term.size]
 
-theorem rawCells_app_var (α : S.Sym) (φ : Fin (S.arity α) → ν) (k : ℕ) :
+-- the cell of a cell with names on its auxiliary ports, numbered `k`
+theorem rawCells_app_var
+    -- the symbol of the cell, the names on its auxiliary ports, and its number
+    (α : S.Sym)
+    (φ : Fin (S.arity α) → ν)
+    (k : ℕ) :
     (app α fun i => var (φ i)).rawCells k = {(k, α)} := by
   simp [Term.rawCells]
 
-theorem rawWires_app_var (α : S.Sym) (φ : Fin (S.arity α) → ν) (k : ℕ) :
-    (app α fun i => var (φ i)).rawWires k =
-      ∑ i : Fin (S.arity α), {s(End.port k ((i : ℕ) + 1), End.name (φ i))} := by
+-- the inner wires of a cell with names on its auxiliary ports: one from each auxiliary port to
+-- its name
+theorem rawWires_app_var
+    -- the symbol of the cell, the names on its auxiliary ports, and its number
+    (α : S.Sym)
+    (φ : Fin (S.arity α) → ν)
+    (k : ℕ) :
+    (app α fun i => var (φ i)).rawWires k
+      = ∑ i : Fin (S.arity α), {s(End.port k ((i : ℕ) + 1), End.name (φ i))} := by
   simp [Term.rawWires, Term.rootEnd]
 
 /-- The cut of the auxiliary ports of the first cell. -/
-theorem map_cutEnd_left {c d a b : ℕ} (u : Fin a → ℕ) (v : Fin b → ℕ) (φ : Fin a → ℕ) :
+theorem map_cutEnd_left
+    -- the two cells of the cut, and the fresh names of their auxiliary ports
+    {c d a b : ℕ}
+    (u : Fin a → ℕ)
+    (v : Fin b → ℕ)
+    -- the names on the auxiliary ports of `c`
+    (φ : Fin a → ℕ) :
     (∑ i : Fin a, ({s(End.port c ((i : ℕ) + 1), End.name (φ i))} : Multiset _)).map
-        (Sym2.map (cutEnd c d u v)) = ∑ i : Fin a, {s(End.name (u i), End.name (φ i))} := by
+        (Sym2.map (cutEnd c d u v))
+      = ∑ i : Fin a, {s(End.name (u i), End.name (φ i))} := by
   rw [map_finsum_multiset]
   refine Finset.sum_congr rfl fun i _ => ?_
   simp [cutEnd]
 
 /-- The cut of the auxiliary ports of the second cell. -/
-theorem map_cutEnd_right {c d a b : ℕ} (hcd : d ≠ c) (u : Fin a → ℕ) (v : Fin b → ℕ)
+theorem map_cutEnd_right
+    -- the two cells of the cut, distinct, and the fresh names of their auxiliary ports
+    {c d a b : ℕ}
+    (hcd : d ≠ c)
+    (u : Fin a → ℕ)
+    (v : Fin b → ℕ)
+    -- the names on the auxiliary ports of `d`
     (φ : Fin b → ℕ) :
     (∑ j : Fin b, ({s(End.port d ((j : ℕ) + 1), End.name (φ j))} : Multiset _)).map
-        (Sym2.map (cutEnd c d u v)) = ∑ j : Fin b, {s(End.name (v j), End.name (φ j))} := by
+        (Sym2.map (cutEnd c d u v))
+      = ∑ j : Fin b, {s(End.name (v j), End.name (φ j))} := by
   rw [map_finsum_multiset]
   refine Finset.sum_congr rfl fun j _ => ?_
   simp [cutEnd, hcd]
 
 /-- The cut keeps the wires that do not end at the two cells. -/
-theorem map_cutEnd_of_ports {c d a b : ℕ} (u : Fin a → ℕ) (v : Fin b → ℕ)
+theorem map_cutEnd_of_ports
+    -- the two cells of the cut, and the fresh names of their auxiliary ports
+    {c d a b : ℕ}
+    (u : Fin a → ℕ)
+    (v : Fin b → ℕ)
+    -- wires none of whose ends is a port of `c` or of `d`
     {W : Multiset (Sym2 (End ℕ))}
     (h : ∀ e i, End.port e i ∈ W.bind wireEnds → e ≠ c ∧ e ≠ d) :
     W.map (Sym2.map (cutEnd c d u v)) = W := by
@@ -396,10 +578,19 @@ end Graph
 namespace Simulation
 
 /-- The names of the expanded active pair: those of the active pair and the fresh names. -/
-theorem mem_vars_expand {B : ℕ} {α β : S.Sym} {as : Fin (S.arity α) → Term S ℕ}
-    {bs : Fin (S.arity β) → Term S ℕ} {Δ : Net S ℕ} {y : ℕ}
-    (hy : y ∈ Net.vars ((pairVar B α β ::ₘ Δ) +
-      wires (arg B as bs) (ports B (S.arity α) (S.arity β)))) :
+theorem mem_vars_expand
+    -- the bound from which the fresh names are numbered
+    {B : ℕ}
+    -- the active pair `s(app α as, app β bs)`, the rest of the net `Δ`
+    {α β : S.Sym}
+    {as : Fin (S.arity α) → Term S ℕ}
+    {bs : Fin (S.arity β) → Term S ℕ}
+    {Δ : Net S ℕ}
+    -- a name of the expanded net
+    {y : ℕ}
+    (hy : y ∈ Net.vars ((pairVar B α β ::ₘ Δ)
+      + wires (arg B as bs) (ports B (S.arity α) (S.arity β)))) :
+    -- is a name of the net, or one of the fresh names
     y ∈ Net.vars (s(.app α as, .app β bs) ::ₘ Δ) ∨ y ∈ ports B (S.arity α) (S.arity β) := by
   rw [Net.vars_add, vars_wires_ports, Net.vars_cons] at hy
   rw [Net.vars_cons]
@@ -415,15 +606,32 @@ theorem mem_vars_expand {B : ℕ} {α β : S.Sym} {as : Fin (S.arity α) → Ter
 
 end Simulation
 
-/-! ## The theorem -/
+-- ============================================================================================
+-- 6. Main result
+-- ============================================================================================
 
 /-- **An interaction of texts is an interaction of graphs** (Lafont 1997, Section 1.2, page 73;
-PLAN.md Stage C, item 5, the forward direction). Let the rules of `I` be linear, `N` a linear
-net with graph `G`, and `StepE I N M` one interaction up to wires. Then `G` has an interaction
-`Graph.Interact I G H` whose result `H` is isomorphic to a graph `H'` of `M`. -/
-theorem Net.Linear.stepE_interact {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (hN : N.Linear) (h : StepE I N M) {G : Graph S ℕ} (hG : N.HasGraph G) :
-    ∃ H H', Graph.Interact I G H ∧ M.HasGraph H' ∧ H.Iso H' := by
+the forward direction). Let the rules of `I` be linear, `N` a linear net with graph `G`, and
+`StepE I N M` one interaction up to wires. Then `G` has an interaction `Graph.Interact I G H`
+whose result `H` is isomorphic to a graph `H'` of `M`. -/
+theorem Net.Linear.stepE_interact
+    -- an interaction system whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a linear net `N` with one interaction up to wires to `M`
+    {N M : Net S ℕ}
+    (hN : N.Linear)
+    (h : StepE I N M)
+    -- a graph of `N`
+    {G : Graph S ℕ}
+    (hG : N.HasGraph G) :
+    ∃ H H',
+      -- `G` has an interaction giving `H`,
+      Graph.Interact I G H ∧
+      -- `H'` is a graph of `M`,
+      M.HasGraph H' ∧
+      -- and `H` is isomorphic to `H'`
+      H.Iso H' := by
   classical
   obtain ⟨N', hNN', hs⟩ := h
   have hN' : N'.Linear := hNN'.linear hN
