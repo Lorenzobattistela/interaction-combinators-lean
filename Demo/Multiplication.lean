@@ -41,11 +41,38 @@ This file shows:
   context `Δ`;
 * `two_times_two` — the net of `2 × 2` reduces to the net of `4`;
 * `two_times_two_in_combinators` — the same, after the strict translation of Theorem 1.
+
+The file is a sequence of examples, each using the previous ones, so its sections follow the
+narrative rather than the order definitions, lemmas, main result.
+
+Contents, in the order of the file:
+
+1. The signature and its terms: `Sym`, `sig`, the tree builders `mkZero`, `mkSucc`, `mkAdd`,
+   `mkMul`, `mkDup`, `mkEra`, the numerals `num` and the towers of successors `succs`, and the
+   simp lemmas on their names and substitutions (`vars_num`, `bind_mkDup`, `succs_num`, …).
+2. The eight rules: `ruleAddZero`, `ruleAddSucc`, `ruleMulZero`, `ruleMulSucc`, `ruleDupZero`,
+   `ruleDupSucc`, `ruleEraZero`, `ruleEraSucc`, the system `system`, the linearity and
+   reducedness of each rule, and `system_wellFormed`.
+3. One interaction for each rule: `step_add_zero`, `step_add_succ`, `step_mul_zero`,
+   `step_mul_succ`, `step_dup_zero`, `step_dup_succ`, `step_era_zero`, `step_era_succ`.
+4. Reduction up to wires: the relation `Reduces` and its closure lemmas (`Reduces.trans`, …),
+   the wire lemma `wire`, and the simp lemmas on substitution and bounds (`subst_num`,
+   `below_num`, …).
+5. Erasing, duplicating, adding and multiplying numerals: `era_num`, `dup_num`, `add_num`,
+   `mul_num`.
+6. `2 × 2 = 4`: the nets `times`, `numNet`, `twoTimesTwo`, `four`, and the result
+   `two_times_two`.
+7. Into the combinators: `exists_translation`, `two_times_two_in_combinators`, and the
+   non-vacuity check `twoTimesTwo_has_translation`.
 -/
 
 namespace INet.Demo.Mul
 
 open Term
+
+-- ============================================================================================
+-- 1. The signature and its terms
+-- ============================================================================================
 
 /-- The symbols of page 76: `0`, successor, addition, multiplication, duplicator, eraser. -/
 inductive Sym : Type
@@ -70,18 +97,40 @@ instance : Finite sig.Sym :=
       | .zero => 0 | .succ => 1 | .add => 2 | .mul => 3 | .dup => 4 | .era => 5 : Fin 6))
     (by intro α β h; cases α <;> cases β <;> first | rfl | exact absurd h (by decide))
 
+-- the type of the names of the wires
 variable {ν : Type}
 
 /-- The numeral `0`. -/
 def mkZero : Term sig ν := .app Sym.zero ![]
+
 /-- The successor of `t`. -/
-def mkSucc (t : Term sig ν) : Term sig ν := .app Sym.succ ![t]
+def mkSucc
+    -- the predecessor
+    (t : Term sig ν) :
+    Term sig ν :=
+  .app Sym.succ ![t]
+
 /-- An `add` cell seen from its principal port, with second argument `y` and result `r`. -/
-def mkAdd (y r : Term sig ν) : Term sig ν := .app Sym.add ![y, r]
+def mkAdd
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    Term sig ν :=
+  .app Sym.add ![y, r]
+
 /-- A `mul` cell seen from its principal port, with second argument `y` and result `r`. -/
-def mkMul (y r : Term sig ν) : Term sig ν := .app Sym.mul ![y, r]
+def mkMul
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    Term sig ν :=
+  .app Sym.mul ![y, r]
+
 /-- A duplicator seen from its principal port, with the two copies `a` and `b`. -/
-def mkDup (a b : Term sig ν) : Term sig ν := .app Sym.dup ![a, b]
+def mkDup
+    -- the two copies
+    (a b : Term sig ν) :
+    Term sig ν :=
+  .app Sym.dup ![a, b]
+
 /-- An eraser. -/
 def mkEra : Term sig ν := .app Sym.era ![]
 
@@ -90,69 +139,168 @@ def num : ℕ → Term sig ν
   | 0 => mkZero
   | n + 1 => mkSucc (num n)
 
-theorem num_succ (n : ℕ) : (num (n + 1) : Term sig ν) = mkSucc (num n) := rfl
+/-- The numeral `n + 1` is the successor of the numeral `n`. -/
+theorem num_succ
+    -- the number
+    (n : ℕ) :
+    (num (n + 1) : Term sig ν) = mkSucc (num n) :=
+  rfl
 
 /-- `n` successors on top of `t`: the tree `s(s(… s(t)))`. -/
 def succs : ℕ → Term sig ν → Term sig ν
   | 0, t => t
   | n + 1, t => mkSucc (succs n t)
 
-@[simp] theorem vars_mkZero : (mkZero : Term sig ν).vars = 0 := by simp [mkZero, sig]
-@[simp] theorem vars_mkEra : (mkEra : Term sig ν).vars = 0 := by simp [mkEra, sig]
-@[simp] theorem vars_mkSucc (t : Term sig ν) : (mkSucc t).vars = t.vars := by simp [mkSucc, sig]
-@[simp] theorem vars_mkAdd (y r : Term sig ν) : (mkAdd y r).vars = y.vars + r.vars := by
+/-- The numeral `0` has no name. -/
+@[simp] theorem vars_mkZero :
+    (mkZero : Term sig ν).vars = 0 := by
+  simp [mkZero, sig]
+
+/-- An eraser has no name. -/
+@[simp] theorem vars_mkEra :
+    (mkEra : Term sig ν).vars = 0 := by
+  simp [mkEra, sig]
+
+/-- The names of `s(t)` are those of `t`. -/
+@[simp] theorem vars_mkSucc
+    -- the predecessor
+    (t : Term sig ν) :
+    (mkSucc t).vars = t.vars := by
+  simp [mkSucc, sig]
+
+/-- The names of `add(y, r)` are those of `y` and those of `r`. -/
+@[simp] theorem vars_mkAdd
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    (mkAdd y r).vars = y.vars + r.vars := by
   simp [mkAdd, sig, Fin.sum_univ_two]
-@[simp] theorem vars_mkMul (y r : Term sig ν) : (mkMul y r).vars = y.vars + r.vars := by
+
+/-- The names of `mul(y, r)` are those of `y` and those of `r`. -/
+@[simp] theorem vars_mkMul
+    -- the second argument and the result
+    (y r : Term sig ν) :
+    (mkMul y r).vars = y.vars + r.vars := by
   simp [mkMul, sig, Fin.sum_univ_two]
-@[simp] theorem vars_mkDup (a b : Term sig ν) : (mkDup a b).vars = a.vars + b.vars := by
+
+/-- The names of `δ(a, b)` are those of `a` and those of `b`. -/
+@[simp] theorem vars_mkDup
+    -- the two copies
+    (a b : Term sig ν) :
+    (mkDup a b).vars = a.vars + b.vars := by
   simp [mkDup, sig, Fin.sum_univ_two]
 
-@[simp] theorem bind_mkZero {μ : Type} (f : ν → Term sig μ) :
+/-- A substitution leaves `0` unchanged. -/
+@[simp] theorem bind_mkZero
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ) :
     (mkZero : Term sig ν).bind f = mkZero := by
   change Term.app (S := sig) Sym.zero _ = Term.app (S := sig) Sym.zero _
   congr 1; funext (i : Fin 0); exact i.elim0
-@[simp] theorem bind_mkEra {μ : Type} (f : ν → Term sig μ) :
+
+/-- A substitution leaves an eraser unchanged. -/
+@[simp] theorem bind_mkEra
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ) :
     (mkEra : Term sig ν).bind f = mkEra := by
   change Term.app (S := sig) Sym.era _ = Term.app (S := sig) Sym.era _
   congr 1; funext (i : Fin 0); exact i.elim0
-@[simp] theorem bind_mkSucc {μ : Type} (f : ν → Term sig μ) (t : Term sig ν) :
+
+/-- A substitution goes through the successor. -/
+@[simp] theorem bind_mkSucc
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the predecessor
+    (t : Term sig ν) :
     (mkSucc t).bind f = mkSucc (t.bind f) := by
   change Term.app Sym.succ (fun i => (![t] i).bind f) = Term.app Sym.succ _
   congr 1; funext (i : Fin 1); fin_cases i; rfl
-@[simp] theorem bind_mkAdd {μ : Type} (f : ν → Term sig μ) (y r : Term sig ν) :
+
+/-- A substitution goes through an `add` cell. -/
+@[simp] theorem bind_mkAdd
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the second argument and the result
+    (y r : Term sig ν) :
     (mkAdd y r).bind f = mkAdd (y.bind f) (r.bind f) := by
   change Term.app Sym.add (fun i => (![y, r] i).bind f) = Term.app Sym.add _
   congr 1; funext (i : Fin 2); fin_cases i <;> rfl
-@[simp] theorem bind_mkMul {μ : Type} (f : ν → Term sig μ) (y r : Term sig ν) :
+
+/-- A substitution goes through a `mul` cell. -/
+@[simp] theorem bind_mkMul
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the second argument and the result
+    (y r : Term sig ν) :
     (mkMul y r).bind f = mkMul (y.bind f) (r.bind f) := by
   change Term.app Sym.mul (fun i => (![y, r] i).bind f) = Term.app Sym.mul _
   congr 1; funext (i : Fin 2); fin_cases i <;> rfl
-@[simp] theorem bind_mkDup {μ : Type} (f : ν → Term sig μ) (a b : Term sig ν) :
+
+/-- A substitution goes through a duplicator. -/
+@[simp] theorem bind_mkDup
+    -- the substitution
+    {μ : Type}
+    (f : ν → Term sig μ)
+    -- the two copies
+    (a b : Term sig ν) :
     (mkDup a b).bind f = mkDup (a.bind f) (b.bind f) := by
   change Term.app Sym.dup (fun i => (![a, b] i).bind f) = Term.app Sym.dup _
   congr 1; funext (i : Fin 2); fin_cases i <;> rfl
 
-@[simp] theorem vars_num (n : ℕ) : (num n : Term sig ν).vars = 0 := by
+/-- A numeral has no name. -/
+@[simp] theorem vars_num
+    -- the number
+    (n : ℕ) :
+    (num n : Term sig ν).vars = 0 := by
   induction n with
   | zero => simp [num]
   | succ n ih => simp [num, ih]
 
 /-- `n` successors on the numeral `m` make the numeral `n + m`. -/
-theorem succs_num (n m : ℕ) : (succs n (num m) : Term sig ν) = num (n + m) := by
+theorem succs_num
+    -- the number of successors and the numeral under them
+    (n m : ℕ) :
+    (succs n (num m) : Term sig ν) = num (n + m) := by
   induction n with
   | zero => simp [succs]
   | succ n ih => rw [succs, ih, Nat.succ_add]; rfl
 
-/-! ## The eight rules -/
+-- ============================================================================================
+-- 2. The eight rules
+-- ============================================================================================
 
 section Rules
 
 /-- The `i`-th auxiliary port of the first cell. -/
-private def l {a b m : ℕ} (i : Fin a) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inl i)
+private def l
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the port
+    (i : Fin a) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inl i)
+
 /-- The `i`-th auxiliary port of the second cell. -/
-private def r {a b m : ℕ} (i : Fin b) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inl i))
+private def r
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the port
+    (i : Fin b) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inl i))
+
 /-- The `i`-th wire created by the rule. -/
-private def w {a b m : ℕ} (i : Fin m) : Term sig (Fin a ⊕ Fin b ⊕ Fin m) := .var (.inr (.inr i))
+private def w
+    -- the arities of the two cells and the number of wires created by the rule
+    {a b m : ℕ}
+    -- the wire
+    (i : Fin m) :
+    Term sig (Fin a ⊕ Fin b ⊕ Fin m) :=
+  .var (.inr (.inr i))
 
 /-- `add(y, r) ~ 0` (page 76): the second argument is the result. -/
 def ruleAddZero : Rule sig 2 0 := ⟨0, s(l 0, l 1) ::ₘ 0⟩
@@ -197,55 +345,79 @@ def system : System sig where
     | .era, .succ => some ruleEraSucc
     | _, _ => none
 
-theorem ruleAddZero_linear : ruleAddZero.Linear := by
+-- Linearity (Section 1.2, page 73): in the right member of each rule, every auxiliary port of
+-- the two cells occurs once and every new wire twice.
+
+/-- The rule for `add` and `0` is linear (Section 1.2, page 73). -/
+theorem ruleAddZero_linear :
+    ruleAddZero.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleAddZero, l]
   · intro j; exact j.elim0
   · intro i; exact i.elim0
 
-theorem ruleAddSucc_linear : ruleAddSucc.Linear := by
+/-- The rule for `add` and `s` is linear (Section 1.2, page 73). -/
+theorem ruleAddSucc_linear :
+    ruleAddSucc.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleAddSucc, l, r, w]
   · intro j; fin_cases j; simp [ruleAddSucc, l, r, w]
   · intro i; fin_cases i; simp [ruleAddSucc, l, r, w]
 
-theorem ruleMulZero_linear : ruleMulZero.Linear := by
+/-- The rule for `mul` and `0` is linear (Section 1.2, page 73). -/
+theorem ruleMulZero_linear :
+    ruleMulZero.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleMulZero, l]
   · intro j; exact j.elim0
   · intro i; exact i.elim0
 
-theorem ruleMulSucc_linear : ruleMulSucc.Linear := by
+/-- The rule for `mul` and `s` is linear (Section 1.2, page 73). -/
+theorem ruleMulSucc_linear :
+    ruleMulSucc.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleMulSucc, l, r, w]
   · intro j; fin_cases j; simp [ruleMulSucc, l, r, w]
   · intro i; fin_cases i <;> simp [ruleMulSucc, l, r, w]
 
-theorem ruleDupZero_linear : ruleDupZero.Linear := by
+/-- The rule for `δ` and `0` is linear (Section 1.2, page 73). -/
+theorem ruleDupZero_linear :
+    ruleDupZero.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleDupZero, l]
   · intro j; exact j.elim0
   · intro i; exact i.elim0
 
-theorem ruleDupSucc_linear : ruleDupSucc.Linear := by
+/-- The rule for `δ` and `s` is linear (Section 1.2, page 73). -/
+theorem ruleDupSucc_linear :
+    ruleDupSucc.Linear := by
   constructor
   · intro i; fin_cases i <;> simp [ruleDupSucc, l, r, w]
   · intro j; fin_cases j; simp [ruleDupSucc, l, r, w]
   · intro i; fin_cases i <;> simp [ruleDupSucc, l, r, w]
 
-theorem ruleEraZero_linear : ruleEraZero.Linear := by
+/-- The rule for `ε` and `0` is linear (Section 1.2, page 73). -/
+theorem ruleEraZero_linear :
+    ruleEraZero.Linear := by
   constructor
   · intro i; exact i.elim0
   · intro j; exact j.elim0
   · intro i; exact i.elim0
 
-theorem ruleEraSucc_linear : ruleEraSucc.Linear := by
+/-- The rule for `ε` and `s` is linear (Section 1.2, page 73). -/
+theorem ruleEraSucc_linear :
+    ruleEraSucc.Linear := by
   constructor
   · intro i; exact i.elim0
   · intro j; fin_cases j; simp [ruleEraSucc, r]
   · intro i; exact i.elim0
 
-theorem ruleAddZero_reduced : ruleAddZero.Reduced := by
+-- Reducedness (Section 1.2, page 73): every equation of the right member of each rule has an
+-- auxiliary port of the two cells on one side.
+
+/-- The rule for `add` and `0` is reduced (Section 1.2, page 73). -/
+theorem ruleAddZero_reduced :
+    ruleAddZero.Reduced := by
   intro e he
   unfold ruleAddZero at he
   dsimp only at he
@@ -253,7 +425,9 @@ theorem ruleAddZero_reduced : ruleAddZero.Reduced := by
   · exact ⟨.inl 0, _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleAddSucc_reduced : ruleAddSucc.Reduced := by
+/-- The rule for `add` and `s` is reduced (Section 1.2, page 73). -/
+theorem ruleAddSucc_reduced :
+    ruleAddSucc.Reduced := by
   intro e he
   unfold ruleAddSucc at he
   dsimp only at he
@@ -263,7 +437,9 @@ theorem ruleAddSucc_reduced : ruleAddSucc.Reduced := by
   · exact ⟨.inr (.inl 0), _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleMulZero_reduced : ruleMulZero.Reduced := by
+/-- The rule for `mul` and `0` is reduced (Section 1.2, page 73). -/
+theorem ruleMulZero_reduced :
+    ruleMulZero.Reduced := by
   intro e he
   unfold ruleMulZero at he
   dsimp only at he
@@ -273,7 +449,9 @@ theorem ruleMulZero_reduced : ruleMulZero.Reduced := by
   · exact ⟨.inl 1, _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleMulSucc_reduced : ruleMulSucc.Reduced := by
+/-- The rule for `mul` and `s` is reduced (Section 1.2, page 73). -/
+theorem ruleMulSucc_reduced :
+    ruleMulSucc.Reduced := by
   intro e he
   unfold ruleMulSucc at he
   dsimp only at he
@@ -283,7 +461,9 @@ theorem ruleMulSucc_reduced : ruleMulSucc.Reduced := by
   · exact ⟨.inr (.inl 0), _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleDupZero_reduced : ruleDupZero.Reduced := by
+/-- The rule for `δ` and `0` is reduced (Section 1.2, page 73). -/
+theorem ruleDupZero_reduced :
+    ruleDupZero.Reduced := by
   intro e he
   unfold ruleDupZero at he
   dsimp only at he
@@ -293,7 +473,9 @@ theorem ruleDupZero_reduced : ruleDupZero.Reduced := by
   · exact ⟨.inl 1, _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleDupSucc_reduced : ruleDupSucc.Reduced := by
+/-- The rule for `δ` and `s` is reduced (Section 1.2, page 73). -/
+theorem ruleDupSucc_reduced :
+    ruleDupSucc.Reduced := by
   intro e he
   unfold ruleDupSucc at he
   dsimp only at he
@@ -305,11 +487,15 @@ theorem ruleDupSucc_reduced : ruleDupSucc.Reduced := by
   · exact ⟨.inr (.inl 0), _, rfl, by simp⟩
   · exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleEraZero_reduced : ruleEraZero.Reduced := by
+/-- The rule for `ε` and `0` is reduced (Section 1.2, page 73): its right member is empty. -/
+theorem ruleEraZero_reduced :
+    ruleEraZero.Reduced := by
   intro e he
   exact absurd he (Multiset.notMem_zero _)
 
-theorem ruleEraSucc_reduced : ruleEraSucc.Reduced := by
+/-- The rule for `ε` and `s` is reduced (Section 1.2, page 73). -/
+theorem ruleEraSucc_reduced :
+    ruleEraSucc.Reduced := by
   intro e he
   unfold ruleEraSucc at he
   dsimp only at he
@@ -320,7 +506,8 @@ theorem ruleEraSucc_reduced : ruleEraSucc.Reduced := by
 /-- Unary multiplication with its duplicator and eraser is an interaction system (Lafont 1997,
 pages 76-77): its eight rules are linear and reduced, and no pair of symbols has two rules. No
 symbol has a rule with itself, so the symmetry condition holds vacuously. -/
-theorem system_wellFormed : system.WellFormed where
+theorem system_wellFormed :
+    system.WellFormed where
   linear := by
     intro α β r h
     cases α <;> cases β <;> cases h <;>
@@ -346,16 +533,36 @@ theorem system_wellFormed : system.WellFormed where
 
 end Rules
 
-/-! ## One interaction for each rule -/
+-- ============================================================================================
+-- 3. One interaction for each rule
+-- ============================================================================================
 
 section Steps
 
-variable (y res x a b : Term sig ℕ) (Δ : Net sig ℕ)
+variable
+    -- the second argument and the result of the `add` or `mul` cell
+    (y res : Term sig ℕ)
+    -- the predecessor of `s(x)`
+    (x : Term sig ℕ)
+    -- the two copies of the duplicator
+    (a b : Term sig ℕ)
+    -- the rest of the net
+    (Δ : Net sig ℕ)
 
-private theorem inj_two (k : ℕ) : Function.Injective (![k, k + 1] : Fin 2 → ℕ) := by
+/-- The two names `k` and `k + 1` are distinct. -/
+private theorem inj_two
+    -- the first name
+    (k : ℕ) :
+    Function.Injective (![k, k + 1] : Fin 2 → ℕ) := by
   intro i j h; fin_cases i <;> fin_cases j <;> simp_all
 
-private theorem fresh_two {k : ℕ} {V : Multiset ℕ} (hk : k ∉ V) (hk1 : k + 1 ∉ V) :
+/-- Two names `k` and `k + 1` not in `V`, as a vector of fresh names. -/
+private theorem fresh_two
+    -- the two names, not in `V`
+    {k : ℕ}
+    {V : Multiset ℕ}
+    (hk : k ∉ V)
+    (hk1 : k + 1 ∉ V) :
     ∀ i : Fin 2, (![k, k + 1] : Fin 2 → ℕ) i ∉ V := by
   intro i; fin_cases i <;> simpa
 
@@ -374,7 +581,10 @@ theorem step_add_zero :
 
 /-- `add(y, r) ~ s(x)` rewrites to `r ~ s(w)`, `x ~ add(y, w)` (page 76), for a name `w` not
 used in the net. -/
-theorem step_add_succ (k : ℕ) (hk : k ∉ Net.vars (s(mkAdd y res, mkSucc x) ::ₘ Δ)) :
+theorem step_add_succ
+    -- the name `w = k` of the new wire, not used in the net
+    (k : ℕ)
+    (hk : k ∉ Net.vars (s(mkAdd y res, mkSucc x) ::ₘ Δ)) :
     Step system (s(mkAdd y res, mkSucc x) ::ₘ Δ)
       (s(res, mkSucc (.var k)) ::ₘ s(x, mkAdd y (.var k)) ::ₘ Δ) := by
   have h : Step system (s(mkAdd y res, mkSucc x) ::ₘ Δ)
@@ -402,7 +612,10 @@ theorem step_mul_zero :
 
 /-- `mul(y, r) ~ s(x)` rewrites to `y ~ δ(w₁, w₀)`, `x ~ mul(w₀, add(w₁, r))` (rule `s×`,
 page 77), for two names `w₀ = k`, `w₁ = k + 1` not used in the net. -/
-theorem step_mul_succ (k : ℕ) (hk : k ∉ Net.vars (s(mkMul y res, mkSucc x) ::ₘ Δ))
+theorem step_mul_succ
+    -- the names `w₀ = k` and `w₁ = k + 1` of the new wires, not used in the net
+    (k : ℕ)
+    (hk : k ∉ Net.vars (s(mkMul y res, mkSucc x) ::ₘ Δ))
     (hk1 : k + 1 ∉ Net.vars (s(mkMul y res, mkSucc x) ::ₘ Δ)) :
     Step system (s(mkMul y res, mkSucc x) ::ₘ Δ)
       (s(y, mkDup (.var (k + 1)) (.var k)) ::ₘ
@@ -433,7 +646,10 @@ theorem step_dup_zero :
 
 /-- `δ(a, b) ~ s(x)` rewrites to `a ~ s(w₀)`, `b ~ s(w₁)`, `x ~ δ(w₀, w₁)` (rule `sδ`, page 77),
 for two names `w₀ = k`, `w₁ = k + 1` not used in the net. -/
-theorem step_dup_succ (k : ℕ) (hk : k ∉ Net.vars (s(mkDup a b, mkSucc x) ::ₘ Δ))
+theorem step_dup_succ
+    -- the names `w₀ = k` and `w₁ = k + 1` of the new wires, not used in the net
+    (k : ℕ)
+    (hk : k ∉ Net.vars (s(mkDup a b, mkSucc x) ::ₘ Δ))
     (hk1 : k + 1 ∉ Net.vars (s(mkDup a b, mkSucc x) ::ₘ Δ)) :
     Step system (s(mkDup a b, mkSucc x) ::ₘ Δ)
       (s(a, mkSucc (.var k)) ::ₘ s(b, mkSucc (.var (k + 1))) ::ₘ
@@ -450,7 +666,8 @@ theorem step_dup_succ (k : ℕ) (hk : k ∉ Net.vars (s(mkDup a b, mkSucc x) ::�
   simpa using h
 
 /-- `ε ~ 0` rewrites to the empty net (rule `0ε`, page 77). -/
-theorem step_era_zero : Step system (s(mkEra, mkZero) ::ₘ Δ) Δ := by
+theorem step_era_zero :
+    Step system (s(mkEra, mkZero) ::ₘ Δ) Δ := by
   have h : Step system (s(mkEra, mkZero) ::ₘ Δ)
       (ruleEraZero.inst (![] : Fin 0 → Term sig ℕ) (![] : Fin 0 → Term sig ℕ)
         (Fin.elim0 : Fin 0 → ℕ) + Δ) :=
@@ -463,7 +680,8 @@ theorem step_era_zero : Step system (s(mkEra, mkZero) ::ₘ Δ) Δ := by
   simpa using h
 
 /-- `ε ~ s(x)` rewrites to `x ~ ε` (rule `sε`, page 77). -/
-theorem step_era_succ : Step system (s(mkEra, mkSucc x) ::ₘ Δ) (s(x, mkEra) ::ₘ Δ) := by
+theorem step_era_succ :
+    Step system (s(mkEra, mkSucc x) ::ₘ Δ) (s(x, mkEra) ::ₘ Δ) := by
   have h : Step system (s(mkEra, mkSucc x) ::ₘ Δ)
       (ruleEraSucc.inst (![] : Fin 0 → Term sig ℕ) ![x] (Fin.elim0 : Fin 0 → ℕ) + Δ) :=
     Step.mk (I := system) Sym.era Sym.succ ruleEraSucc rfl ![] ![x] Δ
