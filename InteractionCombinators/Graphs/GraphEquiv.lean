@@ -3,30 +3,71 @@ import InteractionCombinators.Graphs.GraphIso
 /-!
 # Equivalent linear nets have isomorphic graphs
 
-Lafont 1997, Section 1.1, page 71: a net is a graph, and the texts `x = t, …` with `x` occurring
+Lafont 1997, Section 1.1, pages 71 and 72: a net is a graph (page 71), described by its cells and
+its wires, and a tree is a net with a root (page 72). The texts `x = t, …` with `x` occurring
 again elsewhere, and the same text with `t` plugged into that other occurrence, are the same
-graph. This file proves the direction "`Equiv` implies `Iso`" of PLAN.md Stage C, statement 3.
+graph. This file proves the direction "`Equiv` implies `Iso`".
 
-* `Graph.Iso.symm` — an isomorphism can be reversed, when the wires of the graph end only at its
-  own cells.
-* `Term.raw_subst` — plugging `t` into the occurrence of `x` in `a` renumbers the cells of `a`
-  and of `t` and joins the wire of `x` to the root of `t`.
-* `Graph.raw_wire_contract` — the raw graph of `x = t, a = b, Δ` contracts, by erasing `x`, to a
-  graph isomorphic to the raw graph of `a[t/x] = b, Δ`.
-* `Wire.hasGraph_iso` — a wire substitution keeps the graph up to `Iso`.
-* `Net.Linear.equiv_hasGraph_iso` — equivalent linear nets have isomorphic graphs.
+Contents, in the order of the file:
+
+1. Definition: `End.substName x r`, the end `r` in place of the name `x`.
+2. Reversing an isomorphism: `Graph.Iso.symm`, an isomorphism can be reversed when the wires of
+   the graph end only at its own cells; `Graph.WF.portsIn`, this holds for well-formed graphs.
+3. Plugging an end into a name: `End.substName_port`, `End.substName_self`,
+   `End.substName_of_ne`, `Graph.map_substName_of_count`, `Graph.contract_substName` (erasing a
+   name joins its two wires).
+4. Sums over the subtrees: four private lemmas on finite sums.
+5. Plugging a tree into a name: `Term.size_subst`, `Term.count_name_ends`, the private
+   `childBase_*` lemmas, and `Term.raw_subst`: plugging `t` into the occurrence of `x` in `a`
+   renumbers the cells of `a` and of `t` and joins the wire of `x` to the root of `t`.
+6. The raw graph of one wire substitution: `Graph.raw_wires_substName_of_notMem`,
+   `Graph.raw_wire_contract` (the raw graph of `x = t, a = b, Δ` contracts, by erasing `x`, to a
+   graph isomorphic to the raw graph of `a[t/x] = b, Δ`), `Graph.contracts_raw_portsIn`.
+7. Wire substitution on the left side: the private `wire_hasGraph_iso_left`.
+8. Main results: `Wire.hasGraph_iso`, a wire substitution keeps the graph up to `Iso`;
+   `Net.Linear.equiv_hasGraph_iso`, equivalent linear nets have isomorphic graphs.
 -/
 
 namespace INet
 
 variable {S : Signature} {ν : Type}
 
-/-! ## Reversing an isomorphism -/
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
+
+section
+
+variable [DecidableEq ν]
+
+namespace End
+
+/-- Replace the name `x` by the end `r`. -/
+def substName
+    -- the name to replace, and the end that replaces it
+    (x : ν)
+    (r : End ν) :
+    End ν → End ν
+  | port c i => port c i
+  | name y => if y = x then r else name y
+
+end End
+
+end
+
+-- ============================================================================================
+-- 2. Reversing an isomorphism
+-- ============================================================================================
 
 namespace Graph
 
-private theorem map_wires_congr' {W : Multiset (Sym2 (End ν))} {ρ σ : ℕ → ℕ}
+private theorem map_wires_congr'
+    -- wires, and two renamings of the cells
+    {W : Multiset (Sym2 (End ν))}
+    {ρ σ : ℕ → ℕ}
+    -- that agree on every cell with a port at an end of a wire of `W`
     (h : ∀ c i, End.port c i ∈ W.bind wireEnds → ρ c = σ c) :
+    -- the two renamings act in the same way on the wires
     W.map (Sym2.map (End.mapCell ρ)) = W.map (Sym2.map (End.mapCell σ)) := by
   apply Multiset.map_congr rfl
   intro e he
@@ -44,8 +85,13 @@ private theorem map_wires_congr' {W : Multiset (Sym2 (End ν))} {ρ σ : ℕ →
 
 /-- **An isomorphism can be reversed** (Lafont 1997, page 71), when every port at an end of a wire
 of `G` is a port of a cell of `G`. This holds for well-formed graphs and for raw graphs. -/
-theorem Iso.symm {G H : Graph S ν} (h : G.Iso H)
-    (hG : ∀ c i, End.port c i ∈ G.ends → c ∈ G.cells.map Prod.fst) : H.Iso G := by
+theorem Iso.symm
+    -- two isomorphic graphs
+    {G H : Graph S ν}
+    (h : G.Iso H)
+    -- the wires of `G` end only at the cells of `G`
+    (hG : ∀ c i, End.port c i ∈ G.ends → c ∈ G.cells.map Prod.fst) :
+    H.Iso G := by
   obtain ⟨σ, hσ, hc, hw, hl⟩ := h
   let s : Set ℕ := {c | c ∈ G.cells.map Prod.fst}
   let τ := Function.invFunOn σ s
@@ -73,31 +119,52 @@ theorem Iso.symm {G H : Graph S ν} (h : G.Iso H)
       End.mapCell_id, Sym2.map_id, Multiset.map_id]
 
 /-- The wires of a well-formed graph end only at its cells. -/
-theorem WF.portsIn [DecidableEq ν] {G : Graph S ν} (h : G.WF) (c i : ℕ)
-    (hm : End.port c i ∈ G.ends) : c ∈ G.cells.map Prod.fst := by
+theorem WF.portsIn
+    -- a well-formed graph
+    [DecidableEq ν]
+    {G : Graph S ν}
+    (h : G.WF)
+    -- a port at an end of one of its wires
+    (c i : ℕ)
+    (hm : End.port c i ∈ G.ends) :
+    -- is a port of one of its cells
+    c ∈ G.cells.map Prod.fst := by
   obtain ⟨α, hα, -⟩ := h.cell c i hm
   exact Multiset.mem_map.2 ⟨_, hα, rfl⟩
 
 end Graph
 
-/-! ## Plugging an end into a name -/
+-- ============================================================================================
+-- 3. Plugging an end into a name
+-- ============================================================================================
 
 variable [DecidableEq ν]
 
 namespace End
 
-/-- Replace the name `x` by the end `r`. -/
-def substName (x : ν) (r : End ν) : End ν → End ν
-  | port c i => port c i
-  | name y => if y = x then r else name y
-
-@[simp] theorem substName_port (x : ν) (r : End ν) (c i : ℕ) :
+/-- Replacing a name keeps the port `(c, i)`. -/
+@[simp] theorem substName_port
+    (x : ν)
+    (r : End ν)
+    (c i : ℕ) :
     substName x r (port c i) = port c i := rfl
 
-@[simp] theorem substName_self (x : ν) (r : End ν) : substName x r (name x) = r := by
+/-- Replacing the name `x` by `r` turns `x` into `r`. -/
+@[simp] theorem substName_self
+    (x : ν)
+    (r : End ν) :
+    substName x r (name x) = r := by
   simp [substName]
 
-theorem substName_of_ne {x : ν} (r : End ν) {e : End ν} (h : e ≠ name x) : substName x r e = e := by
+/-- Replacing the name `x` keeps every other end. -/
+theorem substName_of_ne
+    -- the name `x` replaced by `r`
+    {x : ν}
+    (r : End ν)
+    -- an end other than `x`
+    {e : End ν}
+    (h : e ≠ name x) :
+    substName x r e = e := by
   cases e with
   | port c i => rfl
   | name y =>
@@ -109,7 +176,12 @@ end End
 namespace Graph
 
 /-- Wires that do not end at the name `x` are kept when `x` is replaced. -/
-theorem map_substName_of_count {W : Multiset (Sym2 (End ν))} {x : ν} (r : End ν)
+theorem map_substName_of_count
+    -- wires, none of which ends at `x`
+    {W : Multiset (Sym2 (End ν))}
+    {x : ν}
+    -- the end that replaces `x`
+    (r : End ν)
     (h : (W.bind wireEnds).count (.name x) = 0) :
     W.map (Sym2.map (End.substName x r)) = W := by
   conv_rhs => rw [← Multiset.map_id W]
@@ -123,8 +195,16 @@ theorem map_substName_of_count {W : Multiset (Sym2 (End ν))} {x : ν} (r : End 
 
 /-- **Erasing a name joins its two wires** (Lafont 1997, page 71): if `x` ends the wire to `r`
 and exactly one other wire, contracting `x` replaces `x` by `r` in the other wire. -/
-theorem contract_substName (C : Multiset (ℕ × S.Sym)) (W : Multiset (Sym2 (End ν))) (n : ℕ)
-    (x : ν) (r : End ν) (hW : (W.bind wireEnds).count (.name x) = 1) :
+theorem contract_substName
+    -- the cells, the other wires and the number of cyclic wires
+    (C : Multiset (ℕ × S.Sym))
+    (W : Multiset (Sym2 (End ν)))
+    (n : ℕ)
+    -- the name `x`, which ends exactly one wire of `W`, and the end `r` of the wire `s(x, r)`
+    (x : ν)
+    (r : End ν)
+    (hW : (W.bind wireEnds).count (.name x) = 1) :
+    -- the wire `s(x, r)` and `W` contract to `W` with `x` replaced by `r`
     Contract ⟨C, s(.name x, r) ::ₘ W, n⟩ ⟨C, W.map (Sym2.map (End.substName x r)), n⟩ := by
   have hm : End.name x ∈ W.bind wireEnds := Multiset.count_pos.1 (by omega)
   obtain ⟨e, he, hxe⟩ := Multiset.mem_bind.1 hm
@@ -154,17 +234,33 @@ theorem contract_substName (C : Multiset (ℕ × S.Sym)) (W : Multiset (Sym2 (En
 
 end Graph
 
-/-! ## Sums over the subtrees -/
+-- ============================================================================================
+-- 4. Sums over the subtrees
+-- ============================================================================================
 
-private theorem map_finsum'' {ι α β : Type} (s : Finset ι) (g : ι → Multiset α)
-    (f : α → β) : (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
+private theorem map_finsum''
+    -- a finite family of multisets, and a function on their elements
+    {ι α β : Type}
+    (s : Finset ι)
+    (g : ι → Multiset α)
+    (f : α → β) :
+    -- mapping `f` over the sum is the sum of the maps
+    (∑ i ∈ s, g i).map f = ∑ i ∈ s, (g i).map f := by
   classical
   induction s using Finset.induction_on with
   | empty => simp
   | insert a s ha ih => simp [Finset.sum_insert ha, ih]
 
-private theorem sum_ite_lt_add_le {n : ℕ} (f : Fin n → ℕ) (j : Fin n) (P : Fin n → Prop)
-    [DecidablePred P] (hP : ∀ l, l ≤ j → P l) :
+private theorem sum_ite_lt_add_le
+    -- a family of numbers indexed by `Fin n`, and an index `j`
+    {n : ℕ}
+    (f : Fin n → ℕ)
+    (j : Fin n)
+    -- a property that holds up to `j`
+    (P : Fin n → Prop)
+    [DecidablePred P]
+    (hP : ∀ l, l ≤ j → P l) :
+    -- the sum below `j`, plus the term at `j`, is at most the sum over `P`
     (∑ l, if l < j then f l else 0) + f j ≤ ∑ l, if P l then f l else 0 := by
   have : f j = ∑ l, if l = j then f l else 0 := by simp
   rw [this, ← Finset.sum_add_distrib]
@@ -176,7 +272,12 @@ private theorem sum_ite_lt_add_le {n : ℕ} (f : Fin n → ℕ) (j : Fin n) (P :
     · subst h2; simp [hP l le_rfl]
     · simp [h1, h2]
 
-private theorem exists_eq_one_of_sum {n : ℕ} (f : Fin n → ℕ) (h : ∑ i, f i = 1) :
+private theorem exists_eq_one_of_sum
+    -- a family of numbers whose sum is `1`
+    {n : ℕ}
+    (f : Fin n → ℕ)
+    (h : ∑ i, f i = 1) :
+    -- one of them is `1` and the others are `0`
     ∃ i, f i = 1 ∧ ∀ j, j ≠ i → f j = 0 := by
   obtain ⟨i, -, hi⟩ := Finset.exists_ne_zero_of_sum_ne_zero (h ▸ one_ne_zero : ∑ i, f i ≠ 0)
   have e := Finset.add_sum_erase Finset.univ f (Finset.mem_univ i)
@@ -185,20 +286,36 @@ private theorem exists_eq_one_of_sum {n : ℕ} (f : Fin n → ℕ) (h : ∑ i, f
   have h0 : ∑ l ∈ Finset.univ.erase i, f l = 0 := by omega
   exact (Finset.sum_eq_zero_iff.1 h0) j (Finset.mem_erase.2 ⟨hj, Finset.mem_univ _⟩)
 
-private theorem sum_update_add {β : Type} {n : ℕ} (F G : Fin n → Multiset β) (X : Multiset β)
-    (i : Fin n) (hi : F i + X = G i) (hj : ∀ j, j ≠ i → F j = G j) :
+private theorem sum_update_add
+    -- two families of multisets, and a multiset `X`
+    {β : Type}
+    {n : ℕ}
+    (F G : Fin n → Multiset β)
+    (X : Multiset β)
+    -- that differ only at `i`, where `G` is `F` plus `X`
+    (i : Fin n)
+    (hi : F i + X = G i)
+    (hj : ∀ j, j ≠ i → F j = G j) :
+    -- the sum of `F`, plus `X`, is the sum of `G`
     ∑ j, F j + X = ∑ j, G j := by
   rw [← Finset.add_sum_erase _ F (Finset.mem_univ i),
     ← Finset.add_sum_erase _ G (Finset.mem_univ i),
     ← hi, Finset.sum_congr rfl fun j hj' => hj j (Finset.ne_of_mem_erase hj')]
   abel
 
-/-! ## Plugging a tree into a name -/
+-- ============================================================================================
+-- 5. Plugging a tree into a name
+-- ============================================================================================
 
 namespace Term
 
-/-- The number of cells of `r.subst x t`: one copy of `t` for each occurrence of `x`. -/
-theorem size_subst (r : Term S ν) (x : ν) (t : Term S ν) :
+/-- The number of cells of `r.subst x t`: one copy of `t` for each occurrence of `x`
+(Lafont 1997, page 72). -/
+theorem size_subst
+    -- the tree `r`, and the tree `t` plugged into the name `x`
+    (r : Term S ν)
+    (x : ν)
+    (t : Term S ν) :
     (r.subst x t).size = r.size + r.vars.count x * t.size := by
   induction r with
   | var y =>
@@ -211,48 +328,97 @@ theorem size_subst (r : Term S ν) (x : ν) (t : Term S ν) :
     ring
 
 /-- The name `x` ends as many wires of a tree, its root included, as it has occurrences. -/
-theorem count_name_ends (t : Term S ν) (k : ℕ) (x : ν) :
+theorem count_name_ends
+    -- a tree, its cells numbered from `k`, and a name
+    (t : Term S ν)
+    (k : ℕ)
+    (x : ν) :
     (t.rootEnd k ::ₘ (t.rawWires k).bind Graph.wireEnds).count (.name x) = t.vars.count x := by
   rw [rootEnd_cons_rawWires, Multiset.count_add, Multiset.count_eq_zero.2, zero_add,
     Multiset.count_map_eq_count' _ _ (fun _ _ h => End.name.inj h)]
   simp [Graph.cellPorts]
 
-theorem count_name_rawWires_of_notMem {t : Term S ν} {x : ν} (h : x ∉ t.vars) (k : ℕ) :
+/-- A name that does not occur in a tree ends none of its inner wires. -/
+theorem count_name_rawWires_of_notMem
+    -- a tree without the name `x`
+    {t : Term S ν}
+    {x : ν}
+    (h : x ∉ t.vars)
+    -- its cells numbered from `k`
+    (k : ℕ) :
     ((t.rawWires k).bind Graph.wireEnds).count (.name x) = 0 := by
   have := count_name_ends t k x
   rw [Multiset.count_eq_zero.2 h, Multiset.count_cons] at this
   omega
 
-theorem rootEnd_ne_of_notMem {t : Term S ν} {x : ν} (h : x ∉ t.vars) (k : ℕ) :
+/-- A name that does not occur in a tree is not its root. -/
+theorem rootEnd_ne_of_notMem
+    -- a tree without the name `x`
+    {t : Term S ν}
+    {x : ν}
+    (h : x ∉ t.vars)
+    -- its cells numbered from `k`
+    (k : ℕ) :
     t.rootEnd k ≠ .name x := fun e => by
   have := count_name_ends t k x
   rw [Multiset.count_eq_zero.2 h, e, Multiset.count_cons_self] at this
   omega
 
 /-- A tree without `x` is kept when `x` is replaced in its wires. -/
-theorem rawWires_substName_of_notMem {t : Term S ν} {x : ν} (h : x ∉ t.vars) (k : ℕ)
-    (r : End ν) : (t.rawWires k).map (Sym2.map (End.substName x r)) = t.rawWires k :=
+theorem rawWires_substName_of_notMem
+    -- a tree without the name `x`
+    {t : Term S ν}
+    {x : ν}
+    (h : x ∉ t.vars)
+    -- its cells numbered from `k`
+    (k : ℕ)
+    -- the end that replaces `x`
+    (r : End ν) :
+    (t.rawWires k).map (Sym2.map (End.substName x r)) = t.rawWires k :=
   Graph.map_substName_of_count r (count_name_rawWires_of_notMem h k)
 
 omit [DecidableEq ν] in
-private theorem childBase_eq {n : ℕ} (k : ℕ) (ts : Fin n → Term S ν) (i : Fin n) :
+private theorem childBase_eq
+    -- the subtrees of a cell numbered from `k`, and one of them
+    {n : ℕ}
+    (k : ℕ)
+    (ts : Fin n → Term S ν)
+    (i : Fin n) :
     childBase k ts i = k + childBase 0 ts i := by unfold childBase; omega
 
 omit [DecidableEq ν] in
-private theorem one_le_childBase {n : ℕ} (ts : Fin n → Term S ν) (i : Fin n) :
+private theorem one_le_childBase
+    -- the subtrees of a cell, and one of them
+    {n : ℕ}
+    (ts : Fin n → Term S ν)
+    (i : Fin n) :
     1 ≤ childBase 0 ts i := by unfold childBase; omega
 
 omit [DecidableEq ν] in
-private theorem childBase_add_size_le {n : ℕ} (k : ℕ) (ts : Fin n → Term S ν) {i j : Fin n}
-    (h : j < i) : childBase k ts j + (ts j).size ≤ childBase k ts i := by
+private theorem childBase_add_size_le
+    -- the subtrees of a cell numbered from `k`
+    {n : ℕ}
+    (k : ℕ)
+    (ts : Fin n → Term S ν)
+    -- two of them, `j` before `i`
+    {i j : Fin n}
+    (h : j < i) :
+    -- the cells of the subtree `j` come before those of the subtree `i`
+    childBase k ts j + (ts j).size ≤ childBase k ts i := by
   unfold childBase
   have := sum_ite_lt_add_le (fun l => (ts l).size) j (· < i) (fun l hl => lt_of_le_of_lt hl h)
   beta_reduce at this
   omega
 
 omit [DecidableEq ν] in
-private theorem childBase_add_size_le_size {α : S.Sym} (k : ℕ)
-    (ts : Fin (S.arity α) → Term S ν) (i : Fin (S.arity α)) :
+private theorem childBase_add_size_le_size
+    -- a cell `α`, numbered `k`, and its subtrees
+    {α : S.Sym}
+    (k : ℕ)
+    (ts : Fin (S.arity α) → Term S ν)
+    -- one of them
+    (i : Fin (S.arity α)) :
+    -- the cells of the subtree `i` come before the end of the tree
     childBase k ts i + (ts i).size ≤ k + (app α ts).size := by
   unfold childBase
   have := sum_ite_lt_add_le (fun l => (ts l).size) i (fun _ => True) (fun _ _ => trivial)
@@ -261,8 +427,18 @@ private theorem childBase_add_size_le_size {α : S.Sym} (k : ℕ)
   omega
 
 omit [DecidableEq ν] in
-private theorem childBase_subst {n : ℕ} (k : ℕ) (ts ts' : Fin n → Term S ν) (i : Fin n) (d : ℕ)
-    (hs : ∀ l, (ts' l).size = (ts l).size + if l = i then d else 0) (j : Fin n) :
+private theorem childBase_subst
+    -- the subtrees of a cell numbered from `k`
+    {n : ℕ}
+    (k : ℕ)
+    (ts ts' : Fin n → Term S ν)
+    -- `ts'` has `d` more cells than `ts` in the subtree `i`, and the same elsewhere
+    (i : Fin n)
+    (d : ℕ)
+    (hs : ∀ l, (ts' l).size = (ts l).size + if l = i then d else 0)
+    -- another subtree
+    (j : Fin n) :
+    -- the cells of the subtree `j` move by `d` if `j` comes after `i`
     childBase k ts' j = childBase k ts j + if i < j then d else 0 := by
   unfold childBase
   have : (∑ l, if l < j then (ts' l).size else 0) =
@@ -278,22 +454,39 @@ private theorem childBase_subst {n : ℕ} (k : ℕ) (ts ts' : Fin n → Term S �
   rw [this, Fintype.sum_ite_eq']
   omega
 
-/-- **Plugging a tree into a name** (Lafont 1997, page 71). Let `x` occur once in `a`, and let `p`
+/-- **Plugging a tree into a name** (Lafont 1997, page 72). Let `x` occur once in `a`, and let `p`
 be the number of cells of `a` before that occurrence in prefix order. Number the cells of `a` from
 `k` and those of `t` from `m`. A renaming `σ` that keeps the `p` first cells of `a` in place (up to
 the shift from `k` to `k'`), moves the others of `a` by the size of `t`, and puts the cells of `t`
 after the `p` first ones, carries the cells of `a` and `t` to those of `a.subst x t` numbered
 from `k'`. It carries the inner wires of `a`, with the name `x` replaced by the root of `t`, and
 the inner wires of `t`, to the inner wires of `a.subst x t`; and the root of `a` to its root. -/
-theorem raw_subst (x : ν) (t : Term S ν) (a : Term S ν) (ha : a.vars.count x = 1) :
-    ∃ p, p ≤ a.size ∧ ∀ (σ : ℕ → ℕ) (k k' m : ℕ),
+theorem raw_subst
+    -- the tree `t` plugged into the name `x`
+    (x : ν)
+    (t : Term S ν)
+    -- the tree `a`, in which `x` occurs once
+    (a : Term S ν)
+    (ha : a.vars.count x = 1) :
+    -- there is a number `p` of cells of `a`, before the occurrence of `x`, such that
+    ∃ p, p ≤ a.size ∧
+      -- for every renaming `σ` and all first numbers `k` (of `a`), `k'` (of `a.subst x t`),
+      -- `m` (of `t`),
+      ∀ (σ : ℕ → ℕ) (k k' m : ℕ),
+      -- if `σ` keeps the `p` first cells of `a`, shifted from `k` to `k'`,
       (∀ c, k ≤ c → c < k + p → σ c + k = c + k') →
+      -- moves the other cells of `a` by the size of `t`,
       (∀ c, k + p ≤ c → c < k + a.size → σ c + k = c + k' + t.size) →
+      -- and puts the cells of `t` after the `p` first ones,
       (∀ c, m ≤ c → c < m + t.size → σ c + m = c + k' + p) →
+      -- then `σ` carries the cells of `a` and of `t` to those of `a.subst x t`,
       (a.rawCells k).map (Prod.map σ id) + (t.rawCells m).map (Prod.map σ id) =
           (a.subst x t).rawCells k' ∧
+        -- the inner wires of `a`, `x` replaced by the root of `t`, and those of `t`, to the
+        -- inner wires of `a.subst x t`,
         (a.rawWires k).map (Sym2.map (End.mapCell σ ∘ End.substName x (t.rootEnd m))) +
           (t.rawWires m).map (Sym2.map (End.mapCell σ)) = (a.subst x t).rawWires k' ∧
+        -- and the root of `a` to the root of `a.subst x t`
         End.mapCell σ (End.substName x (t.rootEnd m) (a.rootEnd k)) =
           (a.subst x t).rootEnd k' := by
   induction a with
@@ -387,25 +580,46 @@ theorem raw_subst (x : ν) (t : Term S ν) (a : Term S ν) (ha : a.vars.count x 
 
 end Term
 
-/-! ## The raw graph of one wire substitution -/
+-- ============================================================================================
+-- 6. The raw graph of one wire substitution
+-- ============================================================================================
 
 namespace Graph
 
 /-- Wires of a raw graph whose text does not contain `x` are kept when `x` is replaced. -/
-theorem raw_wires_substName_of_notMem {x : ν} (k : ℕ) (L : List (Term S ν × Term S ν))
-    (h : x ∉ (Net.ofList L).vars) (r : End ν) :
+theorem raw_wires_substName_of_notMem
+    -- a list of equations without the name `x`, its cells numbered from `k`
+    {x : ν}
+    (k : ℕ)
+    (L : List (Term S ν × Term S ν))
+    (h : x ∉ (Net.ofList L).vars)
+    -- the end that replaces `x`
+    (r : End ν) :
     (raw k L).wires.map (Sym2.map (End.substName x r)) = (raw k L).wires :=
   map_substName_of_count r (by
     rw [← ends_eq_bind, raw_count_name]; exact Multiset.count_eq_zero.2 h)
 
-/-- **One wire substitution on the raw graph** (Lafont 1997, page 71). Let `x` occur once in `a`
-and nowhere in `t`, `b` and the rest `L`. The raw graph of `x = t, a = b, L` contracts, by erasing
-`x`, to a graph isomorphic to the raw graph of `a[t/x] = b, L`. The cells of `t` move from their
-own block into the middle of the block of `a`. -/
-theorem raw_wire_contract (k : ℕ) (x : ν) (t a b : Term S ν) (L : List (Term S ν × Term S ν))
-    (ha : a.vars.count x = 1) (hb : x ∉ b.vars) (ht : x ∉ t.vars)
+/-- **One wire substitution on the raw graph** (Lafont 1997, pages 71 and 72). Let `x` occur once
+in `a` and nowhere in `t`, `b` and the rest `L`. The raw graph of `x = t, a = b, L` contracts, by
+erasing `x`, to a graph isomorphic to the raw graph of `a[t/x] = b, L`. The cells of `t` move from
+their own block into the middle of the block of `a`. -/
+theorem raw_wire_contract
+    -- the first number of the cells
+    (k : ℕ)
+    -- the equations `x = t` and `a = b`, and the rest `L`
+    (x : ν)
+    (t a b : Term S ν)
+    (L : List (Term S ν × Term S ν))
+    -- `x` occurs once in `a`, and not in `b`, `t` or `L`
+    (ha : a.vars.count x = 1)
+    (hb : x ∉ b.vars)
+    (ht : x ∉ t.vars)
     (hL : x ∉ (Net.ofList L).vars) :
-    ∃ H, Contract (raw k ((.var x, t) :: (a, b) :: L)) H ∧
+    -- there is a graph `H` such that
+    ∃ H,
+      -- the raw graph of `x = t, a = b, L` contracts to `H`,
+      Contract (raw k ((.var x, t) :: (a, b) :: L)) H ∧
+      -- and `H` is isomorphic to the raw graph of `a[t/x] = b, L`
       H.Iso (raw k ((a.subst x t, b) :: L)) := by
   obtain ⟨p, hp, hsub⟩ := Term.raw_subst x t a ha
   set G1 := raw (k + t.size) ((a, b) :: L) with hG1
@@ -480,23 +694,44 @@ theorem raw_wire_contract (k : ℕ) (x : ν) (t a b : Term S ν) (L : List (Term
 
 omit [DecidableEq ν] in
 /-- The wires of a graph reached by contraction from a raw graph end only at its cells. -/
-theorem contracts_raw_portsIn {k : ℕ} {L : List (Term S ν × Term S ν)} {H : Graph S ν}
-    (h : Relation.ReflTransGen Contract (raw k L) H) (c i : ℕ) (hm : End.port c i ∈ H.ends) :
+theorem contracts_raw_portsIn
+    -- a graph reached by contractions from the raw graph of `L`, its cells numbered from `k`
+    {k : ℕ}
+    {L : List (Term S ν × Term S ν)}
+    {H : Graph S ν}
+    (h : Relation.ReflTransGen Contract (raw k L) H)
+    -- a port at an end of one of its wires
+    (c i : ℕ)
+    (hm : End.port c i ∈ H.ends) :
+    -- is a port of one of its cells
     c ∈ H.cells.map Prod.fst := by
   rw [contracts_cells_eq h]
   exact raw_portsIn k L c i (Multiset.mem_of_le (contracts_ends_le h) hm)
 
 end Graph
 
-/-! ## Wire substitution and equivalence -/
+-- ============================================================================================
+-- 7. Wire substitution on the left side
+-- ============================================================================================
 
 /-- A wire substitution keeps the graph, in the case where the name `x` occurs in the left side
 `a` of the equation `a = b`. -/
-private theorem wire_hasGraph_iso_left {x : ν} {t a b : Term S ν} {Δ : Net S ν}
-    (hlin : Net.Linear (s(.var x, t) ::ₘ s(a, b) ::ₘ Δ)) (ha : a.vars.count x = 1)
-    (hb : x ∉ b.vars) (ht : x ∉ t.vars) (hΔ : x ∉ Δ.vars) {G G' : Graph S ν}
+private theorem wire_hasGraph_iso_left
+    -- the equations `x = t` and `a = b`, and the rest `Δ`
+    {x : ν}
+    {t a b : Term S ν}
+    {Δ : Net S ν}
+    -- the net is linear, `x` occurs once in `a`, and not in `b`, `t` or `Δ`
+    (hlin : Net.Linear (s(.var x, t) ::ₘ s(a, b) ::ₘ Δ))
+    (ha : a.vars.count x = 1)
+    (hb : x ∉ b.vars)
+    (ht : x ∉ t.vars)
+    (hΔ : x ∉ Δ.vars)
+    -- a graph of the net, and a graph of the net with `t` plugged into `x`
+    {G G' : Graph S ν}
     (hG : Net.HasGraph (s(.var x, t) ::ₘ s(a, b) ::ₘ Δ) G)
-    (hG' : Net.HasGraph (s(a.subst x t, b) ::ₘ Δ) G') : G.Iso G' := by
+    (hG' : Net.HasGraph (s(a.subst x t, b) ::ₘ Δ) G') :
+    G.Iso G' := by
   obtain ⟨LΔ, rfl⟩ := Net.exists_ofList Δ
   have eN : s(.var x, t) ::ₘ s(a, b) ::ₘ Net.ofList LΔ =
       Net.ofList ((Term.var x, t) :: (a, b) :: LΔ) := rfl
@@ -516,12 +751,23 @@ private theorem wire_hasGraph_iso_left {x : ν} {t a b : Term S ν} {Δ : Net S 
   rw [e] at i₁
   exact i₁.trans (i₂.symm wf'.portsIn)
 
-/-- **A wire substitution keeps the graph** (Lafont 1997, Section 1.1, page 71; PLAN.md Stage C,
-statement 3): if `N` becomes `M` by plugging `t` into the other end of the wire `x` of an
-equation `x = t`, every graph of `N` is isomorphic to every graph of `M`. The linearity of `N`
-is part of `Wire`. -/
-theorem Wire.hasGraph_iso {N M : Net S ν} (h : Wire N M) {G G' : Graph S ν}
-    (hG : N.HasGraph G) (hG' : M.HasGraph G') : G.Iso G' := by
+-- ============================================================================================
+-- 8. Main results
+-- ============================================================================================
+
+/-- **A wire substitution keeps the graph** (Lafont 1997, Section 1.1, pages 71 and 72): if `N`
+becomes `M` by plugging `t` into the other end of the wire `x` of an equation `x = t`, every graph
+of `N` is isomorphic to every graph of `M`. The linearity of `N` is part of `Wire`. -/
+theorem Wire.hasGraph_iso
+    -- `M` is `N` after one wire substitution
+    {N M : Net S ν}
+    (h : Wire N M)
+    -- a graph of `N` and a graph of `M`
+    {G G' : Graph S ν}
+    (hG : N.HasGraph G)
+    (hG' : M.HasGraph G') :
+    -- are isomorphic
+    G.Iso G' := by
   obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := h
   have hxl := hlin x
   simp only [Net.vars_cons, eqVars_mk, Term.vars_var, Multiset.count_add,
@@ -540,12 +786,21 @@ theorem Wire.hasGraph_iso {N M : Net S ν} (h : Wire N M) {G G' : Graph S ν}
     rw [Sym2.eq_swap (a := a)] at hG hlin
     exact wire_hasGraph_iso_left hlin hb ha' ht hΔ hG hG'
 
-/-- **Equivalent linear nets have isomorphic graphs** (Lafont 1997, Section 1.1, page 71; PLAN.md
-Stage C, statement 3, the direction from `Equiv` to `Iso`): if `N` is linear and `Equiv N M`,
-every graph of `N` is isomorphic to every graph of `M`. Linearity is needed: a text that is not
-linear can have two graphs that are not isomorphic (`threeText_two_graphs`). -/
-theorem Net.Linear.equiv_hasGraph_iso {N M : Net S ν} (hN : N.Linear) (h : Equiv N M)
-    {G G' : Graph S ν} (hG : N.HasGraph G) (hG' : M.HasGraph G') : G.Iso G' := by
+/-- **Equivalent linear nets have isomorphic graphs** (Lafont 1997, Section 1.1, pages 71 and 72;
+the direction from `Equiv` to `Iso`): if `N` is linear and `Equiv N M`, every graph of `N` is
+isomorphic to every graph of `M`. Linearity is needed: a text that is not linear can have two
+graphs that are not isomorphic (`threeText_two_graphs`). -/
+theorem Net.Linear.equiv_hasGraph_iso
+    -- a linear net `N`, and a net `M` equivalent to it
+    {N M : Net S ν}
+    (hN : N.Linear)
+    (h : Equiv N M)
+    -- a graph of `N` and a graph of `M`
+    {G G' : Graph S ν}
+    (hG : N.HasGraph G)
+    (hG' : M.HasGraph G') :
+    -- are isomorphic
+    G.Iso G' := by
   induction h generalizing G G' with
   | rel _ _ h => exact h.hasGraph_iso hG hG'
   | refl => exact hN.hasGraph_iso hG hG'
