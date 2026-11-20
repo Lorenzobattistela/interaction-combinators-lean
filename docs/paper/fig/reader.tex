@@ -1,0 +1,88 @@
+% The reduction of two translated cells [alpha] = [beta] of the general translation, in five
+% nets: the analogue of Lafont's Fig. 7. Our own block diagram, drawn from the six steps of
+% Section 6.4. A wire with a stroke across it is a bundle of wires.
+\begin{tikzpicture}[
+    blk/.style={draw,line width=0.6pt,rounded corners=1.5pt,minimum height=6.5mm,
+      minimum width=14mm,inner sep=2pt,font=\small},
+    pk/.style={draw,line width=0.6pt,minimum height=6.5mm,minimum width=12mm,inner sep=2pt,
+      font=\small,fill=black!8},
+    lab/.style={font=\footnotesize,inner sep=1.5pt},
+    stp/.style={font=\footnotesize,anchor=west,inner sep=2pt},
+    bundle/.style={postaction={decorate,decoration={markings,
+      mark=at position 0.5 with {\draw[line width=0.5pt] (-1.2pt,-2.4pt) -- (1.2pt,2.4pt);}}}}]
+  % ---------------------------------------------------------------- net 1: the two cells
+  \node[blk,minimum width=22mm] (A1) at (3.4,0) {$[\alpha]$};
+  \node[blk,minimum width=22mm] (B1) at (10.6,0) {$[\beta]$};
+  \draw[wire,bundle] (A1.north) -- ++(0,0.55) node[lab,above] {$\vec x$};
+  \draw[wire,bundle] (B1.north) -- ++(0,0.55) node[lab,above] {$\vec y$};
+  \draw[wire,rounded corners=5pt] (A1.south) -- ++(0,-0.4) -| (B1.south);
+  % ---------------------------------------------------------------- net 2: after step 1
+  \begin{scope}[yshift=-2.9cm]
+    \node[pk] (G2) at (1.0,0) {$\Gamma_{\alpha,\beta}$};
+    \node[blk,minimum width=24mm] (M2) at (3.8,0) {$M_{a+2}$};
+    \node[blk,minimum width=24mm] (N2) at (10.2,0) {$M_{b+2}$};
+    \node[pk] (H2) at (13.0,0) {$\Gamma_{\beta,\alpha}$};
+    \node[pk] (C2) at (3.0,1.15) {$!\Gamma$};
+    \node[pk] (D2) at (11.0,1.15) {$!\Gamma$};
+    \draw[wire] (G2.east) -- (M2.west);
+    \draw[wire] (H2.west) -- (N2.east);
+    \draw[wire] (C2.south) -- (C2.south |- M2.north);
+    \draw[wire] (D2.south) -- (D2.south |- N2.north);
+    \draw[wire,bundle] (4.0,0 |- M2.north) -- ++(0,0.75) node[lab,above] {$\vec x$};
+    \draw[wire,bundle] (10.0,0 |- N2.north) -- ++(0,0.75) node[lab,above] {$\vec y$};
+    \draw[wire,rounded corners=5pt] (4.75,0 |- M2.north) -- ++(0,0.45) -|
+      node[lab,above,pos=0.25] {$\ell$} (9.25,0 |- N2.north);
+  \end{scope}
+  % ---------------------------------------------------------------- net 3: after step 2
+  \begin{scope}[yshift=-5.8cm]
+    \node[blk,minimum width=11mm] (P3) at (1.0,0) {$C_p$};
+    \node[pk] (C3) at (1.0,1.15) {$!\Gamma$};
+    \node[blk,minimum width=20mm] (F3) at (3.8,0) {$\langle\varphi\rangle$};
+    \node[blk,minimum width=11mm] (S3) at (7.0,0) {$\sigma$};
+    \node[blk,minimum width=20mm] (Y3) at (10.2,0) {$\langle\psi\rangle$};
+    \node[blk,minimum width=11mm] (Q3) at (13.0,0) {$C_q$};
+    \node[pk] (D3) at (13.0,1.15) {$!\Gamma$};
+    \draw[wire] (C3.south) -- (P3.north);
+    \draw[wire] (D3.south) -- (Q3.north);
+    \draw[wire,bundle] (P3.east) -- node[lab,above,pos=0.25] {$p$} (F3.west);
+    \draw[wire,bundle] (Q3.west) -- node[lab,above,pos=0.25] {$q$} (Y3.east);
+    \draw[wire,bundle] (F3.east) -- node[lab,above,pos=0.25] {$k$} (S3.west);
+    \draw[wire,bundle] (S3.east) -- node[lab,above,pos=0.25] {$k$} (Y3.west);
+    \draw[wire,bundle] (F3.north) -- ++(0,0.75) node[lab,above] {$\vec x$};
+    \draw[wire,bundle] (Y3.north) -- ++(0,0.75) node[lab,above] {$\vec y$};
+  \end{scope}
+  % ---------------------------------------------------------------- net 4: after step 3
+  \begin{scope}[yshift=-8.4cm]
+    \node[pk,minimum width=17mm] (C4) at (1.0,0) {$p\times{!\Gamma}$};
+    \node[blk,minimum width=20mm] (F4) at (3.8,0) {$\langle\varphi\rangle$};
+    \node[blk,minimum width=11mm] (S4) at (7.0,0) {$\sigma$};
+    \node[blk,minimum width=20mm] (Y4) at (10.2,0) {$\langle\psi\rangle$};
+    \node[pk,minimum width=17mm] (D4) at (13.0,0) {$q\times{!\Gamma}$};
+    \draw[wire,bundle] (C4.east) -- node[lab,above,pos=0.25] {$p$} (F4.west);
+    \draw[wire,bundle] (D4.west) -- node[lab,above,pos=0.25] {$q$} (Y4.east);
+    \draw[wire,bundle] (F4.east) -- node[lab,above,pos=0.25] {$k$} (S4.west);
+    \draw[wire,bundle] (S4.east) -- node[lab,above,pos=0.25] {$k$} (Y4.west);
+    \draw[wire,bundle] (F4.north) -- ++(0,0.55) node[lab,above] {$\vec x$};
+    \draw[wire,bundle] (Y4.north) -- ++(0,0.55) node[lab,above] {$\vec y$};
+  \end{scope}
+  % ---------------------------------------------------------------- net 5: after step 4
+  \begin{scope}[yshift=-11.0cm]
+    \node[blk,minimum width=20mm] (F5) at (3.8,0) {$[\varphi]$};
+    \node[blk,minimum width=11mm] (S5) at (7.0,0) {$\sigma$};
+    \node[blk,minimum width=20mm] (Y5) at (10.2,0) {$[\psi]$};
+    \draw[wire,bundle] (F5.east) -- node[lab,above,pos=0.25] {$k$} (S5.west);
+    \draw[wire,bundle] (S5.east) -- node[lab,above,pos=0.25] {$k$} (Y5.west);
+    \draw[wire,bundle] (F5.north) -- ++(0,0.55) node[lab,above] {$\vec x$};
+    \draw[wire,bundle] (Y5.north) -- ++(0,0.55) node[lab,above] {$\vec y$};
+  \end{scope}
+  % ---------------------------------------------------------------- the steps
+  \draw[becomes] (7.0,-0.75) -- (7.0,-1.35);
+  \node[stp] at (7.25,-1.05) {step 1: $T_{1,1}$ against $T_{1,1}$, menus against selectors};
+  \draw[becomes] (7.0,-3.55) -- (7.0,-4.15);
+  \node[stp] at (7.25,-3.85) {step 2: $M$ against $M^*$, $T_\sigma$ against $T_\sigma$};
+  \draw[becomes] (7.0,-6.55) -- (7.0,-7.15);
+  \node[stp] at (7.25,-6.85) {step 3: each copier against its $!\Gamma$};
+  \draw[becomes] (7.0,-9.15) -- (7.0,-9.75);
+  \node[stp] at (7.25,-9.45) {step 4: at each cell $\langle\alpha_k\rangle$, $C_2$, then $D$,
+    then $S^k_m$};
+\end{tikzpicture}

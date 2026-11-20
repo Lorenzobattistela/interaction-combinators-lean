@@ -12,7 +12,7 @@
 \usepackage{newunicodechar}
 \usepackage{graphicx}
 \usepackage{tikz}
-\usetikzlibrary{shapes.geometric,calc,arrows.meta}
+\usetikzlibrary{shapes.geometric,calc,arrows.meta,decorations.markings}
 \usepackage{caption}
 \usepackage{float}
 \PassOptionsToPackage{hyphens}{url}
@@ -605,7 +605,19 @@ autodual multiplexor), names $\vec x$, $\vec y$ on the ports of the two cells, a
 $\Delta$ such that the whole net is linear. The starting net is $[\alpha](\vec x) =
 [\beta](\vec y)$ beside $\Delta$. The lemmas carry the context $\Delta$, and the final
 statement takes it empty. The proof has four reductions, their composition, and a conclusion
-(Table~\ref{tab:reader}).
+(Fig.~\ref{fig:reader} and Table~\ref{tab:reader}).
+
+\begin{figure}[H]
+\centering
+\input{fig/reader.tex}
+\caption{The analogue of \pp{Fig.~7} for the general translation, as a block diagram. A wire
+with a stroke is a bundle of wires. $\langle\varphi\rangle$ stands for the trees of the side
+$\varphi$ with a cell $\langle\alpha_k\rangle$ in place of each cell, $[\varphi]$ for their
+translations, and $\sigma$ for the wiring that joins the middle port $l$ of $\varphi$ to the
+middle port $\sigma(l)$ of $\psi$. The last net is the translation of the right member
+(steps 5 and 6).}
+\label{fig:reader}
+\end{figure}
 
 \begin{enumerate}
 \item \emph{The two cells meet.} The two $T_{1,1}$ annihilate. The $\gamma\gamma$ step
