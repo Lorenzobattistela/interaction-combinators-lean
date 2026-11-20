@@ -6,18 +6,26 @@ import InteractionCombinators.Text.RenameInj
 /-!
 # The syntactic form of right members is the reduced nets (page 79)
 
-Lafont 1997, page 72, asks the right member of a rule to be a reduced net, and page 79 defines
+Lafont 1997, page 73, asks the right member of a rule to be a reduced net, and page 79 defines
 reduced nets: no cut and no vicious circle (`Net.IsReduced`). The rules of the code are required
 to be in a syntactic form instead, `Rule.Reduced`: every equation has an auxiliary port on one
 side. This file shows that the two agree, on instances with distinct names on the ports.
 
-* `Rule.Reduced.isTreesOnWiring_inst`, `Rule.Reduced.isReduced_inst` — **forward**: an instance of
-  a linear rule in the syntactic form is trees on a wiring (Proposition 2, page 79), hence reduced:
-  no cut and no vicious circle.
-* `Rule.exists_reduced_of_isReduced` — **converse**: if the instance of a linear rule is reduced,
-  then the same graph is the instance of a linear rule in the syntactic form. The new rule is read
-  off the decomposition of Proposition 2 (`Net.IsReduced.exists_treesOnWiring`), its names
-  renamed back to `Fin a ⊕ Fin b ⊕ Fin k`.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: renaming. `Term.exists_bind_var_eq_of_range`,
+   `Net.exists_bind_var_eq_of_range`: a tree, or a net, whose names all lie in the range of `β` is
+   one renamed by `β`.
+2. Auxiliary lemmas: counts on rule instances. `Rule.count_inst_xs` (a name on a port occurs
+   once), `Rule.port_of_count_inst_eq_one` (a name that occurs once is on a port).
+3. Main results.
+   * `Rule.Reduced.isTreesOnWiring_inst`, `Rule.Reduced.isReduced_inst` — **forward**: an
+     instance of a linear rule in the syntactic form is trees on a wiring (Proposition 2,
+     page 79), hence reduced: no cut and no vicious circle.
+   * `Rule.exists_reduced_of_isReduced` — **converse**: if the instance of a linear rule is
+     reduced, then the same graph is the instance of a linear rule in the syntactic form. The new
+     rule is read off the decomposition of Proposition 2 (`Net.IsReduced.exists_treesOnWiring`),
+     its names renamed back to `Fin a ⊕ Fin b ⊕ Fin k`.
 -/
 
 namespace INet
@@ -26,9 +34,20 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: renaming
+-- ============================================================================================
+
 /-- A tree whose names all lie in the range of `β` is a tree renamed by `β`. -/
-theorem Term.exists_bind_var_eq_of_range {ν μ : Type} (β : ν → μ) (t : Term S μ)
-    (h : ∀ x ∈ t.vars, ∃ v, β v = x) : ∃ t' : Term S ν, t'.bind (fun v => var (β v)) = t := by
+theorem Term.exists_bind_var_eq_of_range
+    -- the renaming
+    {ν μ : Type}
+    (β : ν → μ)
+    -- the tree, every name of which is the image of a name by `β`
+    (t : Term S μ)
+    (h : ∀ x ∈ t.vars, ∃ v, β v = x) :
+    -- there is a tree `t'` on the names `ν` which, renamed by `β`, is `t`
+    ∃ t' : Term S ν, t'.bind (fun v => var (β v)) = t := by
   induction t with
   | var x =>
     obtain ⟨v, hv⟩ := h x (by simp)
@@ -41,8 +60,15 @@ theorem Term.exists_bind_var_eq_of_range {ν μ : Type} (β : ν → μ) (t : Te
     exact ⟨app α g, by rw [bind_app]; congr 1; funext i; exact hg i⟩
 
 /-- A net whose names all lie in the range of `β` is a net renamed by `β`. -/
-theorem Net.exists_bind_var_eq_of_range {ν μ : Type} (β : ν → μ) (M : Net S μ)
-    (h : ∀ x ∈ M.vars, ∃ v, β v = x) : ∃ M' : Net S ν, M'.bind (fun v => var (β v)) = M := by
+theorem Net.exists_bind_var_eq_of_range
+    -- the renaming
+    {ν μ : Type}
+    (β : ν → μ)
+    -- the net, every name of which is the image of a name by `β`
+    (M : Net S μ)
+    (h : ∀ x ∈ M.vars, ∃ v, β v = x) :
+    -- there is a net `M'` on the names `ν` which, renamed by `β`, is `M`
+    ∃ M' : Net S ν, M'.bind (fun v => var (β v)) = M := by
   induction M using Multiset.induction_on with
   | empty => exact ⟨0, rfl⟩
   | cons e M ih =>
@@ -58,13 +84,29 @@ namespace Rule
 
 variable {a b : ℕ}
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas: counts on rule instances
+-- ============================================================================================
+
 /-- In a linear instance of a linear rule, with distinct names on the ports, a name on a port
-occurs exactly once: it is a free port (Lafont 1997, page 72). -/
-theorem count_inst_xs {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ} {ys : Fin b → ℕ}
-    (hx : Function.Injective xs) (hy : Function.Injective ys) (hxy : ∀ i j, xs i ≠ ys j)
+occurs exactly once: it is a free port (Lafont 1997, page 73). -/
+theorem count_inst_xs
+    -- the rule, linear
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    -- the names on the ports: injective, and no name on both sides
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear
     {h : Fin r.internal → ℕ}
-    (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear) {p : ℕ}
+    (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear)
+    -- a name on a port
+    {p : ℕ}
     (hp : (∃ i, p = xs i) ∨ ∃ j, p = ys j) :
+    -- occurs exactly once in the instance
     (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).vars.count p = 1 := by
   refine le_antisymm (count_inst_port hrl hx hy hxy hl hp) ?_
   rw [count_vars_inst r hrl]
@@ -78,10 +120,19 @@ theorem count_inst_xs {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ} {ys
     omega
 
 /-- In an instance of a linear rule, a name that occurs once is one of the names put on the ports:
-the internal wires of the rule occur twice (Lafont 1997, page 72). -/
-theorem port_of_count_inst_eq_one {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ}
-    {ys : Fin b → ℕ} {h : Fin r.internal → ℕ} {p : ℕ}
+the internal wires of the rule occur twice (Lafont 1997, page 73). -/
+theorem port_of_count_inst_eq_one
+    -- the rule, linear
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    -- the names on the ports and on the internal wires
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    {h : Fin r.internal → ℕ}
+    -- a name that occurs exactly once in the instance
+    {p : ℕ}
     (h1 : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).vars.count p = 1) :
+    -- is a name on a port
     (∃ i, p = xs i) ∨ ∃ j, p = ys j := by
   by_contra hne
   simp only [not_or, not_exists] at hne
@@ -90,41 +141,84 @@ theorem port_of_count_inst_eq_one {r : Rule S a b} (hrl : r.Linear) {xs : Fin a 
     zero_add] at h1
   omega
 
+-- ============================================================================================
+-- 3. Main results: the syntactic form and the reduced nets agree
+-- ============================================================================================
+
 /-- **The syntactic form gives trees on a wiring** (Lafont 1997, page 79, Proposition 2). An
 instance of a linear rule in the form `Rule.Reduced`, linear, with distinct names on the ports, is
 in the form `Net.IsTreesOnWiring`: every equation hangs a tree from a free port. -/
-theorem Reduced.isTreesOnWiring_inst {r : Rule S a b} (hrl : r.Linear) (hr : r.Reduced)
-    {xs : Fin a → ℕ} {ys : Fin b → ℕ} (hx : Function.Injective xs) (hy : Function.Injective ys)
-    (hxy : ∀ i j, xs i ≠ ys j) {h : Fin r.internal → ℕ}
+theorem Reduced.isTreesOnWiring_inst
+    -- the rule, linear and in the syntactic form
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    (hr : r.Reduced)
+    -- the names on the ports: injective, and no name on both sides
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear
+    {h : Fin r.internal → ℕ}
     (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear) :
+    -- the instance is trees on a wiring
     (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).IsTreesOnWiring := by
   intro e he
   obtain ⟨p, t, rfl, hp⟩ := hr.mem_inst he
   exact ⟨p, t, rfl, count_inst_xs hrl hx hy hxy hl hp⟩
 
 /-- **The syntactic form of right members is reduced** (Lafont 1997, page 79: a reduced net has
-no cut and no vicious circle; page 72: the right member of a rule is reduced). An instance of a
+no cut and no vicious circle; page 73: the right member of a rule is reduced). An instance of a
 linear rule in the form `Rule.Reduced`, linear, with distinct names on the ports, is
 `Net.IsReduced`. This strengthens `Rule.not_hasCut_inst` from "no cut" to "reduced". -/
-theorem Reduced.isReduced_inst {r : Rule S a b} (hrl : r.Linear) (hr : r.Reduced)
-    {xs : Fin a → ℕ} {ys : Fin b → ℕ} (hx : Function.Injective xs) (hy : Function.Injective ys)
-    (hxy : ∀ i j, xs i ≠ ys j) {h : Fin r.internal → ℕ}
+theorem Reduced.isReduced_inst
+    -- the rule, linear and in the syntactic form
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    (hr : r.Reduced)
+    -- the names on the ports: injective, and no name on both sides
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear
+    {h : Fin r.internal → ℕ}
     (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear) :
+    -- the instance is reduced: no cut and no vicious circle
     (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).IsReduced :=
   (hr.isTreesOnWiring_inst hrl hx hy hxy hl).isReduced
 
 /-- **Every reduced right member can be written in the syntactic form** (Lafont 1997, page 79,
-Proposition 2; page 72). Let `r` be a linear rule whose instance, with distinct names `xs`, `ys`
+Proposition 2; page 73). Let `r` be a linear rule whose instance, with distinct names `xs`, `ys`
 on the ports, is linear and reduced (no cut, no vicious circle). Then there is a linear rule `r'`
 in the form `Rule.Reduced`, with the same ports, and injective names `h'` for its internal wires,
 whose instance is the same graph as that of `r`. The number of internal wires may differ. -/
-theorem exists_reduced_of_isReduced {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ}
-    {ys : Fin b → ℕ} (hx : Function.Injective xs) (hy : Function.Injective ys)
-    (hxy : ∀ i j, xs i ≠ ys j) {h : Fin r.internal → ℕ}
+theorem exists_reduced_of_isReduced
+    -- the rule, linear
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    -- the names on the ports: injective, and no name on both sides
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear and reduced
+    {h : Fin r.internal → ℕ}
     (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear)
     (hR : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).IsReduced) :
-    ∃ (r' : Rule S a b) (h' : Fin r'.internal → ℕ), r'.Linear ∧ r'.Reduced ∧
+    -- there are a rule `r'` with the same ports and names `h'` for its internal wires
+    ∃ (r' : Rule S a b) (h' : Fin r'.internal → ℕ),
+      -- such that `r'` is linear,
+      r'.Linear ∧
+      -- `r'` is in the syntactic form,
+      r'.Reduced ∧
+      -- the names `h'` are distinct,
       Function.Injective h' ∧
+      -- and the instance of `r'`, with the same names on the ports, is the same graph as that
+      -- of `r`
       Equiv (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h)
         (r'.inst (fun i => var (xs i)) (fun j => var (ys j)) h') := by
   obtain ⟨M, hNM, hM⟩ := Net.IsReduced.exists_treesOnWiring hl hR
@@ -205,3 +299,4 @@ theorem exists_reduced_of_isReduced {r : Rule S a b} (hrl : r.Linear) {xs : Fin 
 end Rule
 
 end INet
+
