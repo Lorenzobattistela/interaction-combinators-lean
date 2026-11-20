@@ -10,11 +10,14 @@ This file shows that it is the composite in the sense of the translations of tre
 translation by `Φ` followed by a translation by `Ψ` is a translation by `Ψ ∘ Φ`, with exactly the
 same names, no renaming needed.
 
-* `TermTr.eq_var_of_tr`, `TermTr.app_inv` — the translations of a wire and of a cell.
-* `off_block_eq` — the blocks of names of `trTerm` for distinct subtrees are disjoint.
-* `TermTr.bind_inv` — a translation by `Ψ` of `u.bind τ` is `(Ψ.trTerm k u).bind ρ`, where `ρ`
-  sends the leaves of `u` to translations of their images and the new internal wires to wires.
-* `TermTr.comp`, `EqTr.comp`, `NetTr.comp` — the translation by the composite.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: `TermTr.eq_var_of_tr`, `TermTr.app_inv`, the translations of a wire and of
+   a cell; `off_block_eq`, the blocks of names of `trTerm` for distinct subtrees are disjoint;
+   `TermTr.bind_inv`, a translation by `Ψ` of `u.bind τ` is `(Ψ.trTerm k u).bind ρ`, where `ρ`
+   sends the leaves of `u` to translations of their images and the new internal wires to wires.
+2. Main results: `TermTr.comp`, `EqTr.comp`, `rel_eqTr_comp`, `NetTr.comp`, the translation by
+   the composite, for trees, equations and nets.
 -/
 
 namespace INet
@@ -25,26 +28,53 @@ open Term
 
 namespace Translation
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: inverting a translation
+-- ============================================================================================
+
 /-- **The translation of a wire is that wire** (page 80): a translation only replaces cells. -/
-theorem TermTr.eq_var_of_tr {Ψ : Translation S' S''} {x : ℕ} {t : Term S'' ℕ}
-    (h : Ψ.TermTr (Term.var x) t) : t = Term.var x := by
+theorem TermTr.eq_var_of_tr
+    -- a translation `t` by `Ψ` of the wire `x`
+    {Ψ : Translation S' S''}
+    {x : ℕ}
+    {t : Term S'' ℕ}
+    (h : Ψ.TermTr (Term.var x) t) :
+    t = Term.var x := by
   cases h
   rfl
 
 /-- **The translation of a cell** (page 80): it is an instance of the principal net of its symbol,
 whose arguments are translations of the subtrees. -/
-theorem TermTr.app_inv {Ψ : Translation S' S''} {β : S'.Sym} {vs : Fin (S'.arity β) → Term S' ℕ}
-    {t : Term S'' ℕ} (h : Ψ.TermTr (Term.app β vs) t) :
+theorem TermTr.app_inv
+    -- the translation
+    {Ψ : Translation S' S''}
+    -- the cell `β` with its subtrees `vs`
+    {β : S'.Sym}
+    {vs : Fin (S'.arity β) → Term S' ℕ}
+    -- a translation `t` of the cell
+    {t : Term S'' ℕ}
+    (h : Ψ.TermTr (Term.app β vs) t) :
+    -- there are trees `ts` and names `f` for the internal wires of `Ψ(β)` such that
     ∃ (ts : Fin (S'.arity β) → Term S'' ℕ) (f : Fin (Ψ.net β).internal → ℕ),
-      (∀ i, Ψ.TermTr (vs i) (ts i)) ∧ t = (Ψ.net β).inst ts f := by
+      -- each `ts i` is a translation of the subtree `vs i`,
+      (∀ i, Ψ.TermTr (vs i) (ts i)) ∧
+      -- and `t` is the instance of `Ψ(β)` with `ts` on its ports and `f` on its wires
+      t = (Ψ.net β).inst ts f := by
   cases h with
   | app _ _ ts f h => exact ⟨ts, f, h, rfl⟩
 
 /-- The blocks of consecutive sizes laid end to end from `a` are disjoint (page 80): a name in the
 blocks `i` and `j` forces `i = j`. -/
-theorem off_block_eq {m : ℕ} (s : Fin m → ℕ) (a z : ℕ) {i j : Fin m}
+theorem off_block_eq
+    -- the sizes of the `m` blocks, their start `a`, and a name `z`
+    {m : ℕ}
+    (s : Fin m → ℕ)
+    (a z : ℕ)
+    -- `z` lies in the block `i` and in the block `j`
+    {i j : Fin m}
     (hi : a + off s i ≤ z ∧ z < a + off s i + s i)
-    (hj : a + off s j ≤ z ∧ z < a + off s j + s j) : i = j := by
+    (hj : a + off s j ≤ z ∧ z < a + off s j + s j) :
+    i = j := by
   by_contra hne
   have h := congrArg (Multiset.count z) (sum_Ico_off s a)
   rw [Multiset.count_sum', count_Ico] at h
@@ -61,11 +91,28 @@ names are below `k`, and `τ` send every name occurring twice in `u` to a wire. 
 by `Ψ` of `u.bind τ` is `(Ψ.trTerm k u).bind ρ`, the translation of `u` with its internal wires
 numbered from `k`, for some `ρ` that sends each leaf `x` of `u` to a translation of `τ x` and each
 new internal wire to a wire. -/
-theorem TermTr.bind_inv (Ψ : Translation S' S'') (τ : ℕ → Term S' ℕ) (u : Term S' ℕ) :
-    ∀ (k : ℕ) (t'' : Term S'' ℕ), (∀ x ∈ u.vars, x < k) →
-      (∀ x, 2 ≤ u.vars.count x → ∃ y, τ x = Term.var y) → Ψ.TermTr (u.bind τ) t'' →
-      ∃ ρ : ℕ → Term S'' ℕ, (∀ x ∈ u.vars, Ψ.TermTr (τ x) (ρ x)) ∧
-        (∀ x, k ≤ x → x < k + Ψ.size u → ∃ y, ρ x = Term.var y) ∧ t'' = (Ψ.trTerm k u).bind ρ := by
+theorem TermTr.bind_inv
+    -- the translation
+    (Ψ : Translation S' S'')
+    -- the trees `τ x` plugged into the leaves `x` of the tree `u`
+    (τ : ℕ → Term S' ℕ)
+    (u : Term S' ℕ) :
+    -- for every bound `k` and every tree `t''`,
+    ∀ (k : ℕ) (t'' : Term S'' ℕ),
+      -- if the names of `u` are below `k`,
+      (∀ x ∈ u.vars, x < k) →
+      -- every name occurring twice in `u` is sent by `τ` to a wire,
+      (∀ x, 2 ≤ u.vars.count x → ∃ y, τ x = Term.var y) →
+      -- and `t''` is a translation by `Ψ` of `u` with `τ` plugged in,
+      Ψ.TermTr (u.bind τ) t'' →
+      -- then there is a substitution `ρ` such that
+      ∃ ρ : ℕ → Term S'' ℕ,
+        -- `ρ` sends each leaf `x` of `u` to a translation of `τ x`,
+        (∀ x ∈ u.vars, Ψ.TermTr (τ x) (ρ x)) ∧
+        -- `ρ` sends each new internal wire, from `k` on, to a wire,
+        (∀ x, k ≤ x → x < k + Ψ.size u → ∃ y, ρ x = Term.var y) ∧
+        -- and `t''` is the translation of `u` numbered from `k`, with `ρ` plugged in
+        t'' = (Ψ.trTerm k u).bind ρ := by
   induction u with
   | var x =>
     intro k t'' _ _ h
@@ -170,13 +217,26 @@ theorem TermTr.bind_inv (Ψ : Translation S' S'') (τ : ℕ → Term S' ℕ) (u 
         congr 2
         exact Fin.ext (by simp)
 
+-- ============================================================================================
+-- 2. Main results: translating by a composite
+-- ============================================================================================
+
 /-- **Translating by a composite is composing the translations, for trees** (page 80,
 "composition of translations is defined in the obvious way"). If `t'` is a translation of `t` by
 `Φ` and `t''` a translation of `t'` by `Ψ`, then `t''` is a translation of `t` by `Ψ ∘ Φ`, with
 the same names: the internal wires of an instance of `Ψ(Φ(α))` are those of the instance of
 `Φ(α)` and those of the instances of the `Ψ(β)` inside it. -/
-theorem TermTr.comp {Φ : Translation S S'} {Ψ : Translation S' S''} {t : Term S ℕ}
-    {t' : Term S' ℕ} {t'' : Term S'' ℕ} (h : Φ.TermTr t t') (h' : Ψ.TermTr t' t'') :
+theorem TermTr.comp
+    -- the two translations, `Φ` first
+    {Φ : Translation S S'}
+    {Ψ : Translation S' S''}
+    -- the trees
+    {t : Term S ℕ}
+    {t' : Term S' ℕ}
+    {t'' : Term S'' ℕ}
+    -- `t'` translates `t` by `Φ`, and `t''` translates `t'` by `Ψ`
+    (h : Φ.TermTr t t')
+    (h' : Ψ.TermTr t' t'') :
     (Ψ.comp Φ).TermTr t t'' := by
   induction h generalizing t'' with
   | var x =>
@@ -246,17 +306,35 @@ theorem TermTr.comp {Φ : Translation S S'} {Ψ : Translation S' S''} {t : Term 
     rwa [hτi] at e
 
 /-- **Translating by a composite is composing the translations, for equations** (page 80). -/
-theorem EqTr.comp {Φ : Translation S S'} {Ψ : Translation S' S''} {e : Sym2 (Term S ℕ)}
-    {e' : Sym2 (Term S' ℕ)} {e'' : Sym2 (Term S'' ℕ)} (h : Φ.EqTr e e') (h' : Ψ.EqTr e' e'') :
+theorem EqTr.comp
+    -- the two translations, `Φ` first
+    {Φ : Translation S S'}
+    {Ψ : Translation S' S''}
+    -- the equations
+    {e : Sym2 (Term S ℕ)}
+    {e' : Sym2 (Term S' ℕ)}
+    {e'' : Sym2 (Term S'' ℕ)}
+    -- `e'` translates `e` by `Φ`, and `e''` translates `e'` by `Ψ`
+    (h : Φ.EqTr e e')
+    (h' : Ψ.EqTr e' e'') :
     (Ψ.comp Φ).EqTr e e'' := by
   obtain ⟨a, b, a', b', rfl, rfl, ha, hb⟩ := h
   obtain ⟨a'', b'', rfl, ha', hb'⟩ := EqTr.mk h'
   exact ⟨a, b, a'', b'', rfl, rfl, ha.comp ha', hb.comp hb'⟩
 
 /-- Equation-wise translations compose (page 80). -/
-theorem rel_eqTr_comp {Φ : Translation S S'} {Ψ : Translation S' S''} {N : Net S ℕ}
-    {N' : Net S' ℕ} {N'' : Net S'' ℕ} (h : Multiset.Rel Φ.EqTr N N')
-    (h' : Multiset.Rel Ψ.EqTr N' N'') : Multiset.Rel (Ψ.comp Φ).EqTr N N'' := by
+theorem rel_eqTr_comp
+    -- the two translations, `Φ` first
+    {Φ : Translation S S'}
+    {Ψ : Translation S' S''}
+    -- the nets
+    {N : Net S ℕ}
+    {N' : Net S' ℕ}
+    {N'' : Net S'' ℕ}
+    -- `N'` translates `N` equation by equation by `Φ`, and `N''` translates `N'` by `Ψ`
+    (h : Multiset.Rel Φ.EqTr N N')
+    (h' : Multiset.Rel Ψ.EqTr N' N'') :
+    Multiset.Rel (Ψ.comp Φ).EqTr N N'' := by
   induction h generalizing N'' with
   | zero =>
     rw [Multiset.rel_zero_left.1 h']
@@ -269,8 +347,17 @@ theorem rel_eqTr_comp {Φ : Translation S S'} {Ψ : Translation S' S''} {N : Net
 "composition of translations is defined in the obvious way"). If `N'` is a translation of `N` by
 `Φ` and `N''` a translation of `N'` by `Ψ`, then `N''` is a translation of `N` by `Ψ ∘ Φ`, with
 the same names. -/
-theorem NetTr.comp {Φ : Translation S S'} {Ψ : Translation S' S''} {N : Net S ℕ}
-    {N' : Net S' ℕ} {N'' : Net S'' ℕ} (h : Φ.NetTr N N') (h' : Ψ.NetTr N' N'') :
+theorem NetTr.comp
+    -- the two translations, `Φ` first
+    {Φ : Translation S S'}
+    {Ψ : Translation S' S''}
+    -- the nets
+    {N : Net S ℕ}
+    {N' : Net S' ℕ}
+    {N'' : Net S'' ℕ}
+    -- `N'` translates `N` by `Φ`, and `N''` translates `N'` by `Ψ`
+    (h : Φ.NetTr N N')
+    (h' : Ψ.NetTr N' N'') :
     (Ψ.comp Φ).NetTr N N'' :=
   ⟨rel_eqTr_comp h.rel h'.rel, h'.linear⟩
 
