@@ -48,8 +48,11 @@ is stated with the latter.
     here.
 - `Checks/` — examples, non-vacuity tests and attempts to refute the statements of the library.
   The library never imports them.
-- `Demo/` — worked examples. `Arithmetic.lean` translates unary addition, a recursive
-  interaction system, into the combinators, and runs `2 + 2`.
+- `Demo/` — worked examples. `Arithmetic.lean` takes unary addition, a recursive interaction
+  system, proves that `2 + 2` reduces to `4`, and by Theorem 1 that the same holds of its
+  translation into the combinators. `ArithmeticTr.lean` computes the translations of its three
+  symbols with the computable form of the translation. `Multiplication.lean` is the system of
+  Section 1.5 of the paper.
 - `PAPER.md` — a map from each definition, lemma, figure and theorem of the paper to the code.
 - `docs/paper/` — the paper about this development, with its sources.
 - `scripts/` — the gate (`check.sh`), the axiom audit (`Audit.lean`) and the fingerprint of the
@@ -63,8 +66,8 @@ lake build
 GATE_BASE=HEAD scripts/check.sh    # the gate: forbidden constructs, build, axiom audit
 ```
 
-The project imports only the Mathlib modules it uses; a full build takes a few minutes and about
-2 GB of memory per Lean process.
+Lean 4.36.0 and Mathlib v4.36.0 (`lean-toolchain`, `lake-manifest.json`). The project imports only
+the Mathlib modules it uses. With the Mathlib cache, a full build takes a few minutes.
 
 ## What is not here
 
