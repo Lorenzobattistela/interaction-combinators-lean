@@ -19,39 +19,92 @@ reductions", the reductions of the translations of the rules. Proposition 4: "If
 
 The proof of one step is `Translation.CompatibleBy.step` of `Simulation.lean`, applied to the
 reduction "in `k` steps, `L ≤ k ≤ M`".
+
+Contents, in the order of the file:
+
+1. Definitions: `StepsN` and `StepsEN`, reduction in exactly `n` interactions, literal and up to
+   wires; `Translation.CompatibleWithin`, a translation whose rules are simulated in `k`
+   interactions, `L ≤ k ≤ M`.
+2. Auxiliary lemmas, counted reductions: `StepsN.steps`, `StepsN.stepsEN`,
+   `Steps.exists_stepsN`, `StepsE.exists_stepsEN`, `StepE.bind_var`, `StepsEN.stepsE`,
+   `StepsEN.single`, `StepsEN.trans`, `StepsEN.bind_var`, `StepsEN.of_equiv`,
+   `StepsEN.add_right`.
+3. Auxiliary lemmas, compatibility with bounded lengths: `Translation.CompatibleWithin.compatible`,
+   `Translation.id_compatibleWithin` (the identity, with `L = M = 1`),
+   `Translation.CompatibleWithin.step` (one interaction).
+4. Main result: `Translation.CompatibleWithin.steps`, Proposition 4 (page 81).
 -/
 
 namespace INet
 
 variable {S S' : Signature}
 
-/-! ## Counted reduction -/
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
 
 /-- `N` reduces to `M` in exactly `n` interactions (Lafont 1997, page 81: "reduces in `n`
 steps"). -/
-inductive StepsN (I : System S) : ℕ → Net S ℕ → Net S ℕ → Prop
+inductive StepsN
+    -- the interaction system
+    (I : System S) :
+    ℕ → Net S ℕ → Net S ℕ → Prop
+  -- no interaction
   | refl (N : Net S ℕ) : StepsN I 0 N N
+  -- `n` interactions from `N` to `K`, then one from `K` to `M`
   | tail {n : ℕ} {N K M : Net S ℕ} : StepsN I n N K → Step I K M → StepsN I (n + 1) N M
 
 /-- `N` reduces up to wires to `M` in exactly `n` interactions (Lafont 1997, page 81: "reduces in
-`n'` steps"; Section 1.3, page 72: reduction is defined on graphs). -/
-inductive StepsEN (I : System S) : ℕ → Net S ℕ → Net S ℕ → Prop
+`n'` steps"; Section 1.1, page 71: a net is a graph; Section 1.2, page 73: reduction). -/
+inductive StepsEN
+    -- the interaction system
+    (I : System S) :
+    ℕ → Net S ℕ → Net S ℕ → Prop
+  -- no interaction
   | refl (N : Net S ℕ) : StepsEN I 0 N N
+  -- `n` interactions from `N` to `K`, then one, up to wires, from `K` to `M`
   | tail {n : ℕ} {N K M : Net S ℕ} : StepsEN I n N K → StepE I K M → StepsEN I (n + 1) N M
+
+namespace Translation
+
+/-- **A translation with the lengths of its rules between `L` and `M`** (Lafont 1997, page 81:
+"let `L` (resp. `M`) be the minimal (resp. maximal) length of all those reductions"). For every
+rule, the translations of the two cells reduce up to wires to a translation of the right-hand side
+in `k` interactions, `L ≤ k ≤ M`. -/
+def CompatibleWithin
+    -- the translation, from the system `I` to the system `I'`
+    (Φ : Translation S S')
+    (I : System S)
+    (I' : System S')
+    -- the bounds on the lengths
+    (L M : ℕ) :
+    Prop :=
+  Φ.CompatibleBy I fun N K => ∃ k, L ≤ k ∧ k ≤ M ∧ StepsEN I' k N K
+
+end Translation
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: counted reductions
+-- ============================================================================================
 
 namespace StepsN
 
+-- the system, the length, the two ends of the reduction
 variable {I : System S} {n : ℕ} {N M : Net S ℕ}
 
-/-- A reduction in `n` interactions is a reduction (Lafont 1997, Section 1.3, page 72). -/
-theorem steps (h : StepsN I n N M) : Steps I N M := by
+/-- A reduction in `n` interactions is a reduction (Lafont 1997, Section 1.2, page 73). -/
+theorem steps
+    (h : StepsN I n N M) :
+    Steps I N M := by
   induction h with
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hs ih => exact ih.tail hs
 
 /-- A reduction in `n` interactions is a reduction up to wires in `n` interactions (Lafont 1997,
-Section 1.3, page 72). -/
-theorem stepsEN (h : StepsN I n N M) : StepsEN I n N M := by
+Section 1.2, page 73). -/
+theorem stepsEN
+    (h : StepsN I n N M) :
+    StepsEN I n N M := by
   induction h with
   | refl => exact .refl _
   | tail _ hs ih => exact ih.tail hs.stepE
@@ -59,7 +112,12 @@ theorem stepsEN (h : StepsN I n N M) : StepsEN I n N M := by
 end StepsN
 
 /-- Every reduction has a length (Lafont 1997, page 81). -/
-theorem Steps.exists_stepsN {I : System S} {N M : Net S ℕ} (h : Steps I N M) :
+theorem Steps.exists_stepsN
+    -- a reduction from `N` to `M` in the system `I`
+    {I : System S}
+    {N M : Net S ℕ}
+    (h : Steps I N M) :
+    -- it takes some number `n` of interactions
     ∃ n, StepsN I n N M := by
   induction h with
   | refl => exact ⟨0, .refl _⟩
@@ -68,7 +126,12 @@ theorem Steps.exists_stepsN {I : System S} {N M : Net S ℕ} (h : Steps I N M) :
     exact ⟨n + 1, h.tail hs⟩
 
 /-- Every reduction up to wires has a length (Lafont 1997, page 81). -/
-theorem StepsE.exists_stepsEN {I : System S} {N M : Net S ℕ} (h : StepsE I N M) :
+theorem StepsE.exists_stepsEN
+    -- a reduction up to wires from `N` to `M` in the system `I`
+    {I : System S}
+    {N M : Net S ℕ}
+    (h : StepsE I N M) :
+    -- it takes some number `n` of interactions
     ∃ n, StepsEN I n N M := by
   induction h with
   | refl => exact ⟨0, .refl _⟩
@@ -77,35 +140,60 @@ theorem StepsE.exists_stepsEN {I : System S} {N M : Net S ℕ} (h : StepsE I N M
     exact ⟨n + 1, h.tail hs⟩
 
 /-- One interaction up to wires, renamed by an injective function, is one interaction up to
-wires (Lafont 1997, Section 1.3, page 72: reduction does not depend on names). -/
-theorem StepE.bind_var {I : System S} (f : ℕ → ℕ) (hf : Function.Injective f) {N M : Net S ℕ}
+wires (Lafont 1997, Section 1.2, page 73: reduction does not depend on names). -/
+theorem StepE.bind_var
+    -- the system
+    {I : System S}
+    -- the renaming, injective
+    (f : ℕ → ℕ)
+    (hf : Function.Injective f)
+    -- one interaction up to wires from `N` to `M`
+    {N M : Net S ℕ}
     (h : StepE I N M) :
+    -- the renamed `N` reduces in one interaction up to wires to the renamed `M`
     StepE I (N.bind fun y => Term.var (f y)) (M.bind fun y => Term.var (f y)) := by
   obtain ⟨K, hE, hS⟩ := h
   exact ⟨_, hE.bind_var f hf, hS.bind_var f hf⟩
 
 namespace StepsEN
 
+-- the system, the lengths, the nets
 variable {I : System S} {n m : ℕ} {N K M : Net S ℕ}
 
 /-- A reduction up to wires in `n` interactions is a reduction up to wires. -/
-theorem stepsE (h : StepsEN I n N M) : StepsE I N M := by
+theorem stepsE
+    (h : StepsEN I n N M) :
+    StepsE I N M := by
   induction h with
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hs ih => exact ih.tail hs
 
 /-- One interaction up to wires is a reduction in one interaction. -/
-theorem single (h : StepE I N M) : StepsEN I 1 N M := (StepsEN.refl N).tail h
+theorem single
+    (h : StepE I N M) :
+    StepsEN I 1 N M := (StepsEN.refl N).tail h
 
 /-- The lengths of two reductions, one after the other, add up (Lafont 1997, page 81). -/
-theorem trans (h₁ : StepsEN I n N K) (h₂ : StepsEN I m K M) : StepsEN I (n + m) N M := by
+theorem trans
+    -- `N` reduces to `K` in `n` interactions
+    (h₁ : StepsEN I n N K)
+    -- `K` reduces to `M` in `m` interactions
+    (h₂ : StepsEN I m K M) :
+    -- `N` reduces to `M` in `n + m` interactions
+    StepsEN I (n + m) N M := by
   induction h₂ with
   | refl => exact h₁
   | tail _ hs ih => exact (ih h₁).tail hs
 
 /-- **A counted reduction, renamed.** Renaming every name by an injective function keeps a
-reduction up to wires and its length (Lafont 1997, Section 1.3, page 72). -/
-theorem bind_var (f : ℕ → ℕ) (hf : Function.Injective f) (h : StepsEN I n N M) :
+reduction up to wires and its length (Lafont 1997, Section 1.2, page 73). -/
+theorem bind_var
+    -- the renaming, injective
+    (f : ℕ → ℕ)
+    (hf : Function.Injective f)
+    -- a reduction in `n` interactions from `N` to `M`
+    (h : StepsEN I n N M) :
+    -- the renamed `N` reduces in `n` interactions to the renamed `M`
     StepsEN I n (N.bind fun y => Term.var (f y)) (M.bind fun y => Term.var (f y)) := by
   induction h with
   | refl => exact .refl _
@@ -113,9 +201,18 @@ theorem bind_var (f : ℕ → ℕ) (hf : Function.Injective f) (h : StepsEN I n 
 
 /-- **An equivalence, then a counted reduction.** If `N` is the same graph as `K` and `K` reduces
 in `n` interactions to `M`, then `N` reduces in `n` interactions to a net that is the same graph
-as `M` (Lafont 1997, Section 1.3, page 72). -/
-theorem of_equiv (hE : Equiv N K) (h : StepsEN I n K M) :
-    ∃ M', StepsEN I n N M' ∧ Equiv M' M := by
+as `M` (Lafont 1997, Section 1.1, page 71: a net is a graph; Section 1.2, page 73). -/
+theorem of_equiv
+    -- `N` is the same graph as `K`
+    (hE : Equiv N K)
+    -- `K` reduces in `n` interactions to `M`
+    (h : StepsEN I n K M) :
+    -- there is a net `M'` such that
+    ∃ M',
+      -- `N` reduces to `M'` in `n` interactions,
+      StepsEN I n N M'
+      -- and `M'` is the same graph as `M`
+      ∧ Equiv M' M := by
   induction h with
   | refl => exact ⟨N, .refl _, hE⟩
   | tail _ hs ih =>
@@ -124,10 +221,24 @@ theorem of_equiv (hE : Equiv N K) (h : StepsEN I n K M) :
 
 /-- **A counted reduction inside a larger net.** If `N` reduces in `n` interactions to `M` and
 `N + Γ` is linear, then `N + Γ` reduces in `n` interactions to `M' + Γ`, with `M'` the same graph
-as `M` (Lafont 1997, Section 1.3, pages 72 to 73: reduction is local). -/
-theorem add_right (hI : ∀ α β r, I.rule α β = some r → r.Linear) (Γ : Net S ℕ)
-    (h : StepsEN I n N M) (hN : (N + Γ).Linear) :
-    ∃ M', StepsEN I n (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear := by
+as `M` (Lafont 1997, Section 1.2, page 73: a rule is applied inside a net). -/
+theorem add_right
+    -- the rules of the system are linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the rest of the net
+    (Γ : Net S ℕ)
+    -- `N` reduces in `n` interactions to `M`
+    (h : StepsEN I n N M)
+    -- the net one starts from, `N` and `Γ`, is linear
+    (hN : (N + Γ).Linear) :
+    -- there is a net `M'` such that
+    ∃ M',
+      -- `N + Γ` reduces to `M' + Γ` in `n` interactions,
+      StepsEN I n (N + Γ) (M' + Γ)
+      -- `M'` is the same graph as `M`,
+      ∧ Equiv M' M
+      -- and `M' + Γ` is linear
+      ∧ (M' + Γ).Linear := by
   induction h with
   | refl => exact ⟨_, .refl _, Equiv.refl _, hN⟩
   | tail _ hstep ih =>
@@ -137,28 +248,34 @@ theorem add_right (hI : ∀ α β r, I.rule α β = some r → r.Linear) (Γ : N
 
 end StepsEN
 
-/-! ## Compatibility with bounded lengths -/
+-- ============================================================================================
+-- 3. Auxiliary lemmas: compatibility with bounded lengths
+-- ============================================================================================
 
 namespace Translation
 
-/-- **A translation with the lengths of its rules between `L` and `M`** (Lafont 1997, page 81:
-"let `L` (resp. `M`) be the minimal (resp. maximal) length of all those reductions"). For every
-rule, the translations of the two cells reduce up to wires to a translation of the right-hand side
-in `k` interactions, `L ≤ k ≤ M`. -/
-def CompatibleWithin (Φ : Translation S S') (I : System S) (I' : System S') (L M : ℕ) : Prop :=
-  Φ.CompatibleBy I fun N K => ∃ k, L ≤ k ∧ k ≤ M ∧ StepsEN I' k N K
-
 /-- A translation with bounded lengths is a translation of interaction systems (Lafont 1997,
 Section 1.7, page 80). -/
-theorem CompatibleWithin.compatible {Φ : Translation S S'} {I : System S} {I' : System S'}
-    {L M : ℕ} (h : Φ.CompatibleWithin I I' L M) : Φ.Compatible I I' := by
+theorem CompatibleWithin.compatible
+    -- a translation from `I` to `I'` whose rules are simulated in `L` to `M` interactions
+    {Φ : Translation S S'}
+    {I : System S}
+    {I' : System S'}
+    {L M : ℕ}
+    (h : Φ.CompatibleWithin I I' L M) :
+    -- it is compatible with reduction
+    Φ.Compatible I I' := by
   intro α β r hr xs ys f g hlin
   obtain ⟨M₁, N', h', ⟨k, -, -, hk⟩, hE, hT⟩ := h α β r hr xs ys f g hlin
   exact ⟨M₁, N', h', hk.stepsE, hE, hT⟩
 
 /-- The identity translation of a well-formed system simulates each rule by itself, in one
 interaction: `L = M = 1` (Lafont 1997, page 81). -/
-theorem id_compatibleWithin (I : System S) (hI : I.WellFormed) :
+theorem id_compatibleWithin
+    -- a well-formed system
+    (I : System S)
+    (hI : I.WellFormed) :
+    -- the identity simulates every rule in exactly one interaction
     (Translation.id S).CompatibleWithin I I 1 1 := by
   intro α β r hr xs ys f g hlin
   let L : Sym2 (Term S ℕ) := s(.app α fun i => .var (xs i), .app β fun j => .var (ys j))
@@ -181,12 +298,32 @@ theorem id_compatibleWithin (I : System S) (hI : I.WellFormed) :
 
 /-- **One interaction is simulated in `k` interactions, `L ≤ k ≤ M`** (Lafont 1997,
 Proposition 4, page 81, the case of one step). The rules of `I` and of `I'` are linear. -/
-theorem CompatibleWithin.step {I : System S} {I' : System S'}
+theorem CompatibleWithin.step
+    -- the two systems, with linear rules
+    {I : System S}
+    {I' : System S'}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    {Φ : Translation S S'} {L M : ℕ} (hΦ : Φ.CompatibleWithin I I' L M)
-    {N M₀ : Net S ℕ} {N' : Net S' ℕ} (h : Step I N M₀) (hT : Φ.NetTr N N') :
-    ∃ k M₁ M', StepsEN I' k N' M₁ ∧ L ≤ k ∧ k ≤ M ∧ Equiv M₁ M' ∧ Φ.NetTr M₀ M' := by
+    -- a translation whose rules are simulated in `L` to `M` interactions
+    {Φ : Translation S S'}
+    {L M : ℕ}
+    (hΦ : Φ.CompatibleWithin I I' L M)
+    -- one interaction from `N` to `M₀`, and a translation `N'` of `N`
+    {N M₀ : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : Step I N M₀)
+    (hT : Φ.NetTr N N') :
+    -- there are a length `k` and nets `M₁`, `M'` such that
+    ∃ k M₁ M',
+      -- `N'` reduces up to wires to `M₁` in `k` interactions,
+      StepsEN I' k N' M₁
+      -- with `L ≤ k ≤ M`,
+      ∧ L ≤ k
+      ∧ k ≤ M
+      -- `M₁` is the same graph as `M'`,
+      ∧ Equiv M₁ M'
+      -- and `M'` is a translation of `M₀`
+      ∧ Φ.NetTr M₀ M' := by
   obtain ⟨M₁, M', ⟨k, hL, hM, hk⟩, hE, hT'⟩ := CompatibleBy.step
     (R := fun N K => ∃ k, L ≤ k ∧ k ≤ M ∧ StepsEN I' k N K) hI hI'
     (fun Γ ⟨k, hL, hM, hk⟩ hl => by
@@ -198,18 +335,42 @@ theorem CompatibleWithin.step {I : System S} {I' : System S'}
     (fun ⟨_, _, _, hk⟩ => hk.stepsE) hΦ h hT
   exact ⟨k, M₁, M', hk, hL, hM, hE, hT'⟩
 
+-- ============================================================================================
+-- 4. Main result: Proposition 4
+-- ============================================================================================
+
 /-- **Proposition 4** (Lafont 1997, page 81): "If `Θ` is a net built with symbols of `Σ` which
 reduces in `n` steps to `Θ'`, then `Φ(Θ)` reduces in `n'` steps to `Φ(Θ')`, with
 `L n ≤ n' ≤ M n`." Here `Φ(Θ')` is reached up to equivalence: `N'` reduces up to wires in `n'`
 interactions to a net that is the same graph as a translation of `M₀`. The rules of `I` and of
 `I'` are linear. -/
-theorem CompatibleWithin.steps {I : System S} {I' : System S'}
+theorem CompatibleWithin.steps
+    -- the two systems, with linear rules
+    {I : System S}
+    {I' : System S'}
     (hI : ∀ α β r, I.rule α β = some r → r.Linear)
     (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    {Φ : Translation S S'} {L M : ℕ} (hΦ : Φ.CompatibleWithin I I' L M)
-    {n : ℕ} {N M₀ : Net S ℕ} {N' : Net S' ℕ} (h : StepsN I n N M₀) (hT : Φ.NetTr N N') :
-    ∃ n' M₁ M', StepsEN I' n' N' M₁ ∧ L * n ≤ n' ∧ n' ≤ M * n ∧ Equiv M₁ M' ∧
-      Φ.NetTr M₀ M' := by
+    -- a translation whose rules are simulated in `L` to `M` interactions
+    {Φ : Translation S S'}
+    {L M : ℕ}
+    (hΦ : Φ.CompatibleWithin I I' L M)
+    -- a reduction in `n` interactions from `N` to `M₀`, and a translation `N'` of `N`
+    {n : ℕ}
+    {N M₀ : Net S ℕ}
+    {N' : Net S' ℕ}
+    (h : StepsN I n N M₀)
+    (hT : Φ.NetTr N N') :
+    -- there are a length `n'` and nets `M₁`, `M'` such that
+    ∃ n' M₁ M',
+      -- `N'` reduces up to wires to `M₁` in `n'` interactions,
+      StepsEN I' n' N' M₁
+      -- with `L n ≤ n' ≤ M n`,
+      ∧ L * n ≤ n'
+      ∧ n' ≤ M * n
+      -- `M₁` is the same graph as `M'`,
+      ∧ Equiv M₁ M'
+      -- and `M'` is a translation of `M₀`
+      ∧ Φ.NetTr M₀ M' := by
   induction h with
   | refl => exact ⟨0, N', N', .refl _, by simp, by simp, Equiv.refl _, hT⟩
   | tail _ hs ih =>
