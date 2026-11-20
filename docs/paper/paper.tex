@@ -98,11 +98,10 @@
 \emergencystretch=3em
 \captionsetup{font=small,labelfont=bf}
 
-\title{A Machine-Checked Proof of the Universality of Interaction Combinators%
-\thanks{\todo{Title. Two alternatives: (a) ``Lafont's Universality Theorem for Interaction
-Combinators, Mechanized in Lean~4''; (b) ``Completing and Checking Lafont's Proof that the
-Interaction Combinators are Universal''.}}}
-\author{Lorenzo Battistela\\[0.3em]\small \todo{affiliation}}
+\title{A Machine-Checked Proof of the Universality of Interaction Combinators}
+
+\author{Lorenzo Battistela\\[0.3em]\small Independent researcher}
+
 \date{Draft of 19 November 2026}
 
 \begin{document}
@@ -110,23 +109,18 @@ Interaction Combinators are Universal''.}}}
 
 \begin{abstract}
 \noindent
-Lafont's interaction combinators are a system of three symbols and six rewriting rules on graphs.
-His Theorem~1 states that every interaction system can be translated into it. The published
-proof is given by pictures, and its last step, the verification that the general translation
-commutes with reduction, is left to the reader. We report on a Lean~4 development, built on
-Mathlib, that proves Theorem~1 in a strict form (no symbol is translated into a wire), including
-that last step. Nets are presented as text: a net is a multiset of unordered equations between
-trees, and a name stands for a wire. We prove that this presentation agrees with nets as graphs:
-two linear texts are related by wire substitutions exactly when their graphs are isomorphic,
-every well-formed graph is the graph of a text, and one step of the textual reduction is one
-interaction of the graph, in both directions. The development also contains strong confluence
-for the reduction of graphs, uniqueness of normal forms and of the length of reductions,
-Lafont's Propositions~2 to~4, a version of the translation that computes, and worked examples.
-The proofs rest only on the axioms \cod{propext}, \cod{Classical.choice} and \cod{Quot.sound}.
-Most of the proofs were written by a pool of autonomous language-model agents working against
-definitions and target statements fixed by a person; we describe the method, the defects that
-were found in definitions and by whom, and one defect that every proof and three reviews passed
-over. None of our findings invalidates Lafont's theorem.
+Lafont's interaction combinators are a graph-rewriting system with three symbols and six rules.
+Their central property is universality: every interaction system can be translated into the
+combinators in a way that preserves reduction. The published proof is drawn as pictures, and its
+final step, that the general translation commutes with reduction, is left to the reader. We
+present a complete machine-checked proof of this theorem in Lean~4, including that step. Nets
+are represented as text, as multisets of equations between trees, and we prove that this
+representation agrees with nets as graphs, for the objects and for reduction, in both
+directions. Along the way we make precise an argument that the original proof only sketches,
+the symmetric decomposition of the rule of a symbol with itself, and show that the simulation
+uses only a decomposition of each rule, not the other conditions on the system. The proofs were
+written by a swarm of autonomous language-model agents that planned their own work, proved, and
+reviewed one another, against definitions and target statements fixed and reviewed by a person.
 \end{abstract}
 
 %=================================================================================================
@@ -187,14 +181,18 @@ where must be right for all of them at once.
   (Section~\ref{sec:confluence}), and Propositions~2, 3 and~4 with the bounds on the length of
   simulations (Section~\ref{sec:translations}). Strong confluence of interaction nets has been
   mechanized independently by others; we do not claim it as new (Section~\ref{sec:related}).
-\item An account of what the formalization found in the statements
-  (Section~\ref{sec:findings}): the symmetry condition on rules, the canonical decomposition of
-  a rule of a symbol with itself, and a port order in Fig.~8.
+\item Two additions to the published proof (Section~\ref{sec:findings}): an argument for the
+  symmetric decomposition of the rule of a symbol with itself, which the paper obtains from a
+  canonical decomposition that it does not define, and the observation that the simulation uses
+  only a decomposition of each rule, the other conditions on the system serving to produce
+  it.
 \item A version of the translation that computes, from explicit data, and worked examples:
   unary addition and multiplication, with the translated cells of addition evaluated
   (Section~\ref{sec:examples}).
-\item A report on the method: a pool of autonomous agents, a mechanical gate, and adversarial
-  reviews of definitions against the figures (Section~\ref{sec:method}), with its failures.
+\item A report on the method: a swarm of autonomous agents that planned, proved and reviewed, a
+  mechanical gate, and adversarial reviews of definitions against the figures
+  (Section~\ref{sec:method}), with its failures, among them a mirrored construction that no
+  proof could have revealed.
 \end{enumerate}
 
 \paragraph{Notation and names.}
@@ -381,7 +379,7 @@ internal}, a linear rule uses every internal name twice, and \Equiv{} can rename
 through a name that is free at that moment. A rule may therefore be the same graph as its swap
 and yet not be \Equiv{} to it. The field \cod{symm} asks for symmetry up to \Equiv{} \emph{and}
 a permutation $\pi$ of the internal wires. The history of this field is in
-Section~\ref{sec:findings}.
+Section~\ref{sec:defects}.
 
 \paragraph{Design decisions, in summary.}
 A term calculus gives structural induction on trees, which is how Lemma~2 (erasing) and
@@ -981,46 +979,24 @@ Proposition~4 strictness gives $L > 0$ (\cod{theorem\_1\_bounds}): every step of
 costs at least one step of the combinators.
 
 %=================================================================================================
-\section{What formalization revealed}
+\section{What the formalization adds to the proof}
 \label{sec:findings}
 
-None of the points below invalidates Lafont's theorem or his constructions. The first two
-concern how statements of the paper must be read to become formal statements; the third
-concerns the reliability of our own process.
+The formalization found nothing wrong in Lafont's theory. Beyond the step left to the reader
+(Section~\ref{sec:universality}) and the correspondence between text and graphs
+(Section~\ref{sec:graphs}), it adds two things to the published proof: an argument for the
+symmetric decomposition of the rule of a symbol with itself, and a sharper account of what the
+simulation uses. Defects of our own definitions, found and corrected along the way, are a
+matter of method and are reported in Section~\ref{sec:defects}.
 
-\subsection{The symmetry condition}
+\subsection{The symmetric decomposition of the rule of a symbol with itself}
 
-The first version of \cod{System.WellFormed.symm} asked \cod{Equiv r.swap.net r.net}. With it
-Theorem~1 was proved. A review by an agent then exhibited the rule \cod{twin} of a unary
-symbol $\alpha$ with itself, whose right member is
-\[ a = \beta(w_0, w_1), \qquad b = \beta(w_1, w_0) \]
-for a binary symbol $\beta$. Read from the other cell it is $b = \beta(w_0, w_1)$, $a =
-\beta(w_1, w_0)$: the same graph, with $w_0$ and $w_1$ exchanged. But it is not \Equiv{} to its
-swap (\cod{twin\_not\_symm}, in \cod{Checks/}): over the names \cod{Fin 1 ⊕ Fin 1 ⊕ Fin 2}
-there is no equation of the form $x = t$ with $x$ internal and no spare name through which to
-rename. So the one-rule system with this rule is an interaction system in the sense of the
-paper and was not \cod{WellFormed}; the theorem that had been proved did not cover it. The
-definition was changed to symmetry up to a permutation of the internal wires (the present
-field), the two lemmas that use symmetry were reproved under the weaker hypothesis
-(\cod{Rule.equiv\_inst\_comm\_of\_symmPerm} for Proposition~1,
-\cod{Rule.exists\_symm\_decomposition\_of\_symmPerm} for the decomposition), and the system is
-now well formed (\cod{sysT\_wellFormed}). The condition is not vacuous in the other direction
-either: \cod{Checks/} contains a rule that is rejected (\cod{skew\_not\_symmPerm}).
-
-The lesson is about the textual presentation, not about the paper: ``equal nets'' for the right
-member of a \emph{rule}, whose names form a closed finite type, is not the relation \Equiv{}
-that works for nets with an unbounded supply of names. After the graph correspondence was
-proved, the natural statement would be an isomorphism of graphs that exchanges the two groups
-of free ports; the relation between that statement and the present field has not been
-proved\todo{confirm: no theorem relates \texttt{Rule.SymmPerm} to \texttt{Graph.Iso} of the
-swapped rule; the comparison file lists ``\texttt{Rule.SymmPerm} against page~73'' as not
-verified}.
-
-\subsection{The canonical decomposition of a rule of a symbol with itself}
-
-The paper obtains the symmetric normal form of Section~\ref{sec:decomp} ``by the symmetry
-condition, and by uniqueness of the canonical decomposition''. It does not define the canonical
-decomposition; it shows one example. Our canonical decomposition \cod{Rule.decompose} numbers
+The paper says of the decomposition of a right member that it ``is not unique, but there is a
+canonical one'', shows the canonical decomposition of one rule, and obtains the symmetric
+normal form of Section~\ref{sec:decomp} ``by the symmetry condition, and by uniqueness of the
+canonical decomposition'' \pp{p.~85}. The canonical decomposition is not defined. Mazza's
+thesis~\cite{mazza2006} repeats the argument in the same words (``can be canonically
+decomposed, as done by Lafont''), and we know of no source that spells it out. Our canonical decomposition \cod{Rule.decompose} numbers
 the middle wires by the names they have in the text of the rule. For the rule \cod{selfRule} of
 a ternary symbol with itself (in \cod{Checks/}),
 \begin{align*}
@@ -1048,58 +1024,37 @@ multiplication, \cod{Rule.decompose} gives $\sigma$ equal to the identity where 
 \pp{p.~85} shows a non-trivial permutation of three wires; the two decompositions plug to the
 same net. It was left as it is.
 
-\subsection{The port order of Fig.~8}
-\label{sec:fig8}
+\subsection{What the simulation uses}
 
-In the first version of the code $!\pi$ and of the decoder $D$, the second and third leaves of
-$M_4$ and of $M_4^*$ were exchanged with respect to Fig.~8: the code had the trees on port~1
-before the trees on port~0, and the decoder had its two loops crossed. Equivalently, every
-$\delta$ in the pair was mirrored. The exchange was made on both sides, so Fig.~9 held for the
-pair, every lemma about codes was proved, and Theorem~1 was proved with it. The nets were
-correct translations; they were not the nets of the figure, and the docstrings said ``as in
-Fig.~8''.
+Theorem~1 is stated for interaction systems: finitely many symbols, and rules that are linear,
+reduced, unique for each pair of symbols and symmetric for a symbol with itself. The proof
+that the translation of Fig.~10 simulates every rule uses none of these conditions directly.
+It uses a numbering of the symbols and, for each rule, two sides and an involution that plug
+back into the rule (\cod{System.SidesPlug}); under that hypothesis alone the translation is
+strict and compatible (\cod{theorem\_1\_explicit}, Section~\ref{sec:examples}). The conditions
+on the system enter in one place: they are what produces such sides
+(\cod{System.exists\_decData}), reducedness to put a side in expanded form and symmetry to
+make the two sides of the rule of a symbol with itself equal. The same separation is what makes
+the translation computable: with the sides given as data, nothing is chosen.
 
-The cause was a reading of the figure. Fig.~8 draws $\delta$ cells pointing up, and for a cell
-pointing up the first port is on the right (Section~\ref{sec:background}). The author of the
-definition (an agent) and the reviewer (another agent, which rendered the figure at $600$ and
-$1000$ dpi and reported ``no defect found'') both took the left port as drawn to be the first.
-Two later reviews of Fig.~9 did not notice either. Their concrete test, the whole of Fig.~9 on
-a package with two different subtrees, passed, as it had to.
+\subsection{Text and graphs}
 
-Nothing in the logic could have revealed the exchange. The rules $\gamma\delta$ and
-$\delta\delta$ are invariant under exchanging the two auxiliary ports of every $\delta$: it is
-a symmetry of the system, so a construction that mirrors every $\delta$ consistently satisfies
-the same theorems. Only the rule $\gamma\gamma$ and the multiplexors distinguish left from
-right, and they were correct. The exchange was found $14$ hours after it was introduced, by a
-wire-by-wire comparison of every definition with its figure, carried out after the proofs were
-complete, with the port convention anchored on the one picture of the paper where ports are
-numbered \pp{p.~82}. It was then corrected (the definitions shown in
-Section~\ref{sec:codes} are the corrected ones), a check file writes the code and the decoder
-out against the figure (\cod{Checks/Universality/Codes/CodeFig8Check.lean}), and all proofs
-went through again with small changes.
-
-The same reading error was made a second time, in the rule $s$--$\times$ of the multiplication
-demo, and that time the routine review caught it.
+The paper, and the literature after it, use a textual notation as an evident shorthand for
+nets. Here the notation is the definition, and its agreement with graphs is a theorem
+(Section~\ref{sec:graphs}): two linear texts are related by wire substitutions exactly when
+their graphs are isomorphic, every well-formed graph is the graph of a text, and a step of the
+textual reduction is an interaction of the graph, in both directions. We found no earlier
+proof of this correspondence for a multiset-of-equations presentation, mechanized or not
+(Section~\ref{sec:related}).
 
 \subsection{Smaller observations}
 
 \begin{itemize}
-\item Proposition~1 does not need the condition that right members are reduced
-  (Section~\ref{sec:confluence}); this agrees with the order of the paper, which states the
-  proposition before adding the condition.
-\item The compatibility of the general translation needs neither well-formedness of the source
-  system nor finiteness beyond a numbering of the symbols: it holds for any family of sides
-  that plug back into the rules (\cod{theorem\_1\_explicit}). Well-formedness is used only to
-  produce such sides.
+\item Proposition~1 is proved without the condition that right members are reduced
+  (Section~\ref{sec:confluence}), as in the paper, which states the proposition before adding
+  that condition.
 \item ``If such a $T_\sigma$ exists, $\sigma$ is necessarily involutive'' holds in every
   interaction system (\cod{transpositor\_involutive}).
-\item The text of \pp{p.~76} gives the equation of multiplication as $s x \times y = (x + y) +
-  y$; the rule drawn on \pp{p.~77}, and arithmetic, require $(x \times y) + y$\todo{seen in the
-  text layer of the PDF (line 370 of the text file); confirm on the printed page}.
-\item Several statements written by planning agents for others to prove were false as worded
-  and were corrected by the agent proving them, with a counterexample; for example a renaming
-  lemma for \cod{plug} that fails without linearity of the sides
-  (\cod{plug\_rename\_needs\_linear}).
 \end{itemize}
 
 %=================================================================================================
@@ -1319,6 +1274,79 @@ by the author. A first draft of this paper was produced by an AI assistant from 
 and its records and then revised by the author\todo{adjust to what was actually done}. The
 author takes responsibility for the content.
 
+\subsection{Two defects in detail}
+\label{sec:defects}
+
+Neither of the two defects below is a defect of Lafont's paper. Both were defects of our
+definitions, under which the target theorem had already been proved; they show what a proof
+does not check.
+
+\paragraph{The symmetry condition (D3).}
+
+The first version of \cod{System.WellFormed.symm} asked \cod{Equiv r.swap.net r.net}. With it
+Theorem~1 was proved. A review by an agent then exhibited the rule \cod{twin} of a unary
+symbol $\alpha$ with itself, whose right member is
+\[ a = \beta(w_0, w_1), \qquad b = \beta(w_1, w_0) \]
+for a binary symbol $\beta$. Read from the other cell it is $b = \beta(w_0, w_1)$, $a =
+\beta(w_1, w_0)$: the same graph, with $w_0$ and $w_1$ exchanged. But it is not \Equiv{} to its
+swap (\cod{twin\_not\_symm}, in \cod{Checks/}): over the names \cod{Fin 1 ⊕ Fin 1 ⊕ Fin 2}
+there is no equation of the form $x = t$ with $x$ internal and no spare name through which to
+rename. So the one-rule system with this rule is an interaction system in the sense of the
+paper and was not \cod{WellFormed}; the theorem that had been proved did not cover it. The
+definition was changed to symmetry up to a permutation of the internal wires (the present
+field), the two lemmas that use symmetry were reproved under the weaker hypothesis
+(\cod{Rule.equiv\_inst\_comm\_of\_symmPerm} for Proposition~1,
+\cod{Rule.exists\_symm\_decomposition\_of\_symmPerm} for the decomposition), and the system is
+now well formed (\cod{sysT\_wellFormed}). The condition is not vacuous in the other direction
+either: \cod{Checks/} contains a rule that is rejected (\cod{skew\_not\_symmPerm}).
+
+The lesson is about the textual presentation, not about the paper: ``equal nets'' for the right
+member of a \emph{rule}, whose names form a closed finite type, is not the relation \Equiv{}
+that works for nets with an unbounded supply of names. After the graph correspondence was
+proved, the natural statement would be an isomorphism of graphs that exchanges the two groups
+of free ports; the relation between that statement and the present field has not been
+proved\todo{confirm: no theorem relates \texttt{Rule.SymmPerm} to \texttt{Graph.Iso} of the
+swapped rule; the comparison file lists ``\texttt{Rule.SymmPerm} against page~73'' as not
+verified}.
+
+\paragraph{The port order of Fig.~8 (D4).}\label{sec:fig8}
+
+In the first version of the code $!\pi$ and of the decoder $D$, the second and third leaves of
+$M_4$ and of $M_4^*$ were exchanged with respect to Fig.~8: the code had the trees on port~1
+before the trees on port~0, and the decoder had its two loops crossed. Equivalently, every
+$\delta$ in the pair was mirrored. The exchange was made on both sides, so Fig.~9 held for the
+pair, every lemma about codes was proved, and Theorem~1 was proved with it. The nets were
+correct translations; they were not the nets of the figure, and the docstrings said ``as in
+Fig.~8''.
+
+The cause was a reading of the figure. Fig.~8 draws $\delta$ cells pointing up, and for a cell
+pointing up the first port is on the right (Section~\ref{sec:background}). The author of the
+definition (an agent) and the reviewer (another agent, which rendered the figure at $600$ and
+$1000$ dpi and reported ``no defect found'') both took the left port as drawn to be the first.
+Two later reviews of Fig.~9 did not notice either. Their concrete test, the whole of Fig.~9 on
+a package with two different subtrees, passed, as it had to.
+
+Nothing in the logic could have revealed the exchange. The rules $\gamma\delta$ and
+$\delta\delta$ are invariant under exchanging the two auxiliary ports of every $\delta$: it is
+a symmetry of the system, so a construction that mirrors every $\delta$ consistently satisfies
+the same theorems. Only the rule $\gamma\gamma$ and the multiplexors distinguish left from
+right, and they were correct. The exchange was found $14$ hours after it was introduced, by a
+wire-by-wire comparison of every definition with its figure, carried out after the proofs were
+complete, with the port convention anchored on the one picture of the paper where ports are
+numbered \pp{p.~82}. It was then corrected (the definitions shown in
+Section~\ref{sec:codes} are the corrected ones), a check file writes the code and the decoder
+out against the figure (\cod{Checks/Universality/Codes/CodeFig8Check.lean}), and all proofs
+went through again with small changes.
+
+The same reading error was made a second time, in the rule $s$--$\times$ of the multiplication
+demo, and that time the routine review caught it.
+
+\paragraph{False statements written by agents for agents.}
+Several statements written by planning agents for others to prove were false as worded
+  and were corrected by the agent proving them, with a counterexample; for example a renaming
+  lemma for \cod{plug} that fails without linearity of the sides
+  (\cod{plug\_rename\_needs\_linear}).
+
 %=================================================================================================
 \section{Related work}
 \label{sec:related}
@@ -1454,10 +1482,10 @@ symmetric combinators.
 Lafont's universality theorem for the interaction combinators now has a proof checked by Lean,
 in a strict form and with the final step that the paper leaves to the reader written out. The
 proof follows the paper construction by construction, on a textual presentation of nets that is
-itself proved equivalent to the graphs of the paper. Writing it showed where the pictures carry
-conventions that a formal text must fix (the symmetry of a rule, the canonical decomposition,
-the order of ports of a cell drawn upside down), and that one of these could be got wrong
-without any proof failing. The development, the record of how it was produced, and the map
+itself proved equivalent to the graphs of the paper. Writing it required an argument for the symmetric
+decomposition of the rule of a symbol with itself, which the paper takes from a canonical
+decomposition it does not define, and showed that the simulation depends on the system only
+through a decomposition of its rules. The development, the record of how it was produced, and the map
 from the paper to the code are available\todo{repository URL and commit hash; the repository
 was private when the related-work dossier was compiled}.
 
