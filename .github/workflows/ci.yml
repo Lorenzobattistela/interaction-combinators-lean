@@ -1,0 +1,27 @@
+# Build the three libraries and audit the axioms, on a GitHub-hosted machine.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Mathlib cache
+        run: lake exe cache get
+      - name: Build
+        run: lake build
+      - name: No forbidden construct
+        run: |
+          ! grep -rnE "(^|[^A-Za-z0-9_.'])(sorry|admit|native_decide)([^A-Za-z0-9_.']|$)|^[[:space:]]*(private |protected )?(axiom|unsafe)[[:space:]]" InteractionCombinators Checks Demo InteractionCombinators.lean Checks.lean Demo.lean
+      - name: Axiom audit
+        run: lake env lean scripts/Audit.lean

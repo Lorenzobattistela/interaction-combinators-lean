@@ -327,7 +327,7 @@ def threeG1 : Graph sig ℕ := ⟨0, s(.name 1, .name 2) ::ₘ {s(.name 0, .name
 def threeG2 : Graph sig ℕ := ⟨0, s(.name 1, .name 3) ::ₘ {s(.name 0, .name 2)}, 0⟩
 
 /-- On a non-linear text, `Net.HasGraph` holds of two graphs that are not isomorphic. The
-uniqueness asked in `PLAN.md`, Stage C, needs the linearity of the net: in a text of a net of
+uniqueness of the graph of a net needs the linearity of the net: in a text of a net of
 page 71 a name is a free port or a wire, so it occurs at most twice. -/
 theorem threeText_two_graphs : (Net.ofList threeText).HasGraph threeG1 ∧
     (Net.ofList threeText).HasGraph threeG2 ∧ threeG1.WF ∧ threeG2.WF ∧ ¬ Iso threeG1 threeG2 := by
@@ -356,7 +356,7 @@ theorem viciousClosed_wf : viciousClosed.WF := (wf_iff _).2 (by decide)
 
 /-- Without names, `viciousClosed` is the graph of no text: no name can be erased, and the wire of
 the first equation would join two principal ports. So "every well-formed graph is the graph of a
-net" (`PLAN.md`, Stage C, statement 4) needs enough names, for instance `ν = ℕ`: a cycle through
+net" needs enough names, for instance `ν = ℕ`: a cycle through
 principal and auxiliary ports needs a name in a text (page 71). -/
 theorem viciousClosed_no_text (N : Net sig Empty) : ¬ N.HasGraph viciousClosed := by
   rintro ⟨L, k, -, hc, -⟩

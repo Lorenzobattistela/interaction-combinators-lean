@@ -52,7 +52,7 @@ pointing up), so in both the head is leftmost (`mux_order`, `muxStar_order`).
   if the ports of a named principal net are read from left to right as drawn (as for `M_n*`), the
   Lean agrees. The paper never numbers the ports of `C_n`, and both ports receive a copy of the same
   closed package `!Γ` (`copier_package`), so the choice changes no property. The owner's comparison
-  (`docs/conferencia/parte3.md`, item 11) records the same point as "not comparable".
+  with the figures records the same point as "not comparable".
 
 ## Reduction
 

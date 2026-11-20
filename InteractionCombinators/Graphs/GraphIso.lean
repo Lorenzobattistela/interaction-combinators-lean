@@ -5,8 +5,7 @@ import InteractionCombinators.Graphs.GraphContractUnique
 
 Lafont 1997, Section 1.1, pages 71 and 72: a net is a graph, and a text of it is not unique. The
 equations can be listed in any order, each written either way round, and the cells numbered from
-anywhere. This file shows that all these texts give the same graph up to `Graph.Iso`
-(`history/PLAN.md`, Stage C, statement 2).
+anywhere. This file shows that all these texts give the same graph up to `Graph.Iso`.
 
 Contents, in the order of the file:
 
@@ -658,8 +657,7 @@ theorem raw_iso_of_perm
 -- 8. Main results: the graph does not depend on the text
 -- ============================================================================================
 
-/-- **The raw graph does not depend on the text** (Lafont 1997, pages 71 and 72;
-`history/PLAN.md`, Stage C, statement 2): two lists of equations that are texts of one net have
+/-- **The raw graph does not depend on the text** (Lafont 1997, pages 71 and 72): two lists of equations that are texts of one net have
 isomorphic raw graphs, the cells numbered from any `k` and `k'`. -/
 theorem raw_iso_of_ofList_eq
     -- two lists of equations that are texts of one net
@@ -672,8 +670,7 @@ theorem raw_iso_of_ofList_eq
 
 end Graph
 
-/-- **The graph of a linear net is unique up to isomorphism** (Lafont 1997, pages 71 and 72;
-`history/PLAN.md`, Stage C, statement 2): two graphs of a linear net, read off any two of its texts
+/-- **The graph of a linear net is unique up to isomorphism** (Lafont 1997, pages 71 and 72): two graphs of a linear net, read off any two of its texts
 with the cells numbered from anywhere and the names erased in any order, are isomorphic. -/
 theorem Net.Linear.hasGraph_iso
     [DecidableEq ν]

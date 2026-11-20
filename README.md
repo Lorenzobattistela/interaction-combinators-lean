@@ -18,13 +18,13 @@ and transpositors, erasing and duplication, menus and selectors, codes, copiers 
 and the translation of Fig. 10. It includes the compatibility of that translation with reduction,
 which the paper leaves to the reader.
 
-Most of the proofs were written by a pool of autonomous agents working from a roadmap, with every
-new definition reviewed against the paper by another agent before anything was built on it. The
-record of that process is in `history/`.
+The definitions and the statement of the theorem were written and reviewed by the author. Most of
+the proofs were written by a swarm of autonomous language-model agents, and every proof is checked
+by Lean. The paper in `docs/paper/` describes the formalization and how it was produced.
 
 ## Names
 
-The code uses the names of HVM: `con` is Lafont's γ (constructor), `dup` is δ (duplicator) and
+The code uses the following names for the three combinators: `con` is Lafont's γ (constructor), `dup` is δ (duplicator) and
 `era` is ε (eraser). The system is Lafont's, not the symmetric one: `con`–`con` annihilation
 exchanges the auxiliary ports, `dup`–`dup` does not.
 
@@ -51,16 +51,16 @@ is stated with the latter.
 - `Demo/` — worked examples. `Arithmetic.lean` translates unary addition, a recursive
   interaction system, into the combinators, and runs `2 + 2`.
 - `PAPER.md` — a map from each definition, lemma, figure and theorem of the paper to the code.
-- `docs/` — a reading guide and the draft of a paper about this development.
-- `history/` — the roadmap, the plans and the progress notes of the agents.
-- `scripts/` — the gate (`check.sh`), the axiom audit, and the launcher of the agent pool.
+- `docs/paper/` — the paper about this development, with its sources.
+- `scripts/` — the gate (`check.sh`), the axiom audit (`Audit.lean`) and the fingerprint of the
+  declarations (`Decls.lean`).
 
 ## Building
 
 ```sh
 lake exe cache get
 lake build
-scripts/check.sh    # the gate: forbidden constructs, build, axiom audit
+GATE_BASE=HEAD scripts/check.sh    # the gate: forbidden constructs, build, axiom audit
 ```
 
 The project imports only the Mathlib modules it uses; a full build takes a few minutes and about
@@ -76,3 +76,12 @@ The project imports only the Mathlib modules it uses; a full build takes a few m
 The correspondence between the textual presentation used here and nets as graphs is proved, in
 `InteractionCombinators/Graphs/`; `InteractionCombinators/Results.lean` lists it with the other
 main results.
+
+## Paper and citation
+
+*A Machine-Checked Proof of the Universality of Interaction Combinators*, Lorenzo Battistela,
+2026: `docs/paper/paper.pdf`. To cite this development, cite that paper.
+
+## License
+
+Copyright 2026 Lorenzo Battistela. Released under the Apache License 2.0 (see `LICENSE`).

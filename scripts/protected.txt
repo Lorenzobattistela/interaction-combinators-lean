@@ -1,11 +1,8 @@
-# Paths that only the project owner may change. One prefix per line.
-# A pull request that touches any of them is rejected by scripts/check.sh.
-history/PLAN.md
-PLAN.md
+# The definitions, the target statements and the gate. One prefix per line.
+# scripts/check.sh rejects a branch that changes any of them relative to its base.
 PAPER.md
 README.md
 InteractionCombinators/Core/Graph.lean
-.claude/CLAUDE.md
 .github/
 scripts/
 lakefile.toml

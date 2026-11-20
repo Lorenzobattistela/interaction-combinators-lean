@@ -1,13 +1,12 @@
 # From the paper to the code
 
 A reading map for the Lean 4 formalization of Yves Lafont, *Interaction Combinators*
-(Information and Computation 137, 1997, journal pages 69-101; `.papers/lafont-1997.pdf`, journal
-page `p` is PDF page `p - 68`). For each definition, lemma, proposition, figure and theorem of the
+(Information and Computation 137, 1997, journal pages 69-101; journal page `p` is page `p - 68`
+of the article's PDF). For each definition, lemma, proposition, figure and theorem of the
 paper it gives the Lean declaration that formalizes it, where it is, and what is known about how
 closely its statement was looked at. It does not judge proofs: Lean checks those.
 
-No line numbers are given: a declaration is named with its file. Every backticked declaration
-name and every path of this file is checked against the tree by `python3 docs/tables.py`.
+No line numbers are given: a declaration is named with its file.
 
 ## Legend
 
@@ -55,11 +54,11 @@ How to read the tables:
 - **Figure** gives the verdict of the wire-by-wire comparison of the definition or statement with
   the picture of the paper, **equal**, **different** or **n.c.** (not comparable: the figure does not
   determine it), with the report and the item: "equal 1.6" is item 6 of
-  `docs/conferencia/parte1.md`; 2.x is in `docs/conferencia/parte2.md`, 3.x in
-  `docs/conferencia/parte3.md`. Empty: not compared. The comparison was made on 19 November 2026.
-  The files of Sections 2.1 to 2.5 have only been reformatted since. Those of Section 2.6 were
-  changed by the correction of Fig. 8, and those of Section 2.7 by the computable twins; the rows
-  say so.
+  the first of three comparison reports, 2.x is in the second and 3.x in the third (the reports
+  quote figures of the paper and are not part of this repository). Empty: not compared. The
+  comparison was made on 19 November 2026. The files of Sections 2.1 to 2.5 have only been
+  reformatted since. Those of Section 2.6 were changed by the correction of Fig. 8, and those of
+  Section 2.7 by the computable twins; the rows say so.
 - Constructions of Section 2 are functions on trees: `mux ts` is M_n with the trees `ts` plugged
   into its `n` auxiliary ports, not a `PNet`. Their properties carry the rest of the net as a
   variable `Δ`.
@@ -546,8 +545,8 @@ Proposition 1 (`StepsEN.normal_unique`); Proposition 2 (`Net.IsReduced.exists_tr
 
 ## Known gaps and caveats
 
-From `history/progress/20261119T193658Z_summary.md`, `docs/paper/experiment-data.md`, the three
-reports under `docs/conferencia/`, and from reading the statements. Each was checked against the
+From the working notes of the development, the three comparison reports, and from reading the
+statements. Each was checked against the
 tree on 20 November 2026.
 
 1. **Results that live only in `Checks/`.** "δ cannot duplicate δ" is proved as a refutation of
@@ -626,4 +625,3 @@ tree on 20 November 2026.
     `universal_strict'` still names the target file by its old name. Several docstrings cite
     "page 90: no order on the symbols is needed", a sentence that is not in the text of page 90.
 14. **Leftover.** `codeCells_meet_gamma` has no library user.
-15. **`history/PLAN.md`** is the first roadmap, kept as a record; `PLAN.md` is the current one.

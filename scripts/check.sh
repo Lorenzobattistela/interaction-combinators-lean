@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The merge gate. Run it before every push; the pull-request check runs the copy on main.
+# The gate. Every proof of this repository was accepted only after it passed.
 #
 #   scripts/check.sh            compare against origin/main
 #   GATE_BASE=<ref> scripts/check.sh
@@ -58,8 +58,8 @@ grep -q "Build completed successfully" "$log" || fail "build failed (log: $log)"
 if grep -q "declaration uses 'sorry'" "$log"; then fail "a declaration uses sorry (log: $log)"; fi
 
 step "declarations unchanged"
-# While scripts/decls-baseline.txt exists, the project is being reformatted, not extended: the
-# name, the type and (for definitions) the body of every declaration must stay what they were.
+# While scripts/decls-baseline.txt exists, the name and the type of every declaration must stay
+# what they were. Regenerate the file (the command below) when declarations are meant to change.
 if [ -f scripts/decls-baseline.txt ]; then
   lake env lean scripts/Decls.lean > .lake/decls.txt 2>/dev/null || fail "could not fingerprint the declarations"
   if ! cmp -s scripts/decls-baseline.txt .lake/decls.txt; then

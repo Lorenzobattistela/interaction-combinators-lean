@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Extract Lean declarations, verbatim, into docs/snip/.
+"""Extract Lean declarations, verbatim, into docs/paper/snip/.
 
 Usage:  python3 docs/paper/extract.py      (reads docs/paper/snippets.txt, writes docs/paper/snip/)
 
-Each line of docs/snippets.txt is
+Each line of docs/paper/snippets.txt is
 
     id | path/to/File.lean | Declaration.name | mode
 

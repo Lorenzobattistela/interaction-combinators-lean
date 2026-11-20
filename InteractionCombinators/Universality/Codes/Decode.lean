@@ -24,7 +24,7 @@ Contents, in the order of the file:
    `vars_decodeNet` (the names of `decodeNet`).
 3. The rest of Fig. 9: `decode_cells`, by induction on the cells.
 4. Main results: `code_decoder_tree`, Fig. 9 for any tree, with new names above the names of the
-   net; `code_decoder_package`, Fig. 9 for a package (stage 6, item 3, of `history/PLAN.md`).
+   net; `code_decoder_package`, Fig. 9 for a package.
 -/
 
 namespace INet.Comb
