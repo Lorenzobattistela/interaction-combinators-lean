@@ -12,6 +12,17 @@ function may permute the internal wires.
 
 The proof renames the internal wires one at a time to a block of unused names
 (`Net.equiv_bind_var_fresh`), and from the block to their targets, which are unused by then.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: `Term.bind_congr` and `Net.bind_congr` (plugging depends only on the names
+   that occur), `Term.bind_var_self` and `Net.bind_var_self` (plugging every name into itself
+   changes nothing), `Net.rename_eq_bind` (renaming one name is a `bind`),
+   `Net.equiv_bind_var_fresh` (renaming the internal wires to unused names).
+2. Main result: `Net.equiv_bind_var`, renaming the internal wires by any function that keeps the
+   names distinct and the free ports in place.
+3. Examples: the hypotheses of `Net.equiv_bind_var` hold for a renaming that moves a wire, and for
+   one that exchanges two wires.
 -/
 
 namespace INet
@@ -20,9 +31,20 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas
+-- ============================================================================================
+
 /-- Plugging trees into the leaves depends only on the trees plugged into the names that occur. -/
-theorem Term.bind_congr {ν μ : Type} {f g : ν → Term S μ} {t : Term S ν}
-    (h : ∀ x ∈ t.vars, f x = g x) : t.bind f = t.bind g := by
+theorem Term.bind_congr
+    -- the two families of trees plugged into the names, and the tree they are plugged into
+    {ν μ : Type}
+    {f g : ν → Term S μ}
+    {t : Term S ν}
+    -- the two families agree on the names of `t`
+    (h : ∀ x ∈ t.vars, f x = g x) :
+    -- so plugging them into `t` gives the same tree
+    t.bind f = t.bind g := by
   induction t with
   | var x => exact h x (by simp)
   | app α ts ih =>
@@ -33,7 +55,11 @@ theorem Term.bind_congr {ν μ : Type} {f g : ν → Term S μ} {t : Term S ν}
     exact ih i fun x hx => h x ⟨i, hx⟩
 
 /-- Plugging a name into itself changes nothing. -/
-theorem Term.bind_var_self {ν : Type} (t : Term S ν) : t.bind var = t := by
+theorem Term.bind_var_self
+    -- a tree
+    {ν : Type}
+    (t : Term S ν) :
+    t.bind var = t := by
   induction t with
   | var x => rfl
   | app α ts ih =>
@@ -46,8 +72,15 @@ namespace Net
 
 /-- Plugging trees into the names of a net depends only on the trees plugged into the names that
 occur. -/
-theorem bind_congr {ν μ : Type} {f g : ν → Term S μ} {N : Net S ν}
-    (h : ∀ x ∈ N.vars, f x = g x) : N.bind f = N.bind g := by
+theorem bind_congr
+    -- the two families of trees plugged into the names, and the net they are plugged into
+    {ν μ : Type}
+    {f g : ν → Term S μ}
+    {N : Net S ν}
+    -- the two families agree on the names of `N`
+    (h : ∀ x ∈ N.vars, f x = g x) :
+    -- so plugging them into `N` gives the same net
+    N.bind f = N.bind g := by
   refine Multiset.map_congr rfl fun e he => ?_
   induction e using Sym2.ind with
   | _ a b =>
@@ -61,7 +94,11 @@ theorem bind_congr {ν μ : Type} {f g : ν → Term S μ} {N : Net S ν}
     rw [ha, hb]
 
 /-- Plugging every name into itself changes nothing. -/
-theorem bind_var_self {ν : Type} (N : Net S ν) : N.bind var = N := by
+theorem bind_var_self
+    -- a net
+    {ν : Type}
+    (N : Net S ν) :
+    N.bind var = N := by
   unfold Net.bind
   conv_rhs => rw [← Multiset.map_id N]
   refine Multiset.map_congr rfl fun e _ => ?_
@@ -70,7 +107,11 @@ theorem bind_var_self {ν : Type} (N : Net S ν) : N.bind var = N := by
 
 /-- Renaming one name (`Net.rename`, by `Term.subst`) is a renaming of all names by a function
 that moves that name only. -/
-theorem rename_eq_bind (N : Net S ℕ) (x y : ℕ) :
+theorem rename_eq_bind
+    -- the net, the name `x` that is renamed and its new name `y`
+    (N : Net S ℕ)
+    (x y : ℕ) :
+    -- renaming `x` to `y` is plugging into every name `z` the name `z`, or `y` when `z = x`
     N.rename x y = N.bind fun z => var (if z = x then y else z) := by
   have h : (fun r : Term S ℕ => r.subst x (var y)) =
       Term.bind fun z => var (if z = x then y else z) := by
@@ -85,9 +126,17 @@ theorem rename_eq_bind (N : Net S ℕ) (x y : ℕ) :
 /-- Renaming the internal wires of a linear net to unused names, one wire at a time. The names of
 the net stay distinct, the free ports are kept, and the new name of every internal wire is unused
 in the net. -/
-theorem equiv_bind_var_fresh {N : Net S ℕ} (hlin : N.Linear) (g : ℕ → ℕ)
-    (hinj : Set.InjOn g {x | x ∈ N.vars}) (hfresh : ∀ x, N.vars.count x = 2 → g x ∉ N.vars)
+theorem equiv_bind_var_fresh
+    -- the net, which is linear
+    {N : Net S ℕ}
+    (hlin : N.Linear)
+    -- the renaming: injective on the names of the net, an internal wire goes to an unused name,
+    -- a free port is kept
+    (g : ℕ → ℕ)
+    (hinj : Set.InjOn g {x | x ∈ N.vars})
+    (hfresh : ∀ x, N.vars.count x = 2 → g x ∉ N.vars)
     (hfree : ∀ x, N.vars.count x = 1 → g x = x) :
+    -- the renamed net is the same graph
     Equiv N (N.bind fun x => var (g x)) := by
   -- after the wires of `s` have been renamed
   have main : ∀ s : Finset ℕ, (∀ x ∈ s, N.vars.count x = 2) →
@@ -149,12 +198,23 @@ theorem equiv_bind_var_fresh {N : Net S ℕ} (hlin : N.Linear) (g : ℕ → ℕ)
   · have hc1 : N.vars.count x = 1 := by omega
     simp [hc, hfree x hc1]
 
+-- ============================================================================================
+-- 2. Main result: renaming the internal wires
+-- ============================================================================================
+
 /-- **Renaming the internal wires of a net.** In a linear net, renaming the names by a function
 that keeps the names of the net distinct and keeps the free ports gives the same graph. The new
 names need not be unused: the function may permute the internal wires. (Lafont 1997, Section 1.1,
 pages 70 to 72: a net is a graph, and the names of its internal wires do not matter.) -/
-theorem equiv_bind_var {N : Net S ℕ} (hlin : N.Linear) (f : ℕ → ℕ)
-    (hinj : Set.InjOn f {x | x ∈ N.vars}) (hfree : ∀ x, N.vars.count x = 1 → f x = x) :
+theorem equiv_bind_var
+    -- the net, which is linear
+    {N : Net S ℕ}
+    (hlin : N.Linear)
+    -- the renaming: injective on the names of the net, and a free port is kept
+    (f : ℕ → ℕ)
+    (hinj : Set.InjOn f {x | x ∈ N.vars})
+    (hfree : ∀ x, N.vars.count x = 1 → f x = x) :
+    -- the renamed net is the same graph
     Equiv N (N.bind fun x => Term.var (f x)) := by
   -- a block of names above every name of the net and every target
   let K : ℕ := max N.vars.sup (N.vars.map f).sup + 1
@@ -250,6 +310,10 @@ theorem equiv_bind_var {N : Net S ℕ} (hlin : N.Linear) (f : ℕ → ℕ)
   rw [hhg x hx]
 
 end Net
+
+-- ============================================================================================
+-- 3. Examples
+-- ============================================================================================
 
 /-- The hypotheses of `Net.equiv_bind_var` hold for a renaming that moves a wire. In the net
 `0 = 1`, `1 = 2` the name `1` is an internal wire and `0`, `2` are free ports; the wire is renamed
