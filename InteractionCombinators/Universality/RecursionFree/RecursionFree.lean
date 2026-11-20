@@ -54,6 +54,25 @@ the order would then ask `era < era`. The non-canonical decomposition of page 87
 `system_not_recursionFree`: in the rule `con`–`dup`, the two `dup` cells and the two `con` cells
 are shared between `φ` and `ψ` by any decomposition (`Equiv` keeps the cells). A `dup` cell in
 `φ` would need `dup < dup`, so it is in `ψ` and `dup < con`; symmetrically `con < dup`.
+
+Contents, in the order of the file:
+
+1. Definitions: `Decomposition.Plugs`, `System.RecursionFreeData`, `System.RecursionFree`
+   (page 86).
+2. Definitions for the example of page 87: the system `systemNoConDup`; the sides `idSide`,
+   `eraSide`, `emptySide`; the decompositions `decConCon`, `decDupDup`, `decEraEra`, `decEraBin`,
+   `decNoConDup`; the order `rankNoConDup`.
+3. Auxiliary lemmas on `systemNoConDup`: `systemNoConDup_rule`, `systemNoConDup_conDup`,
+   `systemNoConDup_wellFormed`.
+4. Auxiliary lemmas on the decompositions: the sides are linear and reduced (`idSide_linear`,
+   …, `emptySide_reduced`); the sides plug back the rules (`decConCon_plugs`, `decDupDup_plugs`,
+   `decEraEra_plugs`, `decEraBin_plugs`); the canonical decomposition of `era`–`con` would not
+   do (`eraBin_decompose`).
+5. Auxiliary lemmas on the cells of `con`–`dup`: `Rule.cells_plug`, `dup_mem_cells_conDup`,
+   `con_mem_cells_conDup`.
+6. Main results: `recursionFreeDataNoConDup` and `systemNoConDup_recursionFree`, the combinators
+   without `con`–`dup` are recursion-free (page 87); `system_not_recursionFree`, the full system
+   is not.
 -/
 
 namespace INet
@@ -62,51 +81,89 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions: recursion-free systems
+-- ============================================================================================
+
 /-- Plugging the two sides of `D` through its permutation gives back the rule `r`, up to `Equiv`
 and an injective renaming of the internal wires of `r`: the form in which
 `Rule.plug_decompose` states it for the canonical decomposition (page 85). -/
-def Decomposition.Plugs {a b : ℕ} (D : Decomposition S a b) (r : Rule S a b) : Prop :=
-  ∃ ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal, Function.Injective ι ∧
+def Decomposition.Plugs
+    -- the numbers of auxiliary ports of the two cells
+    {a b : ℕ}
+    -- the decomposition and the rule
+    (D : Decomposition S a b)
+    (r : Rule S a b) :
+    Prop :=
+  -- there is a renaming `ι` of the internal wires of `r` into those of the plugged sides
+  ∃ ι : Fin r.internal → Fin (Rule.plug D.φ D.ψ D.σ).internal,
+    -- that is injective,
+    Function.Injective ι ∧
+    -- and the plugged sides are the same graph as `r` renamed by `ι`
     Equiv (Rule.plug D.φ D.ψ D.σ).net (r.net.bind fun x => var (Sum.map id (Sum.map id ι) x))
 
 /-- The data that makes an interaction system recursion-free (Lafont 1997, page 86): an order on
 the alphabet, and a decomposition of every rule (page 85) normalised as on page 86, whose side
 `φ_{i,j}` on the ports of `α_i` contains only symbols smaller than `α_j`, and whose side `ψ_{i,j}`
 on the ports of `α_j` contains only symbols smaller than `α_i`. -/
-structure System.RecursionFreeData (I : System S) where
+structure System.RecursionFreeData
+    -- the interaction system
+    (I : System S) where
   /-- The order on the alphabet: `α < β` when `rank α < rank β`. -/
   rank : S.Sym → ℕ
   /-- The decomposition chosen for each rule. -/
-  dec : ∀ α β (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
-    Decomposition S (S.arity α) (S.arity β)
+  dec :
+    ∀ α β (r : Rule S (S.arity α) (S.arity β)), I.rule α β = some r →
+      Decomposition S (S.arity α) (S.arity β)
   /-- Plugging the sides gives back the rule (page 85). -/
-  plug : ∀ α β r (h : I.rule α β = some r), (dec α β r h).Plugs r
+  plug :
+    ∀ α β r (h : I.rule α β = some r),
+      (dec α β r h).Plugs r
   /-- The sides are linear. -/
-  linear : ∀ α β r (h : I.rule α β = some r), (dec α β r h).φ.Linear ∧ (dec α β r h).ψ.Linear
+  linear :
+    ∀ α β r (h : I.rule α β = some r),
+      (dec α β r h).φ.Linear ∧ (dec α β r h).ψ.Linear
   /-- The sides are reduced nets (page 85). -/
-  reduced : ∀ α β r (h : I.rule α β = some r),
-    (dec α β r h).φ.Reduced ∧ (dec α β r h).ψ.Reduced
+  reduced :
+    ∀ α β r (h : I.rule α β = some r),
+      (dec α β r h).φ.Reduced ∧ (dec α β r h).ψ.Reduced
   /-- `σ_{i,j}` is involutive (page 86). -/
-  involutive : ∀ α β r (h : I.rule α β = some r), Function.Involutive (dec α β r h).σ
+  involutive :
+    ∀ α β r (h : I.rule α β = some r),
+      Function.Involutive (dec α β r h).σ
   /-- For a rule `α_i`–`α_i`, `φ_{i,i} = ψ_{i,i}` (page 86, `φ_{j,i} = ψ_{i,j}` with `i = j`). -/
-  self : ∀ α r (h : I.rule α α = some r), (dec α α r h).ψ = (dec α α r h).φ
+  self :
+    ∀ α r (h : I.rule α α = some r),
+      (dec α α r h).ψ = (dec α α r h).φ
   /-- For a rule `α_i`–`α_j` with `i ≠ j`, `σ_{i,j}` is an identity (page 86). -/
-  ne : ∀ α β r (h : I.rule α β = some r), α ≠ β → (dec α β r h).σ = 1
+  ne :
+    ∀ α β r (h : I.rule α β = some r),
+      α ≠ β → (dec α β r h).σ = 1
   /-- `φ_{i,j}` contains only symbols strictly smaller than `α_j` (page 86). -/
-  rank_φ : ∀ α β r (h : I.rule α β = some r), ∀ γ ∈ (dec α β r h).φ.net.cells, rank γ < rank β
+  rank_φ :
+    ∀ α β r (h : I.rule α β = some r),
+      ∀ γ ∈ (dec α β r h).φ.net.cells, rank γ < rank β
   /-- `ψ_{i,j}` contains only symbols strictly smaller than `α_i` (page 86). -/
-  rank_ψ : ∀ α β r (h : I.rule α β = some r), ∀ γ ∈ (dec α β r h).ψ.net.cells, rank γ < rank α
+  rank_ψ :
+    ∀ α β r (h : I.rule α β = some r),
+      ∀ γ ∈ (dec α β r h).ψ.net.cells, rank γ < rank α
 
 /-- An interaction system is recursion-free (Lafont 1997, page 86) if its alphabet can be ordered
 and its rules decomposed so that `φ_{i,j}` contains only symbols smaller than `α_j` and `ψ_{i,j}`
 only symbols smaller than `α_i`. -/
-def System.RecursionFree (I : System S) : Prop := Nonempty I.RecursionFreeData
+def System.RecursionFree
+    -- the interaction system
+    (I : System S) :
+    Prop :=
+  Nonempty I.RecursionFreeData
 
 namespace Comb
 
 open DecompositionReview
 
-/-! ### The combinators without `con`–`dup` (page 87) -/
+-- ============================================================================================
+-- 2. Definitions: the combinators without `con`–`dup` and their decompositions (page 87)
+-- ============================================================================================
 
 /-- Lafont's combinators without the rule `con`–`dup` (`γδ`), page 87. -/
 def systemNoConDup : System sig where
@@ -118,14 +175,64 @@ def systemNoConDup : System sig where
     | .era, .dup => some ruleEraBin
     | _, _ => none
 
+/-- The side that joins each auxiliary port `i` to the middle wire `i`. -/
+def idSide : Rule sig 2 2 := ⟨0, s(pl 0, pr 0) ::ₘ {s(pl 1, pr 1)}⟩
+
+/-- The side of the eraser in `era`–`con` and `era`–`dup` (page 87, non-canonical): an eraser on
+each of the two middle wires. -/
+def eraSide : Rule sig 0 2 := ⟨0, s(mkEra, pr 0) ::ₘ {s(mkEra, pr 1)}⟩
+
+/-- The empty side. -/
+def emptySide : Rule sig 0 0 := ⟨0, 0⟩
+
+/-- `con`–`con`: both sides are `idSide`, and `σ` exchanges the two middle wires. -/
+def decConCon : Decomposition sig 2 2 := ⟨2, idSide, idSide, Equiv.swap 0 1⟩
+
+/-- `dup`–`dup`: both sides are `idSide`, and `σ` is the identity. -/
+def decDupDup : Decomposition sig 2 2 := ⟨2, idSide, idSide, 1⟩
+
+/-- `era`–`era`: nothing. -/
+def decEraEra : Decomposition sig 0 0 := ⟨0, emptySide, emptySide, 1⟩
+
+/-- `era`–`con` and `era`–`dup` (page 87, non-canonical): the erasers go into `φ`, on the side of
+the eraser; `ψ` joins the ports of the binary cell to the middle wires. -/
+def decEraBin : Decomposition sig 0 2 := ⟨2, eraSide, idSide, 1⟩
+
+/-- The decomposition of each rule of `systemNoConDup`; arbitrary where there is no rule. -/
+def decNoConDup :
+    -- for the two cells `α`, `β`, a decomposition between their auxiliary ports
+    (α β : sig.Sym) → Decomposition sig (sig.arity α) (sig.arity β)
+  | .con, .con => decConCon
+  | .dup, .dup => decDupDup
+  | .era, .era => decEraEra
+  | .era, .con => decEraBin
+  | .era, .dup => decEraBin
+  | _, _ => ⟨0, ⟨0, 0⟩, ⟨0, 0⟩, 1⟩
+
+/-- The order of page 87: `era < con < dup`. -/
+def rankNoConDup : sig.Sym → ℕ
+  | .era => 0
+  | .con => 1
+  | .dup => 2
+
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the combinators without `con`–`dup` form an interaction system
+-- ============================================================================================
+
 /-- `systemNoConDup` has the rules of `system` for every pair other than `con`–`dup`. -/
-theorem systemNoConDup_rule (α β : sig.Sym) (h : ¬ (α = Comb.con ∧ β = Comb.dup)) :
+theorem systemNoConDup_rule
+    -- two symbols that are not `con`, `dup` in this order
+    (α β : sig.Sym)
+    (h : ¬ (α = Comb.con ∧ β = Comb.dup)) :
+    -- the rule for `α`–`β` is that of the full system
     systemNoConDup.rule α β = system.rule α β := by
   cases α <;> cases β <;> first | rfl | exact absurd ⟨rfl, rfl⟩ h
 
 /-- `systemNoConDup` has no rule for `con`–`dup`, where `system` has `ruleConDup`. -/
 theorem systemNoConDup_conDup :
+    -- `systemNoConDup` has no rule for `con`–`dup`,
     systemNoConDup.rule Comb.con Comb.dup = none ∧
+      -- and `system` has `ruleConDup`
       system.rule Comb.con Comb.dup = some ruleConDup := ⟨rfl, rfl⟩
 
 /-- The combinators without `con`–`dup` form an interaction system. -/
@@ -154,51 +261,19 @@ theorem systemNoConDup_wellFormed : systemNoConDup.WellFormed where
         | exact Equiv.of_eq ruleConCon_swap | exact Equiv.of_eq ruleDupDup_swap
         | exact Equiv.of_eq ruleEraEra_swap
 
-/-! ### The decompositions -/
+-- ============================================================================================
+-- 4. Auxiliary lemmas: the decompositions of the rules without `con`–`dup`
+-- ============================================================================================
 
-/-- The side that joins each auxiliary port `i` to the middle wire `i`. -/
-def idSide : Rule sig 2 2 := ⟨0, s(pl 0, pr 0) ::ₘ {s(pl 1, pr 1)}⟩
-
-/-- The side of the eraser in `era`–`con` and `era`–`dup` (page 87, non-canonical): an eraser on
-each of the two middle wires. -/
-def eraSide : Rule sig 0 2 := ⟨0, s(mkEra, pr 0) ::ₘ {s(mkEra, pr 1)}⟩
-
-/-- The empty side. -/
-def emptySide : Rule sig 0 0 := ⟨0, 0⟩
-
-/-- `con`–`con`: both sides are `idSide`, and `σ` exchanges the two middle wires. -/
-def decConCon : Decomposition sig 2 2 := ⟨2, idSide, idSide, Equiv.swap 0 1⟩
-
-/-- `dup`–`dup`: both sides are `idSide`, and `σ` is the identity. -/
-def decDupDup : Decomposition sig 2 2 := ⟨2, idSide, idSide, 1⟩
-
-/-- `era`–`era`: nothing. -/
-def decEraEra : Decomposition sig 0 0 := ⟨0, emptySide, emptySide, 1⟩
-
-/-- `era`–`con` and `era`–`dup` (page 87, non-canonical): the erasers go into `φ`, on the side of
-the eraser; `ψ` joins the ports of the binary cell to the middle wires. -/
-def decEraBin : Decomposition sig 0 2 := ⟨2, eraSide, idSide, 1⟩
-
-/-- The decomposition of each rule of `systemNoConDup`; arbitrary where there is no rule. -/
-def decNoConDup : (α β : sig.Sym) → Decomposition sig (sig.arity α) (sig.arity β)
-  | .con, .con => decConCon
-  | .dup, .dup => decDupDup
-  | .era, .era => decEraEra
-  | .era, .con => decEraBin
-  | .era, .dup => decEraBin
-  | _, _ => ⟨0, ⟨0, 0⟩, ⟨0, 0⟩, 1⟩
-
-/-- The order of page 87: `era < con < dup`. -/
-def rankNoConDup : sig.Sym → ℕ
-  | .era => 0
-  | .con => 1
-  | .dup => 2
+-- The sides are linear.
 
 theorem idSide_linear : idSide.Linear := ⟨by decide, by decide, by decide⟩
 
 theorem eraSide_linear : eraSide.Linear := ⟨by decide, by decide, by decide⟩
 
 theorem emptySide_linear : emptySide.Linear := ⟨by decide, by decide, by decide⟩
+
+-- The sides are reduced.
 
 theorem idSide_reduced : idSide.Reduced := by
   show ∀ e ∈ (show Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 0) from idSide.net),
@@ -224,6 +299,8 @@ theorem eraSide_reduced : eraSide.Reduced := by
 
 theorem emptySide_reduced : emptySide.Reduced :=
   fun e he => (Multiset.notMem_zero e he).elim
+
+-- The sides plug back the rules.
 
 /-- Plugging the sides of `decConCon` gives `ruleConCon`: the port `0` of the first cell meets
 the port `1` of the second, and the port `1` the port `0`. -/
@@ -288,16 +365,61 @@ theorem decEraBin_plugs : decEraBin.Plugs ruleEraBin := by
         fun x => var (Sum.map id (Sum.map id (Fin.elim0 : Fin 0 → Fin 2)) x)) := by decide
   exact h₁.trans (h₂.trans (Equiv.of_eq e))
 
+-- The canonical decomposition of `era`–`con` would not do.
+
 /-- Why page 87 needs a non-canonical decomposition for `era`–`con` and `era`–`dup`: the
 canonical decomposition (`Rule.decompose`) of `ruleEraBin` has no middle wire, an empty `φ`, and
 puts both erasers into `ψ`, on the ports of the binary cell. The order would then ask that `era`,
 a cell of `ψ_{era,con}`, be smaller than `era`. -/
 theorem eraBin_decompose :
+    -- the canonical decomposition of `ruleEraBin` has no middle wire,
     ruleEraBin.decompose.k = 0 ∧
+    -- its side `φ` is empty,
     (show Net sig (Fin 0 ⊕ Fin 0 ⊕ Fin 0) from ruleEraBin.decompose.φ.net) = 0 ∧
+    -- and its side `ψ` puts an `era` on each port of the binary cell
     (show Net sig (Fin 2 ⊕ Fin 0 ⊕ Fin 0) from ruleEraBin.decompose.ψ.net) =
       s(.var (.inl 0), mkEra) ::ₘ {s(.var (.inl 1), mkEra)} :=
   ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
+
+-- ============================================================================================
+-- 5. Auxiliary lemmas: the cells of the rule `con`–`dup`
+-- ============================================================================================
+
+/-- The cells of a plugged rule are those of its two sides. -/
+theorem _root_.INet.Rule.cells_plug
+    -- the numbers of auxiliary ports of the two cells, and of middle wires
+    {a b k : ℕ}
+    -- the two sides and the permutation of the middle wires
+    (φ : Rule S a k)
+    (ψ : Rule S b k)
+    (σ : Equiv.Perm (Fin k)) :
+    -- the cells of the plugged rule are the cells of `φ` and those of `ψ`
+    (Rule.plug φ ψ σ).net.cells = φ.net.cells + ψ.net.cells := by
+  show Net.cells (ν := Fin a ⊕ Fin b ⊕ Fin (k + φ.internal + ψ.internal))
+    (φ.net.bind (fun x => var (Rule.plugL x)) + ψ.net.bind (fun x => var (Rule.plugR σ x))) = _
+  unfold Net.cells
+  rw [Multiset.add_bind]
+  exact congrArg₂ (· + ·) (Net.cells_bind_var _ _) (Net.cells_bind_var _ _)
+
+/-- The rule `con`–`dup` has a `dup` cell. -/
+theorem dup_mem_cells_conDup : (Comb.dup : sig.Sym) ∈ ruleConDup.net.cells := by
+  show (Comb.dup : sig.Sym) ∈ Net.cells (show Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 4) from ruleConDup.net)
+  refine Multiset.mem_bind.2 ⟨s(.var (.inl 0), mkDup (.var (.inr (.inr 0))) (.var (.inr (.inr 1)))),
+    by decide, ?_⟩
+  rw [eqCells_mk]
+  exact Multiset.mem_add.2 (Or.inr (Multiset.mem_cons.2 (Or.inl rfl)))
+
+/-- The rule `con`–`dup` has a `con` cell. -/
+theorem con_mem_cells_conDup : (Comb.con : sig.Sym) ∈ ruleConDup.net.cells := by
+  show (Comb.con : sig.Sym) ∈ Net.cells (show Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 4) from ruleConDup.net)
+  refine Multiset.mem_bind.2 ⟨s(.var (.inr (.inl 0)),
+    mkCon (.var (.inr (.inr 0))) (.var (.inr (.inr 2)))), by decide, ?_⟩
+  rw [eqCells_mk]
+  exact Multiset.mem_add.2 (Or.inr (Multiset.mem_cons.2 (Or.inl rfl)))
+
+-- ============================================================================================
+-- 6. Main results: the combinators without `con`–`dup` are recursion-free, the full system is not
+-- ============================================================================================
 
 /-- The combinators without `con`–`dup` are recursion-free (Lafont 1997, page 87), with the order
 `era < con < dup` and the non-canonical decomposition `decEraBin` for `era`–`con` and
@@ -346,33 +468,6 @@ def recursionFreeDataNoConDup : systemNoConDup.RecursionFreeData where
 recursion-free system. -/
 theorem systemNoConDup_recursionFree : systemNoConDup.RecursionFree :=
   ⟨recursionFreeDataNoConDup⟩
-
-/-! ### The full system is not recursion-free -/
-
-/-- The cells of a plugged rule are those of its two sides. -/
-theorem _root_.INet.Rule.cells_plug {a b k : ℕ} (φ : Rule S a k) (ψ : Rule S b k)
-    (σ : Equiv.Perm (Fin k)) : (Rule.plug φ ψ σ).net.cells = φ.net.cells + ψ.net.cells := by
-  show Net.cells (ν := Fin a ⊕ Fin b ⊕ Fin (k + φ.internal + ψ.internal))
-    (φ.net.bind (fun x => var (Rule.plugL x)) + ψ.net.bind (fun x => var (Rule.plugR σ x))) = _
-  unfold Net.cells
-  rw [Multiset.add_bind]
-  exact congrArg₂ (· + ·) (Net.cells_bind_var _ _) (Net.cells_bind_var _ _)
-
-/-- The rule `con`–`dup` has a `dup` cell. -/
-theorem dup_mem_cells_conDup : (Comb.dup : sig.Sym) ∈ ruleConDup.net.cells := by
-  show (Comb.dup : sig.Sym) ∈ Net.cells (show Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 4) from ruleConDup.net)
-  refine Multiset.mem_bind.2 ⟨s(.var (.inl 0), mkDup (.var (.inr (.inr 0))) (.var (.inr (.inr 1)))),
-    by decide, ?_⟩
-  rw [eqCells_mk]
-  exact Multiset.mem_add.2 (Or.inr (Multiset.mem_cons.2 (Or.inl rfl)))
-
-/-- The rule `con`–`dup` has a `con` cell. -/
-theorem con_mem_cells_conDup : (Comb.con : sig.Sym) ∈ ruleConDup.net.cells := by
-  show (Comb.con : sig.Sym) ∈ Net.cells (show Net sig (Fin 2 ⊕ Fin 2 ⊕ Fin 4) from ruleConDup.net)
-  refine Multiset.mem_bind.2 ⟨s(.var (.inr (.inl 0)),
-    mkCon (.var (.inr (.inr 0))) (.var (.inr (.inr 2)))), by decide, ?_⟩
-  rw [eqCells_mk]
-  exact Multiset.mem_add.2 (Or.inr (Multiset.mem_cons.2 (Or.inl rfl)))
 
 /-- The full system of interaction combinators is not recursion-free (page 87 removes the rule
 `con`–`dup` for this reason): in any decomposition of `con`–`dup`, the `dup` cells must go into
