@@ -525,8 +525,8 @@ uniqueness of the canonical decomposition'' \pp{p.~85}. The paper does not defin
 canonical decomposition. It states that one exists and shows it for one rule. The picture
 suggests the decomposition of Proposition~2 (trees at the ports of each cell, the wiring as
 $\sigma$), but the order of the middle wires, on which the uniqueness of $\sigma$ depends, is
-not specified. Mazza's thesis~\cite{mazza2006} repeats the argument in the same words, and we
-know of no source that defines it.
+not specified. Mazza's thesis~\cite{mazza2006} repeats the argument, referring to Lafont for the
+canonical decomposition, and we know of no source that defines it.
 
 The obvious decomposition of a text, \cod{Rule.decompose},
 sends the equations rooted at a port of the first cell to $\varphi$ and the others to $\psi$,
@@ -767,13 +767,14 @@ drafted with an AI assistant and reviewed and finalized by the author.
 \label{sec:related}
 
 \paragraph{Universality.}
-Gay obtained independently a universal system with eight symbols, as Lafont
-reports~\cite{gay1995}. B\'echet showed that every interaction system can be simulated by one
+Lafont reports that Gay obtained independently a universal system with eight
+symbols~\pp{p.~70}. B\'echet showed that every interaction system can be simulated by one
 with two symbols~\cite{bechet2001}. The result depends on Theorem~1 and does not prove it
 again. Mazza studied the symmetric combinators~\cite{mazza2007}, which ``enjoy a weaker
 universality property with respect to interaction nets, but are equally expressive''. His later
-paper~\cite{mazza2009} refers to Lafont's paper ``for a proper formulation and proof'' of the
-theorem. The only written-out treatment of the general case that we know of is in Mazza's
+paper~\cite{mazza2009} states the corresponding translation theorem for the symmetric
+combinators, attributes it to Lafont, and refers to Lafont's paper ``for a proper formulation
+and proof''. The only written-out treatment of the general case that we know of is in Mazza's
 thesis~\cite[Section~6.4]{mazza2006}, which proves, by figures and up to a behavioural
 equivalence, the universality of a multiport generalization of the combinators, of which
 Theorem~1 is stated to be a particular case.
@@ -793,11 +794,11 @@ therefore been mechanized before. We know of no earlier mechanized two-way corre
 objects and for single steps, between a representation by multisets of equations and graphs.
 
 \paragraph{The textual representation.}
-Lafont's first paper~\cite{lafont1990} already used a textual notation for rules. The
-interaction calculus of Fern\'andez and Mackie~\cite{fernandezmackie1999} is the standard
-reference for nets as configurations of equations\todo{only its first two pages were read; read
-Sections 2--3 before submission}; later work gives implementation models based on
-refinements of it~\cite{hassan2015}. De Falco~\cite{defalco2010} gives an explicit framework,
+De Falco~\cite{defalco2010} traces the definition of nets as terms with paired variables to
+Lafont's first paper~\cite{lafont1990} and its refinement to the interaction calculus of
+Fern\'andez and Mackie~\cite{fernandezmackie1999}\todo{the full text of this paper could not be
+obtained. Read it before submission}. Later work gives implementation models based on
+refinements of that calculus~\cite{hassan2015}. De Falco himself gives an explicit framework,
 based on the geometry of interaction, with nets as partial permutations.
 
 \paragraph{Neighbouring formalizations.}
