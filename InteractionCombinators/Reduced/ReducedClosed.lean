@@ -18,10 +18,14 @@ of the text. Take an equation of a nonempty, linear, reduced net with no free po
 A net with no cell, made of cycles of wires, is the second case: its wires are contracted one by
 one until an equation `x = x` is left, a cyclic wire, which is a vicious circle of length 0.
 
-* `Net.IsReduced.eq_zero_of_closed` — the statement of page 80.
-* `Net.IsReduced.cells_eq_zero_of_closed` — such a net has no cell, and neither has any net
-  `Equiv` to it.
-* `Net.isReduced_zero` — the empty net is reduced.
+Contents, in the order of the file:
+
+1. Auxiliary lemmas: `Net.isReduced_zero`, the empty net is reduced;
+   `Net.exists_wire_of_closed`, the step of the induction; `Net.eq_zero_of_closed_card`, the
+   induction on the number of equations.
+2. Main results: `Net.IsReduced.eq_zero_of_closed`, the statement of page 80; and its corollary
+   `Net.IsReduced.cells_eq_zero_of_closed`, such a net has no cell, and neither has any net
+   `Equiv` to it.
 -/
 
 namespace INet
@@ -32,8 +36,13 @@ open Term
 
 namespace Net
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: the empty net, and the induction on the number of equations
+-- ============================================================================================
+
 /-- The empty net has no cut and no vicious circle (Lafont 1997, page 79). -/
-theorem isReduced_zero : (0 : Net S ℕ).IsReduced := by
+theorem isReduced_zero :
+    (0 : Net S ℕ).IsReduced := by
   refine ⟨fun hc => ?_, fun hv => ?_⟩
   · obtain ⟨a, b, xs, D, -, -, h⟩ := hc.chainCut
     cases xs with
@@ -45,10 +54,23 @@ theorem isReduced_zero : (0 : Net S ℕ).IsReduced := by
 /-- The step of the induction: in a linear net with no free port, an equation `x = t` that is
 not a vicious circle is contracted by a wire substitution into a nonempty net with one equation
 fewer (Lafont 1997, page 71: a wire is one edge of the graph). -/
-theorem exists_wire_of_closed {x : ℕ} {t : Term S ℕ} {R : Net S ℕ}
-    (hN : Net.Linear (s(var x, t) ::ₘ R)) (hfree : ∀ y, (Net.vars (s(var x, t) ::ₘ R)).count y ≠ 1)
+theorem exists_wire_of_closed
+    -- the net: an equation `x = t` and the rest `R`
+    {x : ℕ}
+    {t : Term S ℕ}
+    {R : Net S ℕ}
+    -- the net is linear and has no free port (no name occurs once)
+    (hN : Net.Linear (s(var x, t) ::ₘ R))
+    (hfree : ∀ y, (Net.vars (s(var x, t) ::ₘ R)).count y ≠ 1)
+    -- the equation `x = t` is not a vicious circle: `x` does not occur in `t`
     (hx : x ∉ t.vars) :
-    ∃ M, Wire (s(var x, t) ::ₘ R) M ∧ Multiset.card M < Multiset.card (s(var x, t) ::ₘ R) ∧
+    -- there is a net `M`
+    ∃ M,
+      -- obtained from the net by a wire substitution,
+      Wire (s(var x, t) ::ₘ R) M ∧
+      -- with fewer equations,
+      Multiset.card M < Multiset.card (s(var x, t) ::ₘ R) ∧
+      -- and not empty
       M ≠ 0 := by
   have h2 := hN x
   have h1 := hfree x
@@ -64,8 +86,16 @@ theorem exists_wire_of_closed {x : ℕ} {t : Term S ℕ} {R : Net S ℕ}
 
 /-- The induction on the number of equations behind `Net.IsReduced.eq_zero_of_closed`. -/
 theorem eq_zero_of_closed_card :
-    ∀ (n : ℕ) (N : Net S ℕ), Multiset.card N = n → N.Linear → N.IsReduced →
-      (∀ x, N.vars.count x ≠ 1) → N = 0 := by
+    -- for every number `n` and every net `N` of `n` equations,
+    ∀ (n : ℕ) (N : Net S ℕ),
+      Multiset.card N = n →
+      -- if `N` is linear and reduced,
+      N.Linear →
+      N.IsReduced →
+      -- and has no free port (no name occurs once),
+      (∀ x, N.vars.count x ≠ 1) →
+      -- then `N` is empty
+      N = 0 := by
   intro n
   induction n using Nat.strong_induction_on with
   | _ n ih =>
@@ -90,17 +120,35 @@ theorem eq_zero_of_closed_card :
       | var y => exact wire y (.app α ts) Sym2.eq_swap
       | app β us => exact hR.1 (hasCut_of_mem (Multiset.mem_cons_self _ _))
 
+-- ============================================================================================
+-- 2. Main results: a reduced net with no free port is empty
+-- ============================================================================================
+
 /-- **A reduced net with no free port is empty** (Lafont 1997, page 80: "a reduced net with no
 free port is necessarily empty"). A linear net with no cut, no vicious circle and no name that
 occurs once is the empty multiset of equations. -/
-theorem IsReduced.eq_zero_of_closed {N : Net S ℕ} (hN : N.Linear) (hR : N.IsReduced)
-    (hfree : ∀ x, N.vars.count x ≠ 1) : N = 0 :=
+theorem IsReduced.eq_zero_of_closed
+    -- the net: linear, reduced, with no free port (no name occurs once)
+    {N : Net S ℕ}
+    (hN : N.Linear)
+    (hR : N.IsReduced)
+    (hfree : ∀ x, N.vars.count x ≠ 1) :
+    -- the net is empty
+    N = 0 :=
   eq_zero_of_closed_card _ N rfl hN hR hfree
 
 /-- **A reduced net with no free port has no cell** (Lafont 1997, page 80), and neither has any
 net that is the same graph: wire substitutions create no cell (`Equiv.cells_eq`). -/
-theorem IsReduced.cells_eq_zero_of_closed {N M : Net S ℕ} (hN : N.Linear) (hR : N.IsReduced)
-    (hfree : ∀ x, N.vars.count x ≠ 1) (e : Equiv N M) : M.cells = 0 := by
+theorem IsReduced.cells_eq_zero_of_closed
+    -- two nets; `N` is linear, reduced, with no free port (no name occurs once)
+    {N M : Net S ℕ}
+    (hN : N.Linear)
+    (hR : N.IsReduced)
+    (hfree : ∀ x, N.vars.count x ≠ 1)
+    -- a net `M` that is the same graph as `N`
+    (e : Equiv N M) :
+    -- `M` has no cell
+    M.cells = 0 := by
   rw [← e.cells_eq, hR.eq_zero_of_closed hN hfree]
   simp [Net.cells]
 
