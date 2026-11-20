@@ -27,16 +27,22 @@ included.
 
 ## The proof
 
-The paper chooses a principal path ending at a free port and removes its last cell. The proof here
-is an induction on the number of equations, as in `Lafont/ReducedClosed.lean`. If an equation of a
-linear reduced net is not hung from a free port, its two sides are not both cells (no cut), so one
-of them is a name `x` that occurs twice. Its other occurrence is not in the other side `t` (no
-vicious circle), so it is in another equation, and the wire substitution of `x` by `t` removes an
-equation and keeps the graph, hence linearity and reducedness.
+The paper chooses a principal path ending at a free port and removes its last cell. The proof
+here is an induction on the number of equations, as in
+`InteractionCombinators/Reduced/ReducedClosed.lean`. If an equation of a linear reduced net is not hung from a free port, its two sides are not both
+cells (no cut), so one of them is a name `x` that occurs twice. Its other occurrence is not in the
+other side `t` (no vicious circle), so it is in another equation, and the wire substitution of `x`
+by `t` removes an equation and keeps the graph, hence linearity and reducedness.
 
-* `Net.IsTreesOnWiring` — the form.
-* `Net.IsReduced.exists_treesOnWiring` — **Proposition 2, existence**.
-* `Net.IsTreesOnWiring.isReduced` — the converse: a net in the form is reduced.
+Contents, in the order of the file:
+
+1. Definition: `Net.IsTreesOnWiring`, the form.
+2. The converse: `Net.IsTreesOnWiring.eq_var_of_isCell`, `Net.IsTreesOnWiring.isReduced`, a net in
+   the form is reduced.
+3. Auxiliary lemmas, the induction on the number of equations: `Net.exists_wire_of_not_free` (the
+   step), `Net.exists_treesOnWiring_card`.
+4. Main results: `Net.IsReduced.exists_treesOnWiring`, **Proposition 2, existence**, and
+   `Net.isReduced_iff_exists_treesOnWiring`, reduced is the form up to `Equiv`.
 -/
 
 namespace INet
@@ -47,18 +53,38 @@ open Term
 
 namespace Net
 
+-- ============================================================================================
+-- 1. Definition
+-- ============================================================================================
+
 /-- **Trees plugged into a wiring**, on the text (Lafont 1997, Proposition 2, page 79): every
 equation is `x = t` with `x` a free port, a name that occurs once in the net. The trees `t` hang
 from the free ports; the names that occur twice are leaves, joined two by two: the wiring.
 Cyclic wires are excluded, and need not be allowed: a cyclic wire is a vicious circle of length 0
 (page 79), so a reduced net has none (see the module docstring). -/
-def IsTreesOnWiring (N : Net S ℕ) : Prop :=
+def IsTreesOnWiring
+    -- the net
+    (N : Net S ℕ) :
+    Prop :=
+  -- every equation is `x = t`, with `x` a name that occurs once in `N`
   ∀ e ∈ N, ∃ (x : ℕ) (t : Term S ℕ), e = s(var x, t) ∧ N.vars.count x = 1
+
+-- ============================================================================================
+-- 2. The converse: a net in the form is reduced
+-- ============================================================================================
 
 /-- In a net in the form, an equation whose side `a` is a cell has a free port on its other
 side. -/
-theorem IsTreesOnWiring.eq_var_of_isCell {N : Net S ℕ} (h : N.IsTreesOnWiring) {a b : Term S ℕ}
-    (hm : s(a, b) ∈ N) (ha : a.IsCell) : ∃ x, b = var x ∧ N.vars.count x = 1 := by
+theorem IsTreesOnWiring.eq_var_of_isCell
+    -- a net in the form
+    {N : Net S ℕ}
+    (h : N.IsTreesOnWiring)
+    -- an equation of `N` whose side `a` is a cell
+    {a b : Term S ℕ}
+    (hm : s(a, b) ∈ N)
+    (ha : a.IsCell) :
+    -- the other side `b` is a name `x` that occurs once in `N`
+    ∃ x, b = var x ∧ N.vars.count x = 1 := by
   obtain ⟨x, t, he, hx⟩ := h _ hm
   rcases Sym2.eq_iff.1 he with ⟨rfl, -⟩ | ⟨-, rfl⟩
   · exact absurd ha (Cut.not_isCell_var x)
@@ -67,7 +93,12 @@ theorem IsTreesOnWiring.eq_var_of_isCell {N : Net S ℕ} (h : N.IsTreesOnWiring)
 /-- **A net in the form is reduced** (Lafont 1997, page 79: trees on a wiring have no cut and
 no vicious circle). This is the converse of `Net.IsReduced.exists_treesOnWiring`: the form is not
 narrower than "reduced" up to `Equiv`. No linearity is needed. -/
-theorem IsTreesOnWiring.isReduced {N : Net S ℕ} (h : N.IsTreesOnWiring) : N.IsReduced := by
+theorem IsTreesOnWiring.isReduced
+    -- a net in the form
+    {N : Net S ℕ}
+    (h : N.IsTreesOnWiring) :
+    -- has no cut and no vicious circle
+    N.IsReduced := by
   refine ⟨fun hc => ?_, fun hv => ?_⟩
   · obtain ⟨a, b, xs, D, ha, hb, hN⟩ := hc.chainCut
     cases xs with
@@ -100,13 +131,29 @@ theorem IsTreesOnWiring.isReduced {N : Net S ℕ} (h : N.IsTreesOnWiring) : N.Is
       have := hle y
       omega
 
+-- ============================================================================================
+-- 3. Auxiliary lemmas: the induction on the number of equations
+-- ============================================================================================
+
 /-- The step of the induction: in a linear net, an equation `x = t` whose name `x` is not a free
 port and not a leaf of `t` is contracted by a wire substitution into a net with one equation
 fewer (Lafont 1997, page 71: a wire is one edge of the graph). -/
-theorem exists_wire_of_not_free {x : ℕ} {t : Term S ℕ} {R : Net S ℕ}
-    (hN : Net.Linear (s(var x, t) ::ₘ R)) (h1 : (Net.vars (s(var x, t) ::ₘ R)).count x ≠ 1)
+theorem exists_wire_of_not_free
+    -- the equation `x = t`
+    {x : ℕ}
+    {t : Term S ℕ}
+    -- the rest of the net
+    {R : Net S ℕ}
+    -- the net is linear, `x` is not a free port, and `x` is not a leaf of `t`
+    (hN : Net.Linear (s(var x, t) ::ₘ R))
+    (h1 : (Net.vars (s(var x, t) ::ₘ R)).count x ≠ 1)
     (hx : x ∉ t.vars) :
-    ∃ M, Wire (s(var x, t) ::ₘ R) M ∧ Multiset.card M < Multiset.card (s(var x, t) ::ₘ R) := by
+    -- there is a net `M` such that
+    ∃ M,
+      -- the net becomes `M` by a wire substitution,
+      Wire (s(var x, t) ::ₘ R) M ∧
+      -- and `M` has fewer equations
+      Multiset.card M < Multiset.card (s(var x, t) ::ₘ R) := by
   have h2 := hN x
   have ht : t.vars.count x = 0 := Multiset.count_eq_zero.2 hx
   simp only [Net.vars_cons, eqVars_mk, Term.vars_var, Multiset.count_add,
@@ -119,7 +166,11 @@ theorem exists_wire_of_not_free {x : ℕ} {t : Term S ℕ} {R : Net S ℕ}
 
 /-- The induction on the number of equations behind `Net.IsReduced.exists_treesOnWiring`. -/
 theorem exists_treesOnWiring_card :
-    ∀ (n : ℕ) (N : Net S ℕ), Multiset.card N = n → N.Linear → N.IsReduced →
+    -- for every number `n` and every net `N` with `n` equations,
+    ∀ (n : ℕ) (N : Net S ℕ), Multiset.card N = n →
+      -- if `N` is linear and reduced,
+      N.Linear → N.IsReduced →
+      -- then `N` is the same graph as a net `M` in the form
       ∃ M, Equiv N M ∧ M.IsTreesOnWiring := by
   intro n
   induction n using Nat.strong_induction_on with
@@ -148,18 +199,35 @@ theorem exists_treesOnWiring_card :
       | var y => exact wire y (.app α ts) Sym2.eq_swap
       | app β us => exact absurd (hasCut_of_mem (Multiset.mem_cons_self _ _)) hR.1
 
+-- ============================================================================================
+-- 4. Main results: Proposition 2, existence
+-- ============================================================================================
+
 /-- **Proposition 2, existence** (Lafont 1997, page 79): "Any reduced net with `n` free ports can
 be […] decomposed as follows": trees hanging from the free ports, their leaves joined by a wiring.
 A linear net with no cut and no vicious circle is the same graph as a net each of whose equations
 is `x = t` with `x` a free port (`Net.IsTreesOnWiring`). -/
-theorem IsReduced.exists_treesOnWiring {N : Net S ℕ} (hN : N.Linear) (hR : N.IsReduced) :
-    ∃ M, Equiv N M ∧ M.IsTreesOnWiring :=
+theorem IsReduced.exists_treesOnWiring
+    -- a linear reduced net
+    {N : Net S ℕ}
+    (hN : N.Linear)
+    (hR : N.IsReduced) :
+    -- there is a net `M` such that
+    ∃ M,
+      -- `N` is the same graph as `M`,
+      Equiv N M ∧
+      -- and `M` is trees plugged into a wiring
+      M.IsTreesOnWiring :=
   exists_treesOnWiring_card _ N rfl hN hR
 
 /-- **Reduced is trees on a wiring, up to wires** (Lafont 1997, Proposition 2, page 79). A
 linear net is reduced if and only if it is the same graph as a net in the form
 `Net.IsTreesOnWiring`. -/
-theorem isReduced_iff_exists_treesOnWiring {N : Net S ℕ} (hN : N.Linear) :
+theorem isReduced_iff_exists_treesOnWiring
+    -- a linear net
+    {N : Net S ℕ}
+    (hN : N.Linear) :
+    -- is reduced if and only if it is the same graph as a net in the form
     N.IsReduced ↔ ∃ M, Equiv N M ∧ M.IsTreesOnWiring :=
   ⟨IsReduced.exists_treesOnWiring hN,
     fun ⟨_, hE, hM⟩ => hM.isReduced.of_equiv hE.symm⟩
