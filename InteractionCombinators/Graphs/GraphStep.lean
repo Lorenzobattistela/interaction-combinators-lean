@@ -8,25 +8,41 @@ principal ports by the net `ν_{i,j}`, whose `n_i + n_j` free ports are attached
 auxiliary ports of the two cells were attached. "Cyclic wires may be created when such a rule is
 applied inside a net."
 
-This file gives that interaction on graphs (PLAN.md, Stage C, item 5, first half). The theorem
-that `StepE` on texts is this interaction on their graphs is the second half, not proved here.
-
-* `End.map` — renaming the cells and the names of the ends of a graph.
-* `Graph.cutEnd` — the auxiliary ports of the two interacting cells become fresh names.
-* `Graph.Interact` — one interaction: cut, glue the graph of the rule, contract the fresh names.
-* `Graph.Interact.wf` — an interaction keeps a graph well formed.
+This file gives that interaction on graphs. The theorem that `StepE` on texts is this
+interaction on their graphs is not proved here.
 
 The examples on the combinators are in `Checks/GraphStepCheck.lean`.
+
+Contents, in the order of the file:
+
+1. Definitions: `End.map`, renaming the cells and the names of the ends of a graph;
+   `Graph.cutEnd`, the auxiliary ports of the two interacting cells become fresh names;
+   `Graph.Interact`, one interaction: cut, glue the graph of the rule, contract the fresh names.
+2. Auxiliary lemmas: `Interact.principal` (an interaction needs a wire between two principal
+   ports); `bind_wireEnds_map_end`; the ports under the cut, `cutEnd_eq_port`,
+   `cutEnd_port_of_ne`, `count_map_cutEnd`; the ports under the renaming of the rule,
+   `endMap_eq_port`, `count_map_endMap`, `count_map_endMap_eq_zero`.
+3. Main result: `Graph.Interact.wf`, an interaction keeps a graph well formed.
 -/
 
 namespace INet
 
 variable {S : Signature}
 
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
 namespace End
 
 /-- Renaming the cells by `σ` and the names by `g`. -/
-def map {ν μ : Type} (σ : ℕ → ℕ) (g : ν → μ) : End ν → End μ
+def map
+    -- the types of the names, before and after
+    {ν μ : Type}
+    -- the renaming of the cells, and of the names
+    (σ : ℕ → ℕ)
+    (g : ν → μ) :
+    End ν → End μ
   | port c i => port (σ c) i
   | name x => name (g x)
 
@@ -37,7 +53,14 @@ namespace Graph
 /-- **The cut.** The `k`-th auxiliary port of the cell `c` (the end `port c (k + 1)`, for
 `k < a`) becomes the name `u k`, and the `k`-th auxiliary port of the cell `d` (for `k < b`)
 becomes the name `v k`. Every other end is kept. -/
-def cutEnd (c d : ℕ) {a b : ℕ} (u : Fin a → ℕ) (v : Fin b → ℕ) : End ℕ → End ℕ
+def cutEnd
+    -- the two interacting cells
+    (c d : ℕ)
+    -- the fresh names for the `a` auxiliary ports of `c` and the `b` auxiliary ports of `d`
+    {a b : ℕ}
+    (u : Fin a → ℕ)
+    (v : Fin b → ℕ) :
+    End ℕ → End ℕ
   | .port e (k + 1) =>
     if h : e = c ∧ k < a then .name (u ⟨k, h.2⟩)
     else if h' : e = d ∧ k < b then .name (v ⟨k, h'.2⟩)
@@ -67,33 +90,68 @@ is obtained in three moves.
 The definition reads `I.rule α β` with `c` the cell of `α`: the rule for `β, α`, if any, applies
 when the same graph is written with the two cells in the other order. Well-formedness of `G` is
 not required; it is a hypothesis of the theorems (`Interact.wf`). -/
-inductive Interact (I : System S) : Graph S ℕ → Graph S ℕ → Prop
-  | mk (c d : ℕ) (α β : S.Sym) (C : Multiset (ℕ × S.Sym)) (W : Multiset (Sym2 (End ℕ))) (n : ℕ)
-      (r : Rule S (S.arity α) (S.arity β)) (hr : I.rule α β = some r)
-      (R : Graph S (Fin (S.arity α) ⊕ Fin (S.arity β) ⊕ Fin r.internal)) (hR : r.net.HasGraph R)
-      (σ : ℕ → ℕ) (hσ : Set.InjOn σ {x | x ∈ R.cells.map Prod.fst})
+inductive Interact
+    -- the interaction system
+    (I : System S) :
+    Graph S ℕ → Graph S ℕ → Prop
+  -- `G` is the two cells `c : α`, `d : β` joined by their principal ports, the cells `C`, the
+  -- wires `W` and `n` cyclic wires; `H` is the graph after the interaction
+  | mk
+      -- the two interacting cells, the other cells, the other wires, the cyclic wires
+      (c d : ℕ)
+      (α β : S.Sym)
+      (C : Multiset (ℕ × S.Sym))
+      (W : Multiset (Sym2 (End ℕ)))
+      (n : ℕ)
+      -- the rule for `α, β`
+      (r : Rule S (S.arity α) (S.arity β))
+      (hr : I.rule α β = some r)
+      -- a graph of the net of the rule
+      (R : Graph S (Fin (S.arity α) ⊕ Fin (S.arity β) ⊕ Fin r.internal))
+      (hR : r.net.HasGraph R)
+      -- the renumbering of its cells: injective, and away from the cells of `G`
+      (σ : ℕ → ℕ)
+      (hσ : Set.InjOn σ {x | x ∈ R.cells.map Prod.fst})
       (hσG : ∀ x ∈ R.cells.map Prod.fst, σ x ∉ ((c, α) ::ₘ (d, β) ::ₘ C).map Prod.fst)
-      (g : Fin (S.arity α) ⊕ Fin (S.arity β) ⊕ Fin r.internal → ℕ) (hg : Function.Injective g)
-      (hgW : ∀ w, End.name (g w) ∉ W.bind wireEnds) (H : Graph S ℕ)
+      -- the fresh names: injective, and not in the wires of `G`
+      (g : Fin (S.arity α) ⊕ Fin (S.arity β) ⊕ Fin r.internal → ℕ)
+      (hg : Function.Injective g)
+      (hgW : ∀ w, End.name (g w) ∉ W.bind wireEnds)
+      -- the result: the cut graph glued to the renamed `R`, contracted until every name ends
+      -- at most one wire
+      (H : Graph S ℕ)
       (hH : Relation.ReflTransGen Contract
         ⟨C + R.cells.map (Prod.map σ id),
-          W.map (Sym2.map (cutEnd c d (fun i => g (.inl i)) (fun j => g (.inr (.inl j))))) +
-            R.wires.map (Sym2.map (End.map σ g)),
+          W.map (Sym2.map (cutEnd c d (fun i => g (.inl i)) (fun j => g (.inr (.inl j)))))
+            + R.wires.map (Sym2.map (End.map σ g)),
           n + R.loops⟩ H)
       (hH1 : ∀ x, H.ends.count (.name x) ≤ 1) :
       Interact I ⟨(c, α) ::ₘ (d, β) ::ₘ C, s(.port c 0, .port d 0) ::ₘ W, n⟩ H
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas
+-- ============================================================================================
+
 /-- **Cells interact only through their principal ports** (Lafont 1997, page 73): a graph that has
 an interaction has a wire between the principal ports of two cells. -/
-theorem Interact.principal {I : System S} {G H : Graph S ℕ} (h : Interact I G H) :
+theorem Interact.principal
+    -- the interaction system
+    {I : System S}
+    -- an interaction from `G` to `H`
+    {G H : Graph S ℕ}
+    (h : Interact I G H) :
+    -- some wire of `G` joins the principal ports of two cells
     ∃ c d, s(End.port c 0, End.port d 0) ∈ G.wires := by
   cases h with
   | mk c d => exact ⟨c, d, Multiset.mem_cons_self _ _⟩
 
-/-! ## Well-formedness -/
-
 /-- The ends of renamed wires are the renamed ends. -/
-theorem bind_wireEnds_map_end {ν μ : Type} (f : End ν → End μ) (W : Multiset (Sym2 (End ν))) :
+theorem bind_wireEnds_map_end
+    -- the renaming of the ends
+    {ν μ : Type}
+    (f : End ν → End μ)
+    -- the wires
+    (W : Multiset (Sym2 (End ν))) :
     (W.map (Sym2.map f)).bind wireEnds = (W.bind wireEnds).map f := by
   rw [Multiset.bind_map, Multiset.map_bind]
   congr 1
@@ -103,10 +161,16 @@ theorem bind_wireEnds_map_end {ν μ : Type} (f : End ν → End μ) (W : Multis
 
 section cut
 
+-- the two cells of the cut, and the fresh names of their auxiliary ports
 variable {c d a b : ℕ} {u : Fin a → ℕ} {v : Fin b → ℕ}
 
 /-- The cut produces a port only from that same port (Lafont 1997, page 73). -/
-theorem cutEnd_eq_port {z : End ℕ} {e i : ℕ} (h : cutEnd c d u v z = .port e i) :
+theorem cutEnd_eq_port
+    -- an end that the cut sends to the port `i` of the cell `e`
+    {z : End ℕ}
+    {e i : ℕ}
+    (h : cutEnd c d u v z = .port e i) :
+    -- it was that port
     z = .port e i := by
   match z, h with
   | .name _, h => cases h
@@ -117,14 +181,27 @@ theorem cutEnd_eq_port {z : End ℕ} {e i : ℕ} (h : cutEnd c d u v z = .port e
     exact h
 
 /-- The cut keeps the ports of the cells other than `c` and `d` (Lafont 1997, page 73). -/
-theorem cutEnd_port_of_ne {e : ℕ} (hc : e ≠ c) (hd : e ≠ d) (i : ℕ) :
+theorem cutEnd_port_of_ne
+    -- a cell other than `c` and `d`
+    {e : ℕ}
+    (hc : e ≠ c)
+    (hd : e ≠ d)
+    -- one of its ports
+    (i : ℕ) :
     cutEnd c d u v (.port e i) = .port e i := by
   cases i with
   | zero => rfl
   | succ k => simp [cutEnd, hc, hd]
 
 /-- The cut does not change how many ends are a port of a cell other than `c` and `d`. -/
-theorem count_map_cutEnd {e : ℕ} (hc : e ≠ c) (hd : e ≠ d) (i : ℕ) (M : Multiset (End ℕ)) :
+theorem count_map_cutEnd
+    -- a port of a cell other than `c` and `d`
+    {e : ℕ}
+    (hc : e ≠ c)
+    (hd : e ≠ d)
+    (i : ℕ)
+    -- the ends
+    (M : Multiset (End ℕ)) :
     (M.map (cutEnd c d u v)).count (.port e i) = M.count (.port e i) := by
   rw [Multiset.count_map, Multiset.count_eq_card_filter_eq]
   congr 1
@@ -140,11 +217,21 @@ end cut
 
 section place
 
+-- the renaming of the cells by `σ` and of the names by `g`
 variable {ν : Type} {σ : ℕ → ℕ} {g : ν → ℕ}
 
 /-- A renamed end is a port only if it was a port, of a cell renamed to that one. -/
-theorem endMap_eq_port {z : End ν} {e i : ℕ} (h : End.map σ g z = .port e i) :
-    ∃ x, z = .port x i ∧ e = σ x := by
+theorem endMap_eq_port
+    -- an end renamed to the port `i` of the cell `e`
+    {z : End ν}
+    {e i : ℕ}
+    (h : End.map σ g z = .port e i) :
+    -- there is a cell `x` such that
+    ∃ x,
+      -- the end was the port `i` of `x`,
+      z = .port x i ∧
+      -- and `x` is renamed to `e`
+      e = σ x := by
   cases z with
   | port x j =>
     simp only [End.map, End.port.injEq] at h
@@ -152,8 +239,18 @@ theorem endMap_eq_port {z : End ν} {e i : ℕ} (h : End.map σ g z = .port e i)
   | name y => cases h
 
 /-- Renaming the cells injectively keeps how many ends are a given port. -/
-theorem count_map_endMap [DecidableEq ν] {s : Set ℕ} (hσ : Set.InjOn σ s) {M : Multiset (End ν)}
-    (hM : ∀ y j, End.port y j ∈ M → y ∈ s) {x : ℕ} (hx : x ∈ s) (i : ℕ) :
+theorem count_map_endMap
+    [DecidableEq ν]
+    -- a set of cells on which `σ` is injective
+    {s : Set ℕ}
+    (hσ : Set.InjOn σ s)
+    -- ends whose ports are ports of cells of `s`
+    {M : Multiset (End ν)}
+    (hM : ∀ y j, End.port y j ∈ M → y ∈ s)
+    -- a port of a cell of `s`
+    {x : ℕ}
+    (hx : x ∈ s)
+    (i : ℕ) :
     (M.map (End.map σ g)).count (.port (σ x) i) = M.count (.port x i) := by
   rw [Multiset.count_map, Multiset.count_eq_card_filter_eq]
   congr 1
@@ -170,8 +267,15 @@ theorem count_map_endMap [DecidableEq ν] {s : Set ℕ} (hσ : Set.InjOn σ s) {
   | name y => simp [End.map]
 
 /-- A port of a cell outside the image of `σ` is not a renamed end. -/
-theorem count_map_endMap_eq_zero {s : Set ℕ} {M : Multiset (End ν)}
-    (hM : ∀ y j, End.port y j ∈ M → y ∈ s) {e : ℕ} (he : ∀ x ∈ s, σ x ≠ e) (i : ℕ) :
+theorem count_map_endMap_eq_zero
+    -- ends whose ports are ports of cells of `s`
+    {s : Set ℕ}
+    {M : Multiset (End ν)}
+    (hM : ∀ y j, End.port y j ∈ M → y ∈ s)
+    -- a port of a cell `e` that is not the image of a cell of `s`
+    {e : ℕ}
+    (he : ∀ x ∈ s, σ x ≠ e)
+    (i : ℕ) :
     (M.map (End.map σ g)).count (.port e i) = 0 := by
   rw [Multiset.count_eq_zero]
   intro hm
@@ -181,11 +285,23 @@ theorem count_map_endMap_eq_zero {s : Set ℕ} {M : Multiset (End ν)}
 
 end place
 
+-- ============================================================================================
+-- 3. Main result: an interaction keeps a graph well formed
+-- ============================================================================================
+
 /-- **An interaction keeps a graph well formed** (Lafont 1997, Section 1.2, page 73). If `G` is
 well formed and `Interact I G H`, then `H` is well formed: its cells have distinct numbers, each
 port of each cell ends exactly one wire, and each name ends at most one. Linearity of the rule is
 not needed, because the last condition is part of the definition of `Interact`. -/
-theorem Interact.wf {I : System S} {G H : Graph S ℕ} (h : Interact I G H) (hG : G.WF) :
+theorem Interact.wf
+    -- the interaction system
+    {I : System S}
+    -- an interaction from `G` to `H`
+    {G H : Graph S ℕ}
+    (h : Interact I G H)
+    -- `G` is well formed
+    (hG : G.WF) :
+    -- then so is `H`
     H.WF := by
   obtain ⟨c, d, α, β, C, W, n, r, hr, R, hR, σ, hσ, hσG, g, hg, hgW, H, hH, hH1⟩ := h
   set cut := cutEnd c d (fun i => g (.inl i)) (fun j => g (.inr (.inl j))) with hcut
