@@ -5,13 +5,23 @@ import InteractionCombinators.Text.RenameStep
 # Reduction up to wires inside a larger net
 
 Reduction is defined on graphs and is local: an interaction replaces an active pair and leaves
-the rest of the net untouched (Lafont 1997, Section 1.3, pages 71 to 73). In the text
-presentation, a reduction `StepsE I N M` can be done beside a context `Γ` (`StepsE.add_right`).
+the rest of the net untouched (Lafont 1997, Section 1.2, page 73). In the text presentation, a
+reduction `StepsE I N M` can be done beside a context `Γ` (`StepsE.add_right`).
 
 The wires created by a rule, and the intermediate names of a wire substitution, may clash with
 the names of `Γ`. Each step is therefore renamed first, by an injective `f` that fixes the names
 of the starting net and sends every other name above all the names of the net and of `Γ`. The
 result is the renamed net, which is `M` up to equivalence (`Net.equiv_bind_var`).
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas on the names of one interaction: `Step.count_vars` (every name keeps its
+   number of occurrences, except the new wires) and `Step.free_iff` (the free ports are kept).
+2. Auxiliary lemmas: renaming beside a context: `Net.Linear.bind_var_add_right` (a renamed net
+   sits linearly beside `Γ`) and `StepE.of_equiv` (an equivalence before a step is absorbed).
+3. Main results: `StepE.add_right` (one step beside `Γ`) and `StepsE.add_right` (a reduction
+   beside `Γ`).
+4. The hypotheses can hold: two `con` cells annihilate beside an `era` cell.
 -/
 
 namespace INet
@@ -20,12 +30,26 @@ variable {S : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas on the names of one interaction
+-- ============================================================================================
+
 /-- One interaction keeps every name except the wires it creates, which were unused and occur
-twice afterwards (Lafont 1997, Section 1.3, page 72: the right-hand side of a rule replaces the
+twice afterwards (Lafont 1997, Section 1.2, page 73: the right-hand side of a rule replaces the
 active pair, its internal wires are new). -/
-theorem Step.count_vars {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : Step I N M) (y : ℕ) :
-    M.vars.count y = N.vars.count y ∨ (N.vars.count y = 0 ∧ M.vars.count y = 2) := by
+theorem Step.count_vars
+    -- the interaction system, whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction from `N` to `M`
+    {N M : Net S ℕ}
+    (h : Step I N M)
+    -- the name whose occurrences are counted
+    (y : ℕ) :
+    -- either `y` occurs in `M` as often as in `N`,
+    M.vars.count y = N.vars.count y ∨
+      -- or `y` is a new wire: unused in `N`, it occurs twice in `M`
+      (N.vars.count y = 0 ∧ M.vars.count y = 2) := by
   obtain ⟨α, β, r, hr, as, bs, Δ, f, hf, hfresh⟩ := h
   simp only [Net.vars_cons, Net.vars_add, eqVars_mk, Term.vars_app, Multiset.count_add,
     Multiset.count_sum']
@@ -48,20 +72,43 @@ theorem Step.count_vars {I : System S} (hI : ∀ α β r, I.rule α β = some r 
     left
     omega
 
-/-- One interaction keeps the free ports (Lafont 1997, Section 1.3, page 72: the interface of
+/-- One interaction keeps the free ports (Lafont 1997, Section 1.2, page 73: the interface of
 the active pair is the interface of the right-hand side). -/
-theorem Step.free_iff {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (h : Step I N M) (y : ℕ) :
+theorem Step.free_iff
+    -- the interaction system, whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- one interaction from `N` to `M`
+    {N M : Net S ℕ}
+    (h : Step I N M)
+    -- the name looked at
+    (y : ℕ) :
+    -- `y` is a free port of `M` exactly when it is a free port of `N`
     M.vars.count y = 1 ↔ N.vars.count y = 1 := by
   rcases h.count_vars hI y with h | h <;> omega
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas: renaming beside a context
+-- ============================================================================================
+
 /-- A renaming `f`, injective, fixing the names of `N₀` and sending the other names out of `Γ`,
 places beside `Γ` every linear net with the free ports of `N₀`, when `N₀ + Γ` is linear
-(Lafont 1997, Section 1.2, page 71: `Γ` is plugged only into free ports). -/
-theorem Net.Linear.bind_var_add_right {N₀ Γ K : Net S ℕ} (f : ℕ → ℕ)
-    (hf : Function.Injective f) (hN₀ : (N₀ + Γ).Linear) (hfix : ∀ x ∈ N₀.vars, f x = x)
-    (hout : ∀ x, x ∉ N₀.vars → f x ∉ Γ.vars) (hK : K.Linear)
+(Lafont 1997, Section 1.1, pages 71 to 72: `Γ` is plugged only into free ports). -/
+theorem Net.Linear.bind_var_add_right
+    -- the net `N₀`, the context `Γ` and the net `K` to be placed beside `Γ`
+    {N₀ Γ K : Net S ℕ}
+    -- the renaming: injective
+    (f : ℕ → ℕ)
+    (hf : Function.Injective f)
+    -- `N₀` beside `Γ` is linear
+    (hN₀ : (N₀ + Γ).Linear)
+    -- the renaming fixes the names of `N₀` and sends the other names out of `Γ`
+    (hfix : ∀ x ∈ N₀.vars, f x = x)
+    (hout : ∀ x, x ∉ N₀.vars → f x ∉ Γ.vars)
+    -- `K` is linear, with the free ports of `N₀`
+    (hK : K.Linear)
     (hKf : ∀ y, K.vars.count y = 1 ↔ N₀.vars.count y = 1) :
+    -- the renamed `K` beside `Γ` is linear
     ((K.bind fun y => var (f y)) + Γ).Linear := by
   intro z
   have hNz := hN₀ z
@@ -84,13 +131,48 @@ theorem Net.Linear.bind_var_add_right {N₀ Γ K : Net S ℕ} (f : ℕ → ℕ)
     rw [Multiset.count_eq_zero_of_notMem hm]
     omega
 
+/-- An equivalence followed by one interaction up to wires is one interaction up to wires
+(Lafont 1997, Section 1.1, pages 71 to 72: nets are graphs, the names of wires do not
+matter). -/
+theorem StepE.of_equiv
+    -- the interaction system
+    {I : System S}
+    -- `N` is equivalent to `K`, which reduces to `M` by one interaction up to wires
+    {N K M : Net S ℕ}
+    (hE : Equiv N K)
+    (h : StepE I K M) :
+    -- `N` reduces to `M` by one interaction up to wires
+    StepE I N M := by
+  obtain ⟨K', hK, hS⟩ := h
+  exact ⟨K', hE.trans hK, hS⟩
+
+-- ============================================================================================
+-- 3. Main results: reduction beside a context
+-- ============================================================================================
+
 /-- **One interaction up to wires, inside a larger net.** If `N` reduces to `M` by one `StepE`
 and `N + Γ` is linear, then `N + Γ` reduces by one `StepE` to `M' + Γ`, where `M'` is `M` with
-its internal wires renamed away from the names of `Γ` (Lafont 1997, Section 1.3, pages 72 to
-73: reduction is local, and the names of wires do not matter). -/
-theorem StepE.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (Γ : Net S ℕ) (h : StepE I N M) (hN : (N + Γ).Linear) :
-    ∃ M', StepE I (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear := by
+its internal wires renamed away from the names of `Γ` (Lafont 1997, Section 1.2, page 73:
+reduction is local; Section 1.1, pages 71 to 72: the names of wires do not matter). -/
+theorem StepE.add_right
+    -- the interaction system, whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the nets `N` and `M`, and the context `Γ`
+    {N M : Net S ℕ}
+    (Γ : Net S ℕ)
+    -- `N` reduces to `M` by one interaction up to wires
+    (h : StepE I N M)
+    -- the net we start from, `N` beside `Γ`, is linear
+    (hN : (N + Γ).Linear) :
+    -- there is a net `M'` such that
+    ∃ M',
+      -- `N` beside `Γ` reduces by one interaction up to wires to `M'` beside `Γ`,
+      StepE I (N + Γ) (M' + Γ) ∧
+      -- `M'` is the same graph as `M`,
+      Equiv M' M ∧
+      -- and `M'` beside `Γ` is linear
+      (M' + Γ).Linear := by
   obtain ⟨N', hE, hS⟩ := h
   have hNl : N.Linear := fun y => by
     have := hN y
@@ -143,19 +225,29 @@ theorem StepE.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r 
   refine (Net.equiv_bind_var hMl f hf.injOn fun x hx => hfV x ?_).symm
   exact Multiset.one_le_count_iff_mem.1 (by have := (hMf x).1 hx; omega)
 
-/-- An equivalence followed by one interaction up to wires is one interaction up to wires. -/
-theorem StepE.of_equiv {I : System S} {N K M : Net S ℕ} (hE : Equiv N K) (h : StepE I K M) :
-    StepE I N M := by
-  obtain ⟨K', hK, hS⟩ := h
-  exact ⟨K', hE.trans hK, hS⟩
-
 /-- **Reduction up to wires inside a larger net.** If `N` reduces to `M` (`StepsE`) and `N + Γ`
 is linear, then `N + Γ` reduces to `M' + Γ`, where `M'` is equivalent to `M`: the wires created
 along the way are given names that avoid those of `Γ`. Reduction is local and defined on graphs
-(Lafont 1997, Section 1.3, pages 72 to 73), so it can be done inside any context. -/
-theorem StepsE.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r → r.Linear)
-    {N M : Net S ℕ} (Γ : Net S ℕ) (h : StepsE I N M) (hN : (N + Γ).Linear) :
-    ∃ M', StepsE I (N + Γ) (M' + Γ) ∧ Equiv M' M ∧ (M' + Γ).Linear := by
+(Lafont 1997, Section 1.2, page 73), so it can be done inside any context. -/
+theorem StepsE.add_right
+    -- the interaction system, whose rules are linear
+    {I : System S}
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the nets `N` and `M`, and the context `Γ`
+    {N M : Net S ℕ}
+    (Γ : Net S ℕ)
+    -- `N` reduces to `M` up to wires
+    (h : StepsE I N M)
+    -- the net we start from, `N` beside `Γ`, is linear
+    (hN : (N + Γ).Linear) :
+    -- there is a net `M'` such that
+    ∃ M',
+      -- `N` beside `Γ` reduces up to wires to `M'` beside `Γ`,
+      StepsE I (N + Γ) (M' + Γ) ∧
+      -- `M'` is the same graph as `M`,
+      Equiv M' M ∧
+      -- and `M'` beside `Γ` is linear
+      (M' + Γ).Linear := by
   induction h with
   | refl => exact ⟨N, Relation.ReflTransGen.refl, Equiv.refl N, hN⟩
   | tail _ hstep ih =>
@@ -163,16 +255,23 @@ theorem StepsE.add_right {I : System S} (hI : ∀ α β r, I.rule α β = some r
     obtain ⟨M₂, hs₂, hE₂, hl₂⟩ := (StepE.of_equiv hE hstep).add_right hI Γ hl
     exact ⟨M₂, hs.tail hs₂, hE₂, hl₂⟩
 
+-- ============================================================================================
+-- 4. The hypotheses can hold
+-- ============================================================================================
+
 section Example
 
 open Comb
 
 /-- Non-vacuity: two `con` cells annihilate beside a context `Γ` that plugs an `era` cell into
 the free port `0` of the active pair. -/
-example : ∃ M', StepsE system
-    (({s(mkCon (var 0) (var 1), mkCon (var 2) (var 3))} : CNet) + {s(var 0, mkEra)})
-    (M' + {s(var 0, mkEra)}) ∧
-    Equiv M' {s(var 0, var 3), s(var 1, var 2)} ∧ (M' + {s(var 0, mkEra)}).Linear := by
+example :
+    ∃ M',
+      StepsE system
+        (({s(mkCon (var 0) (var 1), mkCon (var 2) (var 3))} : CNet) + {s(var 0, mkEra)})
+        (M' + {s(var 0, mkEra)}) ∧
+      Equiv M' {s(var 0, var 3), s(var 1, var 2)} ∧
+      (M' + {s(var 0, mkEra)}).Linear := by
   refine StepsE.add_right system_wellFormed.linear _ ?_ ?_
   · have h := step_con_con (var 0) (var 1) (var 2) (var 3) 0
     simpa [Multiset.insert_eq_cons] using (Steps.single h).stepsE
