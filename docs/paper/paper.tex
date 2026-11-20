@@ -149,55 +149,42 @@ compiling interaction nets, and the combinators (in a symmetric variant, see
 Section~\ref{sec:limits}) are the basis of practical evaluators such as
 HVM~\cite{hvm2}.
 
-\paragraph{The gap.}
-The proof occupies Section~2 of the paper, pages 81 to 90, and is carried by its figures
-(Figs.~2 to~10 and a number of unnumbered pictures).
-A restricted case (recursion-free systems) is treated first, with a figure (Fig.~7) that shows
-the translations of two cells reducing to the translation of the right member of their rule. For
-the general case the translation is given (Fig.~10), and the proof ends with the sentence
+The proof is on paper. It occupies Section~2 of~\cite{lafont1997}, pages 81 to 90, and is
+carried by its figures (Figs.~2 to~10 and a number of unnumbered pictures). A restricted case,
+recursion-free systems, is treated first, with a figure (Fig.~7) that shows the translations of
+two cells reducing to the translation of the right member of their rule. For the general case
+the translation is given (Fig.~10), and the proof ends with the sentence
 
 \begin{quote}
 ``The reader is invited to complete the proof of Theorem~1 by working out the analogue of
 Fig.~7 for this translation.'' \pp{p.~90}
 \end{quote}
 
-We found no published completion of this step: later papers cite Theorem~1 as Lafont's and
-refer to his paper for the proof (Section~\ref{sec:related}). The step is not difficult in
-outline, but it composes every construction of the section (multiplexors, transpositors,
-selectors, copiers, codes, the decoder), and it is where the bookkeeping of which wire goes
-where must be right for all of them at once.
+We know of no machine-checked proof of the theorem (Section~\ref{sec:related}). This paper
+presents one, in Lean~4 with Mathlib. It follows Lafont's proof construction by construction
+and includes the analogue of Fig.~7 for the general translation. Specifically, the development
+contains:
 
-\paragraph{Contributions.}
-\begin{enumerate}[label=(\roman*)]
-\item A machine-checked proof of Theorem~1 in strict form, \cod{theorem\_1\_strict}, including
-  the step left to the reader (Section~\ref{sec:universality}). To our knowledge, and as of
-  November 2026, this is the first machine-checked proof of Lafont's universality theorem for
-  the interaction combinators, including the part of the proof the paper leaves to the reader.
-\item A textual presentation of nets (Section~\ref{sec:text}) and a machine-checked proof that
-  it is equivalent to nets as graphs, for objects up to isomorphism and for reduction
-  (Section~\ref{sec:graphs}). The precise statements are five, and we claim no more than them.
-\item The surrounding theory of Lafont's Section~1: strong confluence for the reduction of
-  graphs, uniqueness of normal forms and of the length of reductions
-  (Section~\ref{sec:confluence}), and Propositions~2, 3 and~4 with the bounds on the length of
-  simulations (Section~\ref{sec:translations}). Strong confluence of interaction nets has been
-  mechanized independently by others; we do not claim it as new (Section~\ref{sec:related}).
-\item Two additions to the published proof (Section~\ref{sec:findings}): an argument for the
-  symmetric decomposition of the rule of a symbol with itself, which the paper obtains from a
-  canonical decomposition that it does not define, and the observation that the simulation uses
-  only a decomposition of each rule, the other conditions on the system serving to produce
-  it.
-\item A version of the translation that computes, from explicit data, and worked examples:
-  unary addition and multiplication, with the translated cells of addition evaluated
-  (Section~\ref{sec:examples}).
-\item A report on the method: a swarm of autonomous agents that planned, proved and reviewed, a
-  mechanical gate, and adversarial reviews of definitions against the figures
-  (Section~\ref{sec:method}), with its failures, among them a mirrored construction that no
-  proof could have revealed.
-\end{enumerate}
+\begin{itemize}
+\item Theorem~1, in strict form (Section~\ref{sec:universality}), together with the results of
+  Section~1 of~\cite{lafont1997} that it rests on: strong confluence, uniqueness of normal
+  forms, and Propositions~2 to~4 (Sections~\ref{sec:confluence} and~\ref{sec:translations}).
+\item A textual representation of nets (Section~\ref{sec:text}), and a proof that it agrees with
+  nets as graphs, for the objects up to isomorphism and for reduction, in both directions
+  (Section~\ref{sec:graphs}).
+\item A proof of the symmetric decomposition of the rule of a symbol with itself, which the
+  paper obtains from a canonical decomposition that it does not define, and a statement of the
+  theorem in which the translation is computed from a decomposition of the rules given as data
+  (Sections~\ref{sec:findings} and~\ref{sec:examples}).
+\end{itemize}
 
-\paragraph{Notation and names.}
+The proofs were written by a swarm of autonomous language-model agents, against definitions and
+target statements fixed and reviewed by the author. Section~\ref{sec:method} describes how, and
+what went wrong.
+
+\paragraph{Notation.}
 We use Lafont's $\gamma$, $\delta$, $\varepsilon$ in the text. The Lean code calls them
-\cod{con}, \cod{dup} and \cod{era}, the names used in the HVM community. Lean identifiers are
+\cod{con}, \cod{dup} and \cod{era}. Lean identifiers are
 set in typewriter; all of them are in the namespace \cod{INet}, which we omit. Page numbers of
 the form \pp{p.~73} are journal pages of~\cite{lafont1997}. Lean code in boxes is cut
 mechanically from the sources; in the body of the paper the docstrings and comment lines are
