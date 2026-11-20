@@ -33,7 +33,7 @@ This file proves nothing new. It restates the main results in the order and with
 the paper, each as a theorem proved in one line from the theorem of the library that its
 docstring names. Lean checks that each statement written here follows from the library.
 
-Names. The code uses the names of HVM for the three combinators:
+Names. The code uses the following names for the three combinators:
 
 * `con` (`mkCon a b`) is Lafont's `γ`, the constructor, of arity 2;
 * `dup` (`mkDup a b`) is Lafont's `δ`, the duplicator, of arity 2;

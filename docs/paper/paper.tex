@@ -730,17 +730,14 @@ Proposition~4. No reduction of a translated net was run.
 The definitions of Section~\ref{sec:text} and the statement of Theorem~1 were written by the
 author, with an AI assistant, before the swarm was started, and were then fixed: no agent could
 change them. The graph definitions of Section~\ref{sec:graphs} were written by the author in the
-same way, after Theorem~1 had been proved, except the definition of interaction on graphs, which
-was written by an agent. The file \cod{Results.lean}, from which the boxed statements of this
-paper are quoted, was written by the author and restates theorems of the library. Apart from
-Theorem~1, the multiplexor property and the well-formedness of the combinators, which are the
-author's, these were stated and proved by agents. After Theorem~1 had been proved, every definition taken from a
+same way, after Theorem~1 had been proved. The file \cod{Results.lean}, from which the boxed statements of this
+paper are quoted, was written by the author and restates theorems of the library. After Theorem~1 had been proved, every definition taken from a
 figure of \pp{Sections~2.1 to~2.7} was compared with its figure, wire by wire, under the port
 convention of Section~\ref{sec:background}. Finally the author reviewed again the statements of
 the main results, and the definitions they depend on, against the paper.
 
 The proofs were written by a swarm of autonomous language-model agents, at most two running at
-a time, with no human answering their questions. A planning agent turned a roadmap into tasks,
+a time, with no human answering their questions. The agentes only stopped when having design issues or major changes, which were then decided by the human. A planning agent turned a roadmap into tasks,
 each asking for one lemma or for the review of one definition. A working agent took a task,
 wrote Lean on its own branch, and submitted it. A reviewing agent, given a definition written
 by another, compared it with the page of the paper and tried to refute the statements about
