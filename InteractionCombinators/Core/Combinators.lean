@@ -3,7 +3,7 @@ import InteractionCombinators.Core.System
 /-!
 # The interaction combinators
 
-Lafont's system: three symbols and six rules. The names follow HVM: `con` is Lafont's constructor
+Lafont's system: three symbols and six rules. The names: `con` is Lafont's constructor
 `γ`, `dup` his duplicator `δ`, and `era` his eraser `ε`.
 
 Port order follows Lafont's Fig. 2. Annihilation of two `con` cells exchanges the auxiliary ports;

@@ -6,7 +6,7 @@ import Mathlib.Data.String.Basic
 # Demo: printing trees and nets of combinators, and the number of cells
 
 Trees of combinators are printed as `con(a, b)`, `dup(a, b)` and `era`, a name as its number
-(the names follow HVM: `con` is Lafont's `γ`, `dup` his `δ`, `era` his `ε`; Lafont 1997,
+(`con` is Lafont's `γ`, `dup` his `δ`, `era` his `ε`; Lafont 1997,
 Section 2.1, page 82).
 
 * `Comb.Term.toStr` — the text of a tree, and an instance `ToString (Term sig ℕ)`, so that
@@ -49,7 +49,7 @@ def Net.size
 
 namespace Comb
 
-/-- The name of a combinator, in the names of HVM (page 82). -/
+/-- The name of a combinator, as printed (page 82). -/
 def name :
     Comb → String
   | con => "con"

@@ -20,8 +20,8 @@ by hand, so it is computed.
   is strict and compatible with the rules of unary addition and of the combinators.
 * `two_plus_two_in_combinators_computed` — `2 + 2 = 4` through this translation.
 
-The nets `[0]`, `[S]`, `[add]` are evaluated by `#guard` at the end of the file (the names
-follow HVM: `con` is `γ`, `dup` is `δ`, `era` is `ε`):
+The nets `[0]`, `[S]`, `[add]` are evaluated by `#guard` at the end of the file (`con` is
+`γ`, `dup` is `δ`, `era` is `ε`):
 
 | `α`   | cells | internal wires |
 |-------|------:|---------------:|

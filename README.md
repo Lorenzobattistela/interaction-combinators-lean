@@ -24,9 +24,9 @@ by Lean. The paper in `docs/paper/` describes the formalization and how it was p
 
 ## Names
 
-The code uses the following names for the three combinators: `con` is Lafont's γ (constructor), `dup` is δ (duplicator) and
-`era` is ε (eraser). The system is Lafont's, not the symmetric one: `con`–`con` annihilation
-exchanges the auxiliary ports, `dup`–`dup` does not.
+The code uses the following names for the three combinators: `con` is Lafont's γ (constructor),
+`dup` is δ (duplicator) and `era` is ε (eraser). The system is Lafont's, not the symmetric one:
+`con`–`con` annihilation exchanges the auxiliary ports, `dup`–`dup` does not.
 
 ## How nets are represented
 
