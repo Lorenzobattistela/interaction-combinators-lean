@@ -18,6 +18,17 @@ that fixes its free ports (`Net.equiv_bind_var`).
 
 Concrete checks on translations whose principal net has an internal wire are in
 `NetTrEquivCheck.lean`.
+
+Contents, in the order of the file:
+
+1. Definitions: `Zip.proj`, the projection of a net of pairs of names, and `Zip.EvenOff`, every
+   off-diagonal pair occurs an even number of times.
+2. Auxiliary lemmas on nets of pairs: `Multiset.count_add_count_le_count_map`, `Zip.injOn` (a
+   linear projection is injective on the names), `Zip.equiv` (the two projections are the same
+   graph).
+3. Auxiliary lemmas: pairing two translations. `Translation.TermTr.zip` (of a tree),
+   `Translation.EqTr.zip` (of an equation), `Translation.rel_zip` (of a net).
+4. Main result: `Translation.NetTr.equiv`, two translations of a net are the same graph.
 -/
 
 namespace INet
@@ -26,10 +37,48 @@ variable {S S' : Signature}
 
 open Term
 
+-- ============================================================================================
+-- 1. Definitions
+-- ============================================================================================
+
+namespace Zip
+
+/-- The projection of a net of pairs of names: every pair `p` replaced by `g p`. -/
+abbrev proj
+    -- the projection of a pair of names
+    (g : ℕ × ℕ → ℕ)
+    -- the net of pairs
+    (Z : Net S (ℕ × ℕ)) :
+    Net S ℕ :=
+  Z.bind fun p => var (g p)
+
+/-- Every pair of distinct names occurs an even number of times. -/
+def EvenOff
+    -- the names of a net of pairs
+    (m : Multiset (ℕ × ℕ)) :
+    Prop :=
+  ∀ p : ℕ × ℕ, p.1 ≠ p.2 → Even (m.count p)
+
+end Zip
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas on nets of pairs
+-- ============================================================================================
+
 /-- In a multiset, two distinct elements with the same image together occur at most as often as
 their common image in the image multiset. -/
-theorem _root_.Multiset.count_add_count_le_count_map {α β : Type} [DecidableEq α] [DecidableEq β]
-    (g : α → β) (s : Multiset α) {p q : α} (hpq : p ≠ q) (hg : g p = g q) :
+theorem _root_.Multiset.count_add_count_le_count_map
+    -- the types, with decidable equality
+    {α β : Type}
+    [DecidableEq α]
+    [DecidableEq β]
+    -- the map and the multiset
+    (g : α → β)
+    (s : Multiset α)
+    -- two distinct elements with the same image
+    {p q : α}
+    (hpq : p ≠ q)
+    (hg : g p = g q) :
     s.count p + s.count q ≤ (s.map g).count (g p) := by
   rw [Multiset.count_map, Multiset.count_eq_card_filter_eq, Multiset.count_eq_card_filter_eq,
     ← Multiset.card_add, Multiset.filter_add_filter]
@@ -43,17 +92,20 @@ theorem _root_.Multiset.count_add_count_le_count_map {α β : Type} [DecidableEq
 
 namespace Zip
 
-/-- The projection of a net of pairs of names: every pair `p` replaced by `g p`. -/
-abbrev proj (g : ℕ × ℕ → ℕ) (Z : Net S (ℕ × ℕ)) : Net S ℕ := Z.bind fun p => var (g p)
-
-/-- Every pair of distinct names occurs an even number of times. -/
-def EvenOff (m : Multiset (ℕ × ℕ)) : Prop := ∀ p : ℕ × ℕ, p.1 ≠ p.2 → Even (m.count p)
-
 /-- In a net of pairs where every off-diagonal pair occurs an even number of times, a projection
 that is linear is injective on the names: two distinct pairs with the same image would give that
 image three or four occurrences. -/
-theorem injOn {Z : Net S (ℕ × ℕ)} {g : ℕ × ℕ → ℕ} (hg : ∀ x, g (x, x) = x)
-    (hlin : (proj g Z).Linear) (hev : EvenOff Z.vars) : Set.InjOn g {p | p ∈ Z.vars} := by
+theorem injOn
+    -- the net of pairs
+    {Z : Net S (ℕ × ℕ)}
+    -- a projection that sends each diagonal pair `(x, x)` to `x`
+    {g : ℕ × ℕ → ℕ}
+    (hg : ∀ x, g (x, x) = x)
+    -- the projection of `Z` is linear
+    (hlin : (proj g Z).Linear)
+    -- every off-diagonal pair occurs an even number of times in `Z`
+    (hev : EvenOff Z.vars) :
+    Set.InjOn g {p | p ∈ Z.vars} := by
   intro p hp q hq hpq
   by_contra hne
   have c := Multiset.count_add_count_le_count_map g Z.vars hne hpq
@@ -76,8 +128,14 @@ theorem injOn {Z : Net S (ℕ × ℕ)} {g : ℕ × ℕ → ℕ} (hg : ∀ x, g (
 /-- **Equivalence of the two projections of a net of pairs.** If both projections are linear and
 every off-diagonal pair occurs an even number of times, the two projections are the same graph:
 the second is a renaming of the first that keeps its names distinct and fixes its free ports. -/
-theorem equiv {Z : Net S (ℕ × ℕ)} (h₁ : (proj Prod.fst Z).Linear) (h₂ : (proj Prod.snd Z).Linear)
-    (hev : EvenOff Z.vars) : Equiv (proj Prod.fst Z) (proj Prod.snd Z) := by
+theorem equiv
+    -- the net of pairs, with both projections linear
+    {Z : Net S (ℕ × ℕ)}
+    (h₁ : (proj Prod.fst Z).Linear)
+    (h₂ : (proj Prod.snd Z).Linear)
+    -- every off-diagonal pair occurs an even number of times in `Z`
+    (hev : EvenOff Z.vars) :
+    Equiv (proj Prod.fst Z) (proj Prod.snd Z) := by
   classical
   have i₁ := injOn (fun _ => rfl) h₁ hev
   have i₂ := injOn (fun _ => rfl) h₂ hev
@@ -113,6 +171,10 @@ theorem equiv {Z : Net S (ℕ × ℕ)} (h₁ : (proj Prod.fst Z).Linear) (h₂ :
 
 end Zip
 
+-- ============================================================================================
+-- 3. Auxiliary lemmas: pairing two translations
+-- ============================================================================================
+
 namespace Translation
 
 variable {Φ : Translation S S'}
@@ -122,9 +184,19 @@ there is a tree over pairs of names whose two projections are `t₁` and `t₂`,
 off-diagonal pair occurs an even number of times: the names of the source tree are paired with
 themselves, and the internal wires of the instances (two ends each) with each other. (Lafont 1997,
 Section 1.7, page 80.) -/
-theorem TermTr.zip {t : Term S ℕ} {t₁ t₂ : Term S' ℕ} (h₁ : Φ.TermTr t t₁) (h₂ : Φ.TermTr t t₂) :
-    ∃ z : Term S' (ℕ × ℕ), z.bind (fun p => Term.var p.1) = t₁ ∧
+theorem TermTr.zip
+    -- the source tree and two of its translations
+    {t : Term S ℕ}
+    {t₁ t₂ : Term S' ℕ}
+    (h₁ : Φ.TermTr t t₁)
+    (h₂ : Φ.TermTr t t₂) :
+    -- there is a tree `z` over pairs of names such that
+    ∃ z : Term S' (ℕ × ℕ),
+      -- its first projection is `t₁`,
+      z.bind (fun p => Term.var p.1) = t₁ ∧
+      -- its second projection is `t₂`,
       z.bind (fun p => Term.var p.2) = t₂ ∧
+      -- and every off-diagonal pair occurs in it an even number of times
       Zip.EvenOff z.vars := by
   induction h₁ generalizing t₂ with
   | var x =>
@@ -157,11 +229,21 @@ theorem TermTr.zip {t : Term S ℕ} {t₁ t₂ : Term S' ℕ} (h₁ : Φ.TermTr 
         rw [← Finset.mul_sum]
         exact even_two_mul _
 
-/-- Two translations of an equation, paired. -/
-theorem EqTr.zip {e : Sym2 (Term S ℕ)} {e₁ e₂ : Sym2 (Term S' ℕ)} (h₁ : Φ.EqTr e e₁)
+/-- Two translations of an equation, paired (Lafont 1997, Section 1.7, page 80). -/
+theorem EqTr.zip
+    -- the source equation and two of its translations
+    {e : Sym2 (Term S ℕ)}
+    {e₁ e₂ : Sym2 (Term S' ℕ)}
+    (h₁ : Φ.EqTr e e₁)
     (h₂ : Φ.EqTr e e₂) :
-    ∃ z : Sym2 (Term S' (ℕ × ℕ)), z.map (Term.bind fun p => Term.var p.1) = e₁ ∧
-      z.map (Term.bind fun p => Term.var p.2) = e₂ ∧ Zip.EvenOff (eqVars z) := by
+    -- there is an equation `z` over pairs of names such that
+    ∃ z : Sym2 (Term S' (ℕ × ℕ)),
+      -- its first projection is `e₁`,
+      z.map (Term.bind fun p => Term.var p.1) = e₁ ∧
+      -- its second projection is `e₂`,
+      z.map (Term.bind fun p => Term.var p.2) = e₂ ∧
+      -- and every off-diagonal pair occurs in it an even number of times
+      Zip.EvenOff (eqVars z) := by
   obtain ⟨a, b, a₁, b₁, rfl, rfl, ha₁, hb₁⟩ := h₁
   obtain ⟨c, d, c₂, d₂, he, rfl, hc₂, hd₂⟩ := h₂
   have key : ∀ {a b : Term S ℕ} {a₁ b₁ a₂ b₂ : Term S' ℕ}, Φ.TermTr a a₁ → Φ.TermTr b b₁ →
@@ -179,10 +261,21 @@ theorem EqTr.zip {e : Sym2 (Term S ℕ)} {e₁ e₂ : Sym2 (Term S' ℕ)} (h₁ 
   · obtain ⟨z, z₁, z₂, ze⟩ := key ha₁ hb₁ hd₂ hc₂
     exact ⟨z, z₁, z₂.trans Sym2.eq_swap, ze⟩
 
-/-- Two translations of a net, paired equation by equation. -/
-theorem rel_zip {N : Net S ℕ} {N₁ N₂ : Net S' ℕ} (h₁ : Multiset.Rel Φ.EqTr N N₁)
+/-- Two translations of a net, paired equation by equation (Lafont 1997, Section 1.7,
+page 80). -/
+theorem rel_zip
+    -- the source net and two nets related to it equation by equation by translation
+    {N : Net S ℕ}
+    {N₁ N₂ : Net S' ℕ}
+    (h₁ : Multiset.Rel Φ.EqTr N N₁)
     (h₂ : Multiset.Rel Φ.EqTr N N₂) :
-    ∃ Z : Net S' (ℕ × ℕ), Zip.proj Prod.fst Z = N₁ ∧ Zip.proj Prod.snd Z = N₂ ∧
+    -- there is a net `Z` over pairs of names such that
+    ∃ Z : Net S' (ℕ × ℕ),
+      -- its first projection is `N₁`,
+      Zip.proj Prod.fst Z = N₁ ∧
+      -- its second projection is `N₂`,
+      Zip.proj Prod.snd Z = N₂ ∧
+      -- and every off-diagonal pair occurs in it an even number of times
       Zip.EvenOff Z.vars := by
   induction N using Multiset.induction_on generalizing N₁ N₂ with
   | empty =>
@@ -202,12 +295,23 @@ theorem rel_zip {N : Net S ℕ} {N₁ N₂ : Net S' ℕ} (h₁ : Multiset.Rel Φ
     · rw [Net.vars_cons, Multiset.count_add]
       exact (ze p hp).add (Ze p hp)
 
+-- ============================================================================================
+-- 4. Main result: two translations of a net are the same graph
+-- ============================================================================================
+
 /-- **Two translations of a net are the same graph.** If `N₁` and `N₂` are translations of the net
 `N`, they differ only by the names of the internal wires of the instances, and `N₁` is equivalent
 to `N₂`. (Lafont 1997, Section 1.7, page 80: the translation of a net is defined up to the names
 of the new wires.) -/
-theorem NetTr.equiv {Φ : Translation S S'} {N : Net S ℕ} {N₁ N₂ : Net S' ℕ}
-    (h₁ : Φ.NetTr N N₁) (h₂ : Φ.NetTr N N₂) : Equiv N₁ N₂ := by
+theorem NetTr.equiv
+    -- the translation
+    {Φ : Translation S S'}
+    -- the source net and two of its translations
+    {N : Net S ℕ}
+    {N₁ N₂ : Net S' ℕ}
+    (h₁ : Φ.NetTr N N₁)
+    (h₂ : Φ.NetTr N N₂) :
+    Equiv N₁ N₂ := by
   obtain ⟨Z, rfl, rfl, hev⟩ := rel_zip h₁.rel h₂.rel
   exact Zip.equiv h₁.linear h₂.linear hev
 
