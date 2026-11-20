@@ -9,14 +9,6 @@ is a cut, and a strict translation keeps it a cut. The right member has no cut, 
 translation of a net without a cut has none (Proposition 3, page 80). So the two translations
 are not the same graph, and the reduction from one to the other is not empty.
 
-* `Rule.not_hasCut_inst` — an instance of a linear reduced rule, with distinct names on the
-  ports, has no cut.
-* `Translation.hasCut_pair` — the translations of two cells by a strict `Φ`, plugged by their
-  roots, form a cut.
-* `Translation.not_equiv_pair_of_strict` — the two are not the same graph: a simulating
-  reduction is never empty.
-* `Translation.CompatibleWithin.pos` — `L` can be raised to `max L 1`.
-
 The definition of `Translation.Compatible` lets the names `xs`, `ys` on the ports of the two
 cells be equal. Then the second point fails: with the identity translation and the rule
 `α β ↦ {x₀ = α(w), y₀ = β(w)}`, the net `α(z) = β(z)` (`xs 0 = ys 0 = z`) is already the same
@@ -24,6 +16,19 @@ graph as the right member. The paper has distinct names, and `not_equiv_pair_of_
 them. `CompatibleWithin.pos` holds for all names, because Proposition 4 only uses the rule with
 fresh distinct names (`Translation.CompatibleByDistinct.step`), and a pair with equal names is
 simulated through one with distinct names.
+
+Contents, in the order of the file:
+
+1. Auxiliary lemmas, the right member of a rule has no cut: `Rule.Reduced.mem_inst` (every
+   equation of an instance has a port name on one side), `Rule.count_inst_port` (the port names
+   occur once), `Rule.not_hasCut_inst` (an instance of a linear reduced rule, with distinct names
+   on the ports, has no cut).
+2. Auxiliary lemmas, a strict translation keeps the cut: `Translation.hasCut_pair` (the
+   translations of two cells by a strict `Φ`, plugged by their roots, form a cut),
+   `Translation.not_equiv_pair_of_strict` (they are not the same graph as a translation of the
+   right member: a simulating reduction is never empty),
+   `Translation.CompatibleWithin.distinct_pos` (`L` can be raised to `max L 1` for distinct names).
+3. Main result: `Translation.CompatibleWithin.pos`, `L` can be raised to `max L 1` (page 81).
 -/
 
 namespace INet
@@ -36,11 +41,23 @@ namespace Rule
 
 variable {a b : ℕ}
 
+-- ============================================================================================
+-- 1. Auxiliary lemmas: the right member of a rule has no cut
+-- ============================================================================================
+
 /-- **An equation of an instance of a reduced rule** has, on one side, one of the names put on
-the ports (Lafont 1997, page 72: the right member is a reduced net). -/
-theorem Reduced.mem_inst {r : Rule S a b} (hr : r.Reduced) {xs : Fin a → ℕ} {ys : Fin b → ℕ}
-    {h : Fin r.internal → ℕ} {e : Sym2 (Term S ℕ)}
+the ports (Lafont 1997, page 79: the right member is a reduced net). -/
+theorem Reduced.mem_inst
+    -- a reduced rule
+    {r : Rule S a b}
+    (hr : r.Reduced)
+    -- the names on the ports, the names of the internal wires, and an equation of the instance
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    {h : Fin r.internal → ℕ}
+    {e : Sym2 (Term S ℕ)}
     (he : e ∈ r.inst (fun i => var (xs i)) (fun j => var (ys j)) h) :
+    -- the equation is `p = t`, where `p` is the name on one of the ports
     ∃ p t, e = s(var p, t) ∧ ((∃ i, p = xs i) ∨ ∃ j, p = ys j) := by
   rw [Rule.inst, Net.bind, Multiset.mem_map] at he
   obtain ⟨e₀, he₀, rfl⟩ := he
@@ -50,13 +67,25 @@ theorem Reduced.mem_inst {r : Rule S a b} (hr : r.Reduced) {xs : Fin a → ℕ} 
   · exact ⟨ys j, _, rfl, Or.inr ⟨j, rfl⟩⟩
   · exact absurd rfl (hp w)
 
-/-- **The ports of an instance are free** (Lafont 1997, page 72). In a linear instance of a
+/-- **The ports of an instance are free** (Lafont 1997, page 73). In a linear instance of a
 linear rule, with distinct names on the ports, each of these names occurs once. -/
-theorem count_inst_port {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ} {ys : Fin b → ℕ}
-    (hx : Function.Injective xs) (hy : Function.Injective ys) (hxy : ∀ i j, xs i ≠ ys j)
+theorem count_inst_port
+    -- a linear rule
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    -- distinct names on the ports
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear
     {h : Fin r.internal → ℕ}
-    (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear) {p : ℕ}
+    (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear)
+    -- the name on one of the ports
+    {p : ℕ}
     (hp : (∃ i, p = xs i) ∨ ∃ j, p = ys j) :
+    -- it occurs at most once in the instance
     (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).vars.count p ≤ 1 := by
   have h2 := hl p
   rw [count_vars_inst r hrl] at h2 ⊢
@@ -72,15 +101,26 @@ theorem count_inst_port {r : Rule S a b} (hrl : r.Linear) {xs : Fin a → ℕ} {
       simp [fun i => (hxy i j₀).symm]
     omega
 
-/-- **The right member of a rule has no cut** (Lafont 1997, page 72: it is a reduced net). An
+/-- **The right member of a rule has no cut** (Lafont 1997, page 79: it is a reduced net). An
 instance of a linear reduced rule, linear, with distinct names on the ports, has no cut: a cut
 would be a chain of wires `a = z₁, …, zₖ = b` between two cells, and every equation of the
 instance has a free port on one side, which can be neither a cell nor a link `zᵢ` of the
 chain. -/
-theorem not_hasCut_inst {r : Rule S a b} (hrl : r.Linear) (hr : r.Reduced) {xs : Fin a → ℕ}
-    {ys : Fin b → ℕ} (hx : Function.Injective xs) (hy : Function.Injective ys)
-    (hxy : ∀ i j, xs i ≠ ys j) {h : Fin r.internal → ℕ}
+theorem not_hasCut_inst
+    -- a linear reduced rule
+    {r : Rule S a b}
+    (hrl : r.Linear)
+    (hr : r.Reduced)
+    -- distinct names on the ports
+    {xs : Fin a → ℕ}
+    {ys : Fin b → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires, such that the instance is linear
+    {h : Fin r.internal → ℕ}
     (hl : (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).Linear) :
+    -- the instance has no cut
     ¬ (r.inst (fun i => var (xs i)) (fun j => var (ys j)) h).HasCut := by
   intro hc
   obtain ⟨A, B, zs, D, hA, hB, hN⟩ := hc.chainCut
@@ -110,12 +150,24 @@ namespace Translation
 
 variable {Φ : Translation S S'}
 
+-- ============================================================================================
+-- 2. Auxiliary lemmas: a strict translation keeps the cut
+-- ============================================================================================
+
 /-- **The translation of a cut by a strict translation is a cut** (Lafont 1997, page 80, second
 point of the proof of Proposition 3, for the left member of a rule): the translations of two
 cells by a strict `Φ`, plugged by their roots, have a cell on each side. -/
-theorem hasCut_pair (hΦ : Φ.Strict) (α β : S.Sym) (xs : Fin (S.arity α) → ℕ)
-    (ys : Fin (S.arity β) → ℕ) (f : Fin (Φ.net α).internal → ℕ)
+theorem hasCut_pair
+    -- a strict translation
+    (hΦ : Φ.Strict)
+    -- two symbols, and the names on their auxiliary ports
+    (α β : S.Sym)
+    (xs : Fin (S.arity α) → ℕ)
+    (ys : Fin (S.arity β) → ℕ)
+    -- the names of the internal wires of the two translations
+    (f : Fin (Φ.net α).internal → ℕ)
     (g : Fin (Φ.net β).internal → ℕ) :
+    -- the two translations, plugged by their roots, form a cut
     Net.HasCut ({s((Φ.net α).inst (fun i => .var (xs i)) f,
       (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) := by
   obtain ⟨γ, us, hγ⟩ := (hΦ α).inst_eq_app (fun i => .var (xs i)) f
@@ -129,12 +181,29 @@ page 81: "`L > 0` if `Φ` is strict"). Let `Φ` be strict and `I` well-formed, `
 roots, are not the same graph as a translation `N'` of the right member of `r`: the first net
 has a cut (`hasCut_pair`), and `N'` has none, since the right member has none
 (`Rule.not_hasCut_inst`) and a translation reflects cuts (Proposition 3, page 80). -/
-theorem not_equiv_pair_of_strict {I : System S} (hΦ : Φ.Strict) (hI : I.WellFormed)
-    {α β : S.Sym} {r : Rule S (S.arity α) (S.arity β)} (hr : I.rule α β = some r)
-    {xs : Fin (S.arity α) → ℕ} {ys : Fin (S.arity β) → ℕ} (hx : Function.Injective xs)
-    (hy : Function.Injective ys) (hxy : ∀ i j, xs i ≠ ys j) (f : Fin (Φ.net α).internal → ℕ)
-    (g : Fin (Φ.net β).internal → ℕ) {h : Fin r.internal → ℕ} {N' : Net S' ℕ}
+theorem not_equiv_pair_of_strict
+    -- a strict translation of a well-formed system
+    {I : System S}
+    (hΦ : Φ.Strict)
+    (hI : I.WellFormed)
+    -- the rule of `α` and `β`
+    {α β : S.Sym}
+    {r : Rule S (S.arity α) (S.arity β)}
+    (hr : I.rule α β = some r)
+    -- distinct names on the auxiliary ports
+    {xs : Fin (S.arity α) → ℕ}
+    {ys : Fin (S.arity β) → ℕ}
+    (hx : Function.Injective xs)
+    (hy : Function.Injective ys)
+    (hxy : ∀ i j, xs i ≠ ys j)
+    -- the names of the internal wires of the two translations
+    (f : Fin (Φ.net α).internal → ℕ)
+    (g : Fin (Φ.net β).internal → ℕ)
+    -- a translation `N'` of an instance of the right member of `r`
+    {h : Fin r.internal → ℕ}
+    {N' : Net S' ℕ}
     (hT : Φ.NetTr (r.inst (fun i => .var (xs i)) (fun j => .var (ys j)) h) N') :
+    -- the two translations, plugged by their roots, are not the same graph as `N'`
     ¬ Equiv ({s((Φ.net α).inst (fun i => .var (xs i)) f,
       (Φ.net β).inst (fun j => .var (ys j)) g)} : Net S' ℕ) N' := fun e =>
   Rule.not_hasCut_inst (hI.linear _ _ _ hr) (hI.reduced _ _ _ hr) hx hy hxy hT.linear_source
@@ -143,8 +212,16 @@ theorem not_equiv_pair_of_strict {I : System S} (hΦ : Φ.Strict) (hI : I.WellFo
 /-- With distinct names on the ports, a strict translation compatible within `L` and `M` is
 compatible within `max L 1` and `M`: the reduction of length `0` is excluded by
 `not_equiv_pair_of_strict` (Lafont 1997, page 81). -/
-theorem CompatibleWithin.distinct_pos {I : System S} {I' : System S'} {L M : ℕ}
-    (hΦ : Φ.Strict) (hI : I.WellFormed) (h : Φ.CompatibleWithin I I' L M) :
+theorem CompatibleWithin.distinct_pos
+    -- the two systems and the bounds
+    {I : System S}
+    {I' : System S'}
+    {L M : ℕ}
+    -- `Φ` is strict, `I` is well-formed, and `Φ` simulates every rule in `L` to `M` interactions
+    (hΦ : Φ.Strict)
+    (hI : I.WellFormed)
+    (h : Φ.CompatibleWithin I I' L M) :
+    -- for distinct names on the ports, every rule is simulated in `max L 1` to `M` interactions
     Φ.CompatibleByDistinct I fun N K => ∃ k, max L 1 ≤ k ∧ k ≤ M ∧ StepsEN I' k N K := by
   intro α β r hr xs ys f g hx hy hxy hl
   obtain ⟨M₁, N', h₁, ⟨k, hL, hM, hk⟩, hE, hT⟩ := h α β r hr xs ys f g hl
@@ -154,18 +231,32 @@ theorem CompatibleWithin.distinct_pos {I : System S} {I' : System S'} {L M : ℕ
     exact absurd hE (not_equiv_pair_of_strict hΦ hI hr hx hy hxy f g hT)
   · exact hk0
 
+-- ============================================================================================
+-- 3. Main result: `L > 0` if `Φ` is strict
+-- ============================================================================================
+
 /-- **`L > 0` if `Φ` is strict** (Lafont 1997, page 81). If a strict translation `Φ` of a
 well-formed system `I` simulates every rule in `k` interactions, `L ≤ k ≤ M`, it simulates every
 rule in `k` interactions, `max L 1 ≤ k ≤ M`: every simulating reduction has length at least `1`.
-The rules of `I'` are linear, as Lafont's rules are (page 72), as in Proposition 4.
+The rules of `I'` are linear, as Lafont's rules are (page 73), as in Proposition 4.
 
 For distinct names on the ports this is `CompatibleWithin.distinct_pos`. For names that are
 equal, the pair `α(xs) = β(ys)` interacts in `I`, and the simulation of that interaction
 (`CompatibleByDistinct.step`, the proof of Proposition 4) only uses the rule with fresh distinct
 names. -/
-theorem CompatibleWithin.pos {I : System S} {I' : System S'} {L M : ℕ} (hΦ : Φ.Strict)
-    (hI : I.WellFormed) (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
-    (h : Φ.CompatibleWithin I I' L M) : Φ.CompatibleWithin I I' (max L 1) M := by
+theorem CompatibleWithin.pos
+    -- the two systems and the bounds
+    {I : System S}
+    {I' : System S'}
+    {L M : ℕ}
+    -- `Φ` is strict, `I` is well-formed, and the rules of `I'` are linear
+    (hΦ : Φ.Strict)
+    (hI : I.WellFormed)
+    (hI' : ∀ α β r, I'.rule α β = some r → r.Linear)
+    -- `Φ` simulates every rule in `L` to `M` interactions
+    (h : Φ.CompatibleWithin I I' L M) :
+    -- `Φ` simulates every rule in `max L 1` to `M` interactions
+    Φ.CompatibleWithin I I' (max L 1) M := by
   intro α β r hr xs ys f g hlin
   let A : Sym2 (Term S ℕ) := s(.app α fun i => .var (xs i), .app β fun j => .var (ys j))
   let k : ℕ := (Net.vars ({A} : Net S ℕ)).sup + 1
