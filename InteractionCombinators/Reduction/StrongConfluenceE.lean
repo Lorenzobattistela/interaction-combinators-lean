@@ -10,7 +10,7 @@ from one net `N` fire in two texts `N₁`, `N₂` of `N`, and an active pair of 
 equation of `N₁`: in `x = α(…), x = β(…)` it is behind the wire `x`.
 
 **The transport lemma.** An active pair of a text is followed through every other text of the
-same graph as a *written chain* (`Cut.chain`, `Lafont/CutChain.lean`)
+same graph as a *written chain* (`Cut.chain`, `InteractionCombinators/Reduced/CutChain.lean`)
 
   `α(as) = x₁, x₁ = x₂, …, xₖ = β(bs)`, plus the rest `D` of the net,
 
@@ -26,6 +26,20 @@ substitutions (`ChainPair.contract`), which keep a chain of length `0`, that is,
 **Proposition 1 up to wires** (`StepE.strong_confluence`). The two active pairs fired from `N₁` and
 `N₂` are chains of `N₁`. Contract the second one: in the net `K` reached, both are equations, and
 `Step.strong_confluence` applies to `K`.
+
+Contents, in the order of the file:
+
+1. Definition: `ChainPair`, an active pair written as a chain, with its interaction.
+2. Auxiliary lemmas, instances of a rule and wire substitution: `subst_app`, `sub_inst`,
+   `mem_vars_inst_left`, `mem_vars_inst_right`, `mem_vars_app`.
+3. Auxiliary lemmas, a chain with its interaction: `count_vars_short`, `linear_short`,
+   `notMem_short` (the equation between the two ends of a chain), `ChainPair.of_step`,
+   `ChainPair.step`, `linear_inst_chain`, `ChainPair.refresh`, `mem_ends_of_mem_chain`,
+   `ChainPair.wire`, `chain_replace_cell`, `ChainPair.unsub`, `ChainPair.wire_symm`, and the
+   transport lemma `ChainPair.of_equiv`.
+4. Auxiliary lemmas, contracting a chain: `equiv_of_wires`, `wires_chain`, `ChainPair.contract`,
+   `ChainPair.wires`.
+5. Main result: `StepE.strong_confluence`, Proposition 1 for reduction of graphs (page 73).
 -/
 
 namespace INet
@@ -36,15 +50,67 @@ open Term Cut
 
 namespace StrongConfluenceE
 
-/-! ## Instances of a rule and wire substitution -/
+-- ============================================================================================
+-- 1. Definition: an active pair written as a chain
+-- ============================================================================================
 
-theorem subst_app (α : S.Sym) (ts : Fin (S.arity α) → Term S ℕ) (x : ℕ) (t : Term S ℕ) :
+/-- **An active pair written as a chain, with its interaction** (Lafont 1997, page 73). The net
+`N` is a chain `α(as) = x₁, …, xₖ = β(bs)` of at most `n` names, plus a rest `D`; the rule of
+`α`, `β` is `r`, and firing the pair, with fresh injective names `f` for the new wires, gives a
+net that is the same graph as `M`. -/
+def ChainPair
+    -- the interaction system
+    (I : System S)
+    -- the net, the net its interaction gives up to wires, a bound on the length of the chain
+    (N M : Net S ℕ)
+    (n : ℕ) :
+    Prop :=
+  -- two symbols with a rule `r`, the trees on their auxiliary ports, the links of the chain,
+  -- the rest of the net and the names of the new wires, such that
+  ∃ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)) (_ : I.rule α β = some r)
+    (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ) (xs : List ℕ)
+    (D : Net S ℕ) (f : Fin r.internal → ℕ),
+    -- the chain has at most `n` links,
+    xs.length ≤ n ∧
+    -- the names of the new wires are distinct
+    Function.Injective f ∧
+    -- and fresh for the net,
+    (∀ i, f i ∉ N.vars) ∧
+    -- the net is the chain `α(as) = x₁, …, xₖ = β(bs)` and the rest `D`,
+    N = chain (Term.app α as) xs (Term.app β bs) + D ∧
+    -- and firing the pair gives the same graph as `M`
+    Equiv (r.inst as bs f + D) M
+
+-- ============================================================================================
+-- 2. Auxiliary lemmas: instances of a rule and wire substitution
+-- ============================================================================================
+
+
+/-- Plugging `t` into a name `x` of a cell plugs it into the trees on its ports. -/
+theorem subst_app
+    -- the cell `α(ts)`
+    (α : S.Sym)
+    (ts : Fin (S.arity α) → Term S ℕ)
+    -- the name `x` and the tree `t` plugged into it
+    (x : ℕ)
+    (t : Term S ℕ) :
     (Term.app α ts).subst x t = Term.app α fun i => (ts i).subst x t := rfl
 
 /-- Plugging `t` into a name `x` of an instance of a rule plugs it into the trees on the ports,
 when `x` is not one of the new wires. -/
-theorem sub_inst {a b : ℕ} (r : Rule S a b) (as : Fin a → Term S ℕ) (bs : Fin b → Term S ℕ)
-    (f : Fin r.internal → ℕ) (x : ℕ) (t : Term S ℕ) (hf : ∀ w, f w ≠ x) :
+theorem sub_inst
+    -- the rule
+    {a b : ℕ}
+    (r : Rule S a b)
+    -- the trees on the auxiliary ports of the two cells
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    -- the names of the internal wires of the rule
+    (f : Fin r.internal → ℕ)
+    -- the name `x` and the tree `t` plugged into it; `x` is not a name of an internal wire
+    (x : ℕ)
+    (t : Term S ℕ)
+    (hf : ∀ w, f w ≠ x) :
     sub (r.inst as bs f) x t =
       r.inst (fun i => (as i).subst x t) (fun j => (bs j).subst x t) f := by
   have e : sub (r.inst as bs f) x t =
@@ -58,9 +124,20 @@ theorem sub_inst {a b : ℕ} (r : Rule S a b) (as : Fin a → Term S ℕ) (bs : 
   · simp [hf w]
 
 /-- A name of a tree plugged into a port of the first cell is a name of the instance. -/
-theorem mem_vars_inst_left {a b : ℕ} {r : Rule S a b} (hr : r.Linear) (as : Fin a → Term S ℕ)
-    (bs : Fin b → Term S ℕ) (f : Fin r.internal → ℕ) {x : ℕ} {i : Fin a}
-    (hx : x ∈ (as i).vars) : x ∈ (r.inst as bs f).vars := by
+theorem mem_vars_inst_left
+    -- a linear rule
+    {a b : ℕ}
+    {r : Rule S a b}
+    (hr : r.Linear)
+    -- the trees on the auxiliary ports of the two cells, and the names of the internal wires
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    (f : Fin r.internal → ℕ)
+    -- a name `x` of the tree on the port `i` of the first cell
+    {x : ℕ}
+    {i : Fin a}
+    (hx : x ∈ (as i).vars) :
+    x ∈ (r.inst as bs f).vars := by
   rw [← Multiset.one_le_count_iff_mem, Rule.count_vars_inst r hr]
   have h1 := Multiset.one_le_count_iff_mem.2 hx
   have : (as i).vars.count x ≤ ∑ i, (as i).vars.count x :=
@@ -69,9 +146,20 @@ theorem mem_vars_inst_left {a b : ℕ} {r : Rule S a b} (hr : r.Linear) (as : Fi
   omega
 
 /-- A name of a tree plugged into a port of the second cell is a name of the instance. -/
-theorem mem_vars_inst_right {a b : ℕ} {r : Rule S a b} (hr : r.Linear) (as : Fin a → Term S ℕ)
-    (bs : Fin b → Term S ℕ) (f : Fin r.internal → ℕ) {x : ℕ} {j : Fin b}
-    (hx : x ∈ (bs j).vars) : x ∈ (r.inst as bs f).vars := by
+theorem mem_vars_inst_right
+    -- a linear rule
+    {a b : ℕ}
+    {r : Rule S a b}
+    (hr : r.Linear)
+    -- the trees on the auxiliary ports of the two cells, and the names of the internal wires
+    (as : Fin a → Term S ℕ)
+    (bs : Fin b → Term S ℕ)
+    (f : Fin r.internal → ℕ)
+    -- a name `x` of the tree on the port `j` of the second cell
+    {x : ℕ}
+    {j : Fin b}
+    (hx : x ∈ (bs j).vars) :
+    x ∈ (r.inst as bs f).vars := by
   rw [← Multiset.one_le_count_iff_mem, Rule.count_vars_inst r hr]
   have h1 := Multiset.one_le_count_iff_mem.2 hx
   have : (bs j).vars.count x ≤ ∑ j, (bs j).vars.count x :=
@@ -80,49 +168,76 @@ theorem mem_vars_inst_right {a b : ℕ} {r : Rule S a b} (hr : r.Linear) (as : F
   omega
 
 /-- A name of a cell is the name of one of the trees on its ports. -/
-theorem mem_vars_app {α : S.Sym} {ts : Fin (S.arity α) → Term S ℕ} {x : ℕ}
-    (hx : x ∈ (Term.app α ts).vars) : ∃ i, x ∈ (ts i).vars := by
+theorem mem_vars_app
+    -- the cell `α(ts)` and a name `x` of it
+    {α : S.Sym}
+    {ts : Fin (S.arity α) → Term S ℕ}
+    {x : ℕ}
+    (hx : x ∈ (Term.app α ts).vars) :
+    -- `x` is a name of the tree on some port `i`
+    ∃ i, x ∈ (ts i).vars := by
   simpa only [vars_app, Multiset.mem_sum, Finset.mem_univ, true_and] using hx
 
-/-! ## A chain with its interaction -/
+-- ============================================================================================
+-- 3. Auxiliary lemmas: a chain with its interaction
+-- ============================================================================================
 
 /-- The equation `a = b` between the two ends of a chain has fewer names than the chain. -/
-theorem count_vars_short (a b : Term S ℕ) (xs : List ℕ) (D : Net S ℕ) (y : ℕ) :
+theorem count_vars_short
+    -- the two ends, the links of the chain, the rest of the net
+    (a b : Term S ℕ)
+    (xs : List ℕ)
+    (D : Net S ℕ)
+    -- a name
+    (y : ℕ) :
     (Net.vars (s(a, b) ::ₘ D)).count y ≤ (chain a xs b + D).vars.count y := by
   rw [Net.vars_add, Multiset.count_add, count_vars_chain, Net.vars_cons, Multiset.count_add,
     eqVars_mk, Multiset.count_add]
   omega
 
-theorem linear_short {a b : Term S ℕ} {xs : List ℕ} {D : Net S ℕ}
-    (h : (chain a xs b + D).Linear) : Net.Linear (s(a, b) ::ₘ D) :=
+/-- Replacing a chain by the equation between its two ends keeps linearity. -/
+theorem linear_short
+    -- the two ends, the links of the chain, the rest of the net
+    {a b : Term S ℕ}
+    {xs : List ℕ}
+    {D : Net S ℕ}
+    -- the net with the chain is linear
+    (h : (chain a xs b + D).Linear) :
+    Net.Linear (s(a, b) ::ₘ D) :=
   fun y => (count_vars_short a b xs D y).trans (h y)
 
-theorem notMem_short {a b : Term S ℕ} {xs : List ℕ} {D : Net S ℕ} {y : ℕ}
-    (h : y ∉ (chain a xs b + D).vars) : y ∉ Net.vars (s(a, b) ::ₘ D) := by
+/-- A name that is not in a net with a chain is not in it with the equation between the two
+ends of the chain. -/
+theorem notMem_short
+    -- the two ends, the links of the chain, the rest of the net
+    {a b : Term S ℕ}
+    {xs : List ℕ}
+    {D : Net S ℕ}
+    -- a name that is not a name of the net with the chain
+    {y : ℕ}
+    (h : y ∉ (chain a xs b + D).vars) :
+    y ∉ Net.vars (s(a, b) ::ₘ D) := by
   rw [← Multiset.count_eq_zero] at h ⊢
   have := count_vars_short a b xs D y
   omega
 
-/-- **An active pair written as a chain, with its interaction** (Lafont 1997, page 73). The net
-`N` is a chain `α(as) = x₁, …, xₖ = β(bs)` of at most `n` names, plus a rest `D`; the rule of
-`α`, `β` is `r`, and firing the pair, with fresh injective names `f` for the new wires, gives a
-net that is the same graph as `M`. -/
-def ChainPair (I : System S) (N M : Net S ℕ) (n : ℕ) : Prop :=
-  ∃ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)) (_ : I.rule α β = some r)
-    (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ) (xs : List ℕ)
-    (D : Net S ℕ) (f : Fin r.internal → ℕ),
-    xs.length ≤ n ∧ Function.Injective f ∧ (∀ i, f i ∉ N.vars) ∧
-    N = chain (Term.app α as) xs (Term.app β bs) + D ∧ Equiv (r.inst as bs f + D) M
-
 variable {I : System S}
 
 /-- One interaction is a chain of length `0`. -/
-theorem ChainPair.of_step {N M : Net S ℕ} (h : Step I N M) : ChainPair I N M 0 := by
+theorem ChainPair.of_step
+    -- one literal interaction from `N` to `M`
+    {N M : Net S ℕ}
+    (h : Step I N M) :
+    ChainPair I N M 0 := by
   obtain ⟨α, β, r, hr, as, bs, Δ, f, hf, hfresh⟩ := h
   exact ⟨α, β, r, hr, as, bs, [], Δ, f, le_rfl, hf, hfresh, by simp, Equiv.refl _⟩
 
 /-- A chain of length `0` is an equation between two cells: it can be fired. -/
-theorem ChainPair.step {N M : Net S ℕ} (h : ChainPair I N M 0) :
+theorem ChainPair.step
+    -- a chain pair of length `0` of `N`, with interaction `M`
+    {N M : Net S ℕ}
+    (h : ChainPair I N M 0) :
+    -- `N` reduces in one literal interaction to a net that is the same graph as `M`
     ∃ M', Step I N M' ∧ Equiv M' M := by
   obtain ⟨α, β, r, hr, as, bs, xs, D, f, hlen, hf, hfresh, rfl, hE⟩ := h
   have hxs : xs = [] := List.eq_nil_of_length_eq_zero (by omega)
@@ -134,11 +249,24 @@ theorem ChainPair.step {N M : Net S ℕ} (h : ChainPair I N M 0) :
   exact ⟨_, Step.mk α β r hr as bs D f hf hfresh, hE⟩
 
 /-- The instance of a chain is linear when the chain is, with fresh injective names. -/
-theorem linear_inst_chain (hI : ∀ α β r, I.rule α β = some r → r.Linear) {α β : S.Sym}
-    {r : Rule S (S.arity α) (S.arity β)} (hr : I.rule α β = some r)
-    {as : Fin (S.arity α) → Term S ℕ} {bs : Fin (S.arity β) → Term S ℕ} {xs : List ℕ}
-    {D : Net S ℕ} {f : Fin r.internal → ℕ} (hf : Function.Injective f)
+theorem linear_inst_chain
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- two symbols and their rule
+    {α β : S.Sym}
+    {r : Rule S (S.arity α) (S.arity β)}
+    (hr : I.rule α β = some r)
+    -- the trees on the auxiliary ports, the links of the chain, the rest of the net
+    {as : Fin (S.arity α) → Term S ℕ}
+    {bs : Fin (S.arity β) → Term S ℕ}
+    {xs : List ℕ}
+    {D : Net S ℕ}
+    -- injective names for the new wires
+    {f : Fin r.internal → ℕ}
+    (hf : Function.Injective f)
+    -- the net with the chain is linear
     (hN : (chain (Term.app α as) xs (Term.app β bs) + D).Linear)
+    -- the names of the new wires are fresh for it
     (hfresh : ∀ i, f i ∉ (chain (Term.app α as) xs (Term.app β bs) + D).vars) :
     (r.inst as bs f + D).Linear :=
   r.linear_inst_add (hI _ _ _ hr) (hα := rfl) (hβ := rfl) hf (linear_short hN)
@@ -146,13 +274,29 @@ theorem linear_inst_chain (hI : ∀ α β r, I.rule α β = some r → r.Linear)
 
 /-- **New names for the new wires.** In a chain pair of a linear net `N`, the names `f` can be
 replaced by any injective names that are fresh for a net `N'` containing the names of `N`. -/
-theorem ChainPair.refresh (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N N' M : Net S ℕ}
-    {n : ℕ} (h : ChainPair I N M n) (hN : N.Linear) (hsub : ∀ y ∈ N.vars, y ∈ N'.vars) :
+theorem ChainPair.refresh
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a chain pair of a linear net `N`, and a net `N'` containing the names of `N`
+    {N N' M : Net S ℕ}
+    {n : ℕ}
+    (h : ChainPair I N M n)
+    (hN : N.Linear)
+    (hsub : ∀ y ∈ N.vars, y ∈ N'.vars) :
+    -- the same data as in `ChainPair I N M n`, such that
     ∃ (α β : S.Sym) (r : Rule S (S.arity α) (S.arity β)) (_ : I.rule α β = some r)
       (as : Fin (S.arity α) → Term S ℕ) (bs : Fin (S.arity β) → Term S ℕ) (xs : List ℕ)
       (D : Net S ℕ) (f : Fin r.internal → ℕ),
-      xs.length ≤ n ∧ Function.Injective f ∧ (∀ i, f i ∉ N'.vars) ∧
-      N = chain (Term.app α as) xs (Term.app β bs) + D ∧ Equiv (r.inst as bs f + D) M := by
+      -- the chain has at most `n` links,
+      xs.length ≤ n ∧
+      -- the names of the new wires are distinct
+      Function.Injective f ∧
+      -- and fresh for `N'`,
+      (∀ i, f i ∉ N'.vars) ∧
+      -- `N` is the chain and the rest `D`,
+      N = chain (Term.app α as) xs (Term.app β bs) + D ∧
+      -- and firing the pair gives the same graph as `M`
+      Equiv (r.inst as bs f + D) M := by
   obtain ⟨α, β, r, hr, as, bs, xs, D, f, hlen, hf, hfresh, rfl, hE⟩ := h
   obtain ⟨K, hK⟩ := Net.exists_below N'
   let g : Fin r.internal → ℕ := fun w => K + w
@@ -168,8 +312,16 @@ theorem ChainPair.refresh (hI : ∀ α β r, I.rule α β = some r → r.Linear)
   exact (r.equiv_inst_of_linear (hI _ _ _ hr) as bs g f D L' L).trans hE
 
 /-- A name of a chain that is not one of its links is a name of one of its two ends. -/
-theorem mem_ends_of_mem_chain {a b : Term S ℕ} {xs : List ℕ} {x : ℕ} (hxs : x ∉ xs)
-    (hx : x ∈ (chain a xs b).vars) : x ∈ a.vars ∨ x ∈ b.vars := by
+theorem mem_ends_of_mem_chain
+    -- the two ends and the links of the chain
+    {a b : Term S ℕ}
+    {xs : List ℕ}
+    -- a name of the chain that is not a link
+    {x : ℕ}
+    (hxs : x ∉ xs)
+    (hx : x ∈ (chain a xs b).vars) :
+    -- it is a name of one of the two ends
+    x ∈ a.vars ∨ x ∈ b.vars := by
   rw [← Multiset.one_le_count_iff_mem, count_vars_chain, List.count_eq_zero.2 hxs] at hx
   by_cases ha : x ∈ a.vars
   · exact Or.inl ha
@@ -182,8 +334,17 @@ theorem mem_ends_of_mem_chain {a b : Term S ℕ} {xs : List ℕ} {x : ℕ} (hxs 
 of the chain, the chain gets shorter and its interaction does not change; otherwise `t` is plugged
 into the rest of the net, the chain keeps its links, and the interaction is changed by the same
 wire substitution. The chain does not get longer. -/
-theorem ChainPair.wire (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N N' M : Net S ℕ}
-    {n : ℕ} (h : Wire N N') (hc : ChainPair I N M n) : ChainPair I N' M n := by
+theorem ChainPair.wire
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a wire substitution from `N` to `N'`
+    {N N' M : Net S ℕ}
+    {n : ℕ}
+    (h : Wire N N')
+    -- a chain pair of `N` of length at most `n`, with interaction `M`
+    (hc : ChainPair I N M n) :
+    -- is a chain pair of `N'`, with the same bound and the same interaction
+    ChainPair I N' M n := by
   have hsub : ∀ y ∈ N'.vars, y ∈ N.vars := fun y hy => h.mem_vars hy
   obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := h
   have hcx := hlin x
@@ -261,9 +422,16 @@ theorem ChainPair.wire (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N
 /-- **Changing a cell at an end of a chain**, keeping track of the end. If an equation `c = b₀` of
 a chain has a cell `c` on one side, `c` is the first or the last end of the chain, and it can be
 replaced there by any tree `a'`. -/
-theorem chain_replace_cell {c a' b₀ : Term S ℕ} (hc : c.IsCell) :
+theorem chain_replace_cell
+    -- an equation `c = b₀` with a cell `c`, and a tree `a'` to put in place of `c`
+    {c a' b₀ : Term S ℕ}
+    (hc : c.IsCell) :
+    -- for every chain `A = x₁, …, xₖ = B` that is `c = b₀` and some equations `C`,
     ∀ (A B : Term S ℕ) (xs : List ℕ) (C : Net S ℕ), chain A xs B = s(c, b₀) ::ₘ C →
-      (c = A ∧ s(a', b₀) ::ₘ C = chain a' xs B) ∨ (c = B ∧ s(a', b₀) ::ₘ C = chain A xs a')
+      -- either `c` is the first end `A`, and `a' = b₀, C` is the chain from `a'` to `B`,
+      (c = A ∧ s(a', b₀) ::ₘ C = chain a' xs B) ∨
+      -- or `c` is the last end `B`, and `a' = b₀, C` is the chain from `A` to `a'`
+      (c = B ∧ s(a', b₀) ::ₘ C = chain A xs a')
   | A, B, [], C, h => by
     rw [chain_nil, Multiset.singleton_eq_cons_iff] at h
     obtain ⟨h1, rfl⟩ := h
@@ -284,10 +452,20 @@ theorem chain_replace_cell {c a' b₀ : Term S ℕ} (hc : c.IsCell) :
 /-- A wire substitution undone keeps a chain pair, when `x` occurs in the left side `a` of the
 equation it was plugged into: the chain gets a new link `x`, or one of its two cells is the cell
 into which `t` was plugged, or the wire is in the rest of the net. -/
-theorem ChainPair.unsub (hI : ∀ α β r, I.rule α β = some r → r.Linear) {x : ℕ}
-    {t a b : Term S ℕ} {Δ M : Net S ℕ} {n : ℕ} (hxa : x ∈ a.vars)
+theorem ChainPair.unsub
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- the wire `x = t`, the equation `a = b` with `x` in `a`, and the rest `Δ` of the net
+    {x : ℕ}
+    {t a b : Term S ℕ}
+    {Δ M : Net S ℕ}
+    {n : ℕ}
+    (hxa : x ∈ a.vars)
+    -- the net `x = t, a = b, Δ` is linear
     (hlin : Net.Linear (s(var x, t) ::ₘ s(a, b) ::ₘ Δ))
+    -- the net with `t` plugged into `x` has a chain pair with interaction `M`
     (hc : ChainPair I (s(a.subst x t, b) ::ₘ Δ) M n) :
+    -- then so has the net before the substitution, with a chain of some length
     ∃ n', ChainPair I (s(var x, t) ::ₘ s(a, b) ::ₘ Δ) M n' := by
   have hcx := hlin x
   simp only [Net.vars_cons, eqVars_mk, Term.vars_var, Multiset.count_add,
@@ -399,8 +577,17 @@ theorem ChainPair.unsub (hI : ∀ α β r, I.rule α β = some r → r.Linear) {
 /-- **A wire substitution undone keeps a chain pair** (Lafont 1997, page 73). If `N'` is `N` with
 the wire `x = t` contracted and `N'` has a chain pair, so has `N`, with the same interaction up to
 wires. -/
-theorem ChainPair.wire_symm (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N N' M : Net S ℕ}
-    {n : ℕ} (h : Wire N N') (hc : ChainPair I N' M n) : ∃ n', ChainPair I N M n' := by
+theorem ChainPair.wire_symm
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- a wire substitution from `N` to `N'`
+    {N N' M : Net S ℕ}
+    {n : ℕ}
+    (h : Wire N N')
+    -- a chain pair of `N'` with interaction `M`
+    (hc : ChainPair I N' M n) :
+    -- `N` has a chain pair, of some length, with the same interaction
+    ∃ n', ChainPair I N M n' := by
   obtain ⟨x, t, a, b, Δ, hlin, hx⟩ := h
   have hcx := hlin x
   simp only [Net.vars_cons, eqVars_mk, Term.vars_var, Multiset.count_add,
@@ -420,8 +607,15 @@ theorem ChainPair.wire_symm (hI : ∀ α β r, I.rule α β = some r → r.Linea
 
 /-- **The transport lemma** (Lafont 1997, page 73: reduction is defined on graphs). Two texts of
 the same graph have the same chain pairs, with the same interactions up to wires. -/
-theorem ChainPair.of_equiv (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N N' : Net S ℕ}
-    (h : Equiv N N') (M : Net S ℕ) :
+theorem ChainPair.of_equiv
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- two texts of the same graph
+    {N N' : Net S ℕ}
+    (h : Equiv N N')
+    -- the interaction
+    (M : Net S ℕ) :
+    -- `N` has a chain pair with interaction `M` if and only if `N'` has one
     (∃ n, ChainPair I N M n) ↔ ∃ n, ChainPair I N' M n := by
   induction h with
   | rel _ _ h =>
@@ -430,18 +624,29 @@ theorem ChainPair.of_equiv (hI : ∀ α β r, I.rule α β = some r → r.Linear
   | symm _ _ _ ih => exact ih.symm
   | trans _ _ _ _ _ ih ih' => exact ih.trans ih'
 
-/-! ## Contracting a chain -/
+-- ============================================================================================
+-- 4. Auxiliary lemmas: contracting a chain
+-- ============================================================================================
 
 /-- Wire substitutions, in any number, give the same graph. -/
-theorem equiv_of_wires {N K : Net S ℕ} (h : Relation.ReflTransGen Wire N K) : Equiv N K := by
+theorem equiv_of_wires
+    -- wire substitutions done forward from `N` to `K`
+    {N K : Net S ℕ}
+    (h : Relation.ReflTransGen Wire N K) :
+    Equiv N K := by
   induction h with
   | refl => exact Equiv.refl _
   | tail _ w ih => exact ih.trans w.equiv
 
 /-- A chain of a linear net is contracted, link after link, into the equation between its two
 ends, by wire substitutions done forward. -/
-theorem wires_chain (B : Term S ℕ) (D : Net S ℕ) :
+theorem wires_chain
+    -- the last end of the chain and the rest of the net
+    (B : Term S ℕ)
+    (D : Net S ℕ) :
+    -- for every first end `A` and links `xs` such that the net with the chain is linear,
     ∀ (A : Term S ℕ) (xs : List ℕ), (chain A xs B + D).Linear →
+      -- wire substitutions done forward lead to the net `A = B, D`
       Relation.ReflTransGen Wire (chain A xs B + D) (s(A, B) ::ₘ D)
   | A, [], _ => by
     rw [chain_nil, Multiset.singleton_add]
@@ -470,7 +675,13 @@ theorem wires_chain (B : Term S ℕ) (D : Net S ℕ) :
 /-- **Contracting a chain pair** (Lafont 1997, page 71: a chain of wires is one wire). A chain
 pair of a linear net becomes, by wire substitutions done forward, a chain of length `0`: an
 equation between the two cells. -/
-theorem ChainPair.contract {N M : Net S ℕ} {n : ℕ} (h : ChainPair I N M n) (hN : N.Linear) :
+theorem ChainPair.contract
+    -- a chain pair of a linear net `N`, with interaction `M`
+    {N M : Net S ℕ}
+    {n : ℕ}
+    (h : ChainPair I N M n)
+    (hN : N.Linear) :
+    -- wire substitutions done forward lead from `N` to a net `K` with a chain of length `0`
     ∃ K, Relation.ReflTransGen Wire N K ∧ ChainPair I K M 0 := by
   obtain ⟨α, β, r, hr, as, bs, xs, D, f, -, hf, hfresh, rfl, hE⟩ := h
   refine ⟨_, wires_chain _ D _ xs hN, α, β, r, hr, as, bs, [], D, f, le_rfl, hf,
@@ -478,13 +689,25 @@ theorem ChainPair.contract {N M : Net S ℕ} {n : ℕ} (h : ChainPair I N M n) (
   exact notMem_short (hfresh i)
 
 /-- Wire substitutions done forward keep a chain pair, and do not make the chain longer. -/
-theorem ChainPair.wires (hI : ∀ α β r, I.rule α β = some r → r.Linear) {N K M : Net S ℕ}
-    {n : ℕ} (h : Relation.ReflTransGen Wire N K) (hc : ChainPair I N M n) : ChainPair I K M n := by
+theorem ChainPair.wires
+    -- every rule of the system is linear
+    (hI : ∀ α β r, I.rule α β = some r → r.Linear)
+    -- wire substitutions done forward from `N` to `K`
+    {N K M : Net S ℕ}
+    {n : ℕ}
+    (h : Relation.ReflTransGen Wire N K)
+    -- a chain pair of `N` of length at most `n`, with interaction `M`
+    (hc : ChainPair I N M n) :
+    ChainPair I K M n := by
   induction h with
   | refl => exact hc
   | tail _ w ih => exact ih.wire hI w
 
 end StrongConfluenceE
+
+-- ============================================================================================
+-- 5. Main result: Proposition 1 for reduction of graphs
+-- ============================================================================================
 
 open StrongConfluenceE
 
@@ -499,9 +722,20 @@ The two interactions fire in two texts `N₁`, `N₂` of `N`. The active pair fi
 chain of wires in `N₁` (`ChainPair.of_equiv`); contracting it gives a text `K` in which both active
 pairs are equations (`ChainPair.contract`, `ChainPair.wires`), and Proposition 1 for literal steps
 (`Step.strong_confluence`) applies to `K`. -/
-theorem StepE.strong_confluence {I : System S} (hI : I.WellFormed) {N M₁ M₂ : Net S ℕ}
-    (hN : N.Linear) (h₁ : StepE I N M₁) (h₂ : StepE I N M₂) :
-    Equiv M₁ M₂ ∨ ∃ P₁ P₂, StepE I M₁ P₁ ∧ StepE I M₂ P₂ ∧ Equiv P₁ P₂ := by
+theorem StepE.strong_confluence
+    -- a well-formed interaction system
+    {I : System S}
+    (hI : I.WellFormed)
+    -- a linear net `N`
+    {N M₁ M₂ : Net S ℕ}
+    (hN : N.Linear)
+    -- two reductions of graphs, in one step, from `N` to `M₁` and to `M₂`
+    (h₁ : StepE I N M₁)
+    (h₂ : StepE I N M₂) :
+    -- either `M₁` and `M₂` are the same graph,
+    Equiv M₁ M₂ ∨
+    -- or each reduces in one step to a net, and the two nets are the same graph
+    ∃ P₁ P₂, StepE I M₁ P₁ ∧ StepE I M₂ P₂ ∧ Equiv P₁ P₂ := by
   obtain ⟨N₁, e₁, s₁⟩ := h₁
   obtain ⟨N₂, e₂, s₂⟩ := h₂
   have hl := hI.linear
