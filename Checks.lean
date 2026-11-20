@@ -136,3 +136,7 @@ import Checks.Misc.PrintCheck
 import Checks.Reduced.RuleReducedCheck
 import Checks.Reduced.RuleReducedReview
 import Checks.Misc.ArithmeticTrReview
+import Checks.Reduction.StrongConfluenceForcedCheck
+import Checks.Reduction.NormalFormCutCheck
+import Checks.Graphs.GraphStepNonLinearCheck
+import Checks.Misc.MultiplicationOnlyCheck
